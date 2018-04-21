@@ -17,18 +17,17 @@ import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Frame;
 
 public class DemonGoGame extends ARCoreScene {
-	PerspectiveCamera camera;
-	CameraInputController cameraInputController;
-	ModelBatch modelBatch;
-	Array<ModelInstance> instances = new Array<ModelInstance>();
-	Environment environment;
-	AssetManager assetManager;
+	private PerspectiveCamera camera;
+	private Array<ModelInstance> instances = new Array<ModelInstance>();
+	private Environment environment;
+	private AssetManager assetManager;
 
-	boolean loading = true;
+	private boolean loading = true;
 
 	@Override
 	public void create () {
-		modelBatch = new ModelBatch();
+		super.create();
+
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
@@ -40,14 +39,13 @@ public class DemonGoGame extends ARCoreScene {
 		camera.far = 300f;
 		camera.update();
 
-		cameraInputController = new CameraInputController(camera);
-		Gdx.input.setInputProcessor(cameraInputController);
+		Gdx.input.setInputProcessor(new CameraInputController(camera));
 
 		assetManager = new AssetManager();
 		assetManager.load("demon01.g3db", Model.class);
 	}
 
-	void assetsLoaded() {
+	private void assetsLoaded() {
         instances.add(new ModelInstance(assetManager.get("demon01.g3db", Model.class)));
 	    loading = false;
     }
@@ -57,17 +55,11 @@ public class DemonGoGame extends ARCoreScene {
 	    if (loading && assetManager.update()) {
 	        assetsLoaded();
         }
-		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-
-		modelBatch.begin(camera);
 		modelBatch.render(instances, environment);
-		modelBatch.end();
 	}
 	
 	@Override
 	public void dispose () {
-		modelBatch.dispose();
 		instances.clear();
 	}
 }
