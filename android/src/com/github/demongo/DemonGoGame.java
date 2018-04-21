@@ -11,16 +11,20 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
+import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
+import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Frame;
 
 public class DemonGoGame extends ARCoreScene {
-	private PerspectiveCamera camera;
 	private Array<ModelInstance> instances = new Array<ModelInstance>();
-	private Environment environment;
 	private AssetManager assetManager;
+	private Environment environment;
+	private ParticleSystem particleSystem;
 
 	private boolean loading = true;
 
@@ -28,18 +32,11 @@ public class DemonGoGame extends ARCoreScene {
 	public void create () {
 		super.create();
 
+        particleSystem = new ParticleSystem();
+
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
-		camera = new PerspectiveCamera(80, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-		camera.position.set(1f, 1f, 1f);
-		camera.lookAt(0, 0, 0);
-		camera.near = 1f;
-		camera.far = 300f;
-		camera.update();
-
-		Gdx.input.setInputProcessor(new CameraInputController(camera));
 
 		assetManager = new AssetManager();
 		assetManager.load("demon01.g3db", Model.class);
@@ -50,14 +47,35 @@ public class DemonGoGame extends ARCoreScene {
 	    loading = false;
     }
 
+    private ParticleEffect createParticleSystem() {
+        PointSpriteParticleBatch batch = new PointSpriteParticleBatch();
+        batch.setCamera(getCamera());
+        particleSystem.add(batch);
+
+        assetManager.load("test.pfx",
+                ParticleEffect.class,
+                new ParticleEffectLoader.ParticleEffectLoadParameter(particleSystem.getBatches()));
+        assetManager.finishLoading();
+
+        ParticleEffect effect = assetManager.get("test.pfx");
+        effect.init();
+        effect.start();
+        particleSystem.add(effect);
+        return effect;
+    }
+
 	@Override
 	public void render (Frame frame, ModelBatch modelBatch) {
 	    if (loading && assetManager.update()) {
 	        assetsLoaded();
         }
+
+        particleSystem.updateAndDraw();
+
 		modelBatch.render(instances, environment);
+        modelBatch.render(particleSystem, environment);
 	}
-	
+
 	@Override
 	public void dispose () {
 		instances.clear();
