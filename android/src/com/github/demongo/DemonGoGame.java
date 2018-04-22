@@ -1,5 +1,8 @@
 package com.github.demongo;
 
+import android.media.Image;
+import android.util.Log;
+
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
@@ -19,6 +22,13 @@ import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Frame;
+import com.google.ar.core.exceptions.NotYetAvailableException;
+
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+
+import java.nio.ByteBuffer;
 
 public class DemonGoGame extends ARCoreScene {
 	private Array<ModelInstance> instances = new Array<ModelInstance>();
@@ -31,6 +41,8 @@ public class DemonGoGame extends ARCoreScene {
 	@Override
 	public void create () {
 		super.create();
+
+		OpenCVLoader.initDebug();
 
         particleSystem = new ParticleSystem();
 
@@ -69,6 +81,20 @@ public class DemonGoGame extends ARCoreScene {
 	    if (loading && assetManager.update()) {
 	        assetsLoaded();
         }
+
+        try {
+            Image image = frame.acquireCameraImage();
+            Image.Plane plane = image.getPlanes()[0];
+            ByteBuffer buffer = plane.getBuffer();
+            Mat mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
+            byte[] pixels = new byte[buffer.limit()];
+            buffer.position(0);
+            buffer.get(pixels);
+            mat.put(0, 0, pixels);
+            image.close();
+		} catch (NotYetAvailableException e) {
+			Log.e("demon-go", "no image yet");
+		}
 
         particleSystem.updateAndDraw();
 
