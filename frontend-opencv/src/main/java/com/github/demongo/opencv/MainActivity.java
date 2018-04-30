@@ -8,13 +8,17 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
+
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
@@ -92,5 +96,21 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
+    }
+    public double getBlurValue(Mat image) {
+        Mat gray = new Mat();
+        Mat destination = new Mat();
+
+        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.Laplacian(gray, destination, 3);
+
+        MatOfDouble median = new MatOfDouble();
+        MatOfDouble std= new MatOfDouble();
+        Core.meanStdDev(destination, median , std);
+
+        double blurValue = Math.pow(std.get(0,0)[0],2);
+        Log.e("demon-go", Double.toString(blurValue));
+
+        return blurValue;
     }
 }
