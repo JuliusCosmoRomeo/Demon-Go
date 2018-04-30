@@ -77,7 +77,14 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
-        Imgproc.rectangle(currentFrame, new Point(10, 10), new Point(80, 80), new Scalar(0, 255, 0, 255), 3);
+        Imgproc.putText(currentFrame,
+                Double.toString(getBlurValue(currentFrame)),
+                new Point(10, 50),
+                Core.FONT_HERSHEY_SIMPLEX ,
+                1,
+                new Scalar(0, 0, 0),
+                4);
+
         return currentFrame;
     }
 
@@ -109,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         Core.meanStdDev(destination, median , std);
 
         double blurValue = Math.pow(std.get(0,0)[0],2);
-        Log.e("demon-go", Double.toString(blurValue));
+        //Log.e("demon-go", Double.toString(blurValue));
 
         return blurValue;
     }
