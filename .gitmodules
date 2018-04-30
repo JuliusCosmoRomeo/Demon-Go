@@ -1,0 +1,3 @@
+[submodule "cv-tests/EAST"]
+	path = cv-tests/EAST
+	url = git://github.com/argman/EAST.git
