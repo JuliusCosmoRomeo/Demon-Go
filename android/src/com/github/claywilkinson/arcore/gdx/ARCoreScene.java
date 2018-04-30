@@ -50,6 +50,8 @@ public abstract class ARCoreScene implements ApplicationListener {
    */
   protected abstract void render(Frame frame, ModelBatch modelBatch);
 
+  protected void postRender(Frame frame) {}
+
   /**
    * Camera controlled by ARCore. This is used to determine where the user is looking.
    */
@@ -132,6 +134,8 @@ public abstract class ARCoreScene implements ApplicationListener {
     modelBatch.begin(camera);
     render(frame, modelBatch);
     modelBatch.end();
+
+    postRender(frame);
   }
 
   @Override
