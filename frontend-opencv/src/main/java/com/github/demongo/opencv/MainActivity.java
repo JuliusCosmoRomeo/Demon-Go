@@ -1,6 +1,11 @@
 package com.github.demongo.opencv;
 
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,8 +26,10 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
+
+        requestCameraPermission();
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_main);
@@ -32,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView.setCvCameraViewListener(this);
     }
 
+    @Override
     public void onDestroy() {
         super.onDestroy();
         openCvCameraView.disableView();
@@ -56,10 +64,13 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             Log.d("demon-go", "OpenCV library found inside package. Using it!");
             // mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+
+        openCvCameraView.enableView();
     }
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
+        Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
         Imgproc.rectangle(currentFrame, new Point(10, 10), new Point(80, 80), new Scalar(0, 255, 0, 255), 3);
@@ -68,11 +79,18 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        Log.e("demon-go", "ON CAMERA VIEW STARTED");
         currentFrame = new Mat();
     }
 
     @Override
     public void onCameraViewStopped() {
         currentFrame.release();
+    }
+
+    private void requestCameraPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
+        }
     }
 }
