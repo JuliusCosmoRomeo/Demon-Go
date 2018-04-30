@@ -95,4 +95,22 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         return blurValue;
     }
+
+    public double getBlurValue(Mat image) {
+        Mat gray = new Mat();
+        Mat destination = new Mat();
+
+        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.Laplacian(gray, destination, 3);
+
+        MatOfDouble median = new MatOfDouble();
+        MatOfDouble std= new MatOfDouble();
+        Core.meanStdDev(destination, median , std);
+
+        double blurValue = Math.pow(std.get(0,0)[0],2);
+        Log.e("demon-go", Double.toString(blurValue));
+
+        return blurValue;
+    }
+
 }
