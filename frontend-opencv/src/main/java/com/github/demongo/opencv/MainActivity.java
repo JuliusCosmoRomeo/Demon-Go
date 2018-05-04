@@ -2,6 +2,7 @@ package com.github.demongo.opencv;
 
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
@@ -10,7 +11,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -24,10 +35,16 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
+    private static final String TAG = MainActivity.class.getName();
+    private static final String URL = "http://192.168.1.149:8000";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +59,15 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
+
+        final Button sendButton = findViewById(R.id.sendButton);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                send();
+            }
+        });
 
     }
 
@@ -76,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
-        Log.e("demon-go", "ON CAMERA FRAME");
+        // Log.e("demon-go", "ON CAMERA FRAME"); - Why would you do this?
         currentFrame = frame.rgba();
 
         /*Imgproc.putText(currentFrame,
@@ -168,6 +194,35 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
 
         return total;
+
+    }
+
+    private void send() {
+        String url = URL + "/post";
+
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                Log.i(TAG, response);
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(TAG,  error.toString());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> parameters = new HashMap<String, String>();
+                parameters.put("text", "test");
+                return parameters;
+            }
+        };
+
+        queue.add(request);
+        Log.e(TAG, "POST-request added");
 
     }
 
