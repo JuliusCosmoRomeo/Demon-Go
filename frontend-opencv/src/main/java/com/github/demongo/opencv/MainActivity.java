@@ -104,6 +104,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
     }
+
     public double getBlurValue(Mat image) {
         Mat gray = new Mat();
         Mat destination = new Mat();
@@ -115,9 +116,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         MatOfDouble std= new MatOfDouble();
         Core.meanStdDev(destination, median , std);
 
-        double blurValue = Math.pow(std.get(0,0)[0],2);
-        //Log.e("demon-go", Double.toString(blurValue));
-
-        return blurValue;
+        return Math.pow(std.get(0,0)[0],2);
     }
 }
