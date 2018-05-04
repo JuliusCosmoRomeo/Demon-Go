@@ -17,6 +17,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
 import org.opencv.core.Point;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
+
     }
 
     @Override
@@ -77,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
-        Imgproc.putText(currentFrame,
+        /*Imgproc.putText(currentFrame,
                 Double.toString(getBlurValue(currentFrame)),
                 new Point(10, 50),
                 Core.FONT_HERSHEY_SIMPLEX ,
@@ -85,7 +87,22 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                 new Scalar(0, 0, 0),
                 4);
 
-        return currentFrame;
+        Imgproc.putText(currentFrame,
+                Double.toString(estimateNoise(currentFrame)),
+                new Point(10, 70),
+                Core.FONT_HERSHEY_SIMPLEX ,
+                1,
+                new Scalar(0, 0, 0),
+                4);
+*/
+
+        //        return currentFrame;
+
+
+        return ContourDrawer.draw_contours(currentFrame);
+
+
+
     }
 
     @Override
@@ -108,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public double getBlurValue(Mat image) {
         Mat gray = new Mat();
         Mat destination = new Mat();
-
+  
         Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
         Imgproc.Laplacian(gray, destination, 3);
 
@@ -118,4 +135,41 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         return Math.pow(std.get(0,0)[0],2);
     }
+
+    public double estimateNoise(Mat image) {
+        Mat grayMat = new Mat();
+        Imgproc.cvtColor(image, grayMat, Imgproc.COLOR_BGR2GRAY);
+        int H = image.height();
+        int W = image.width();
+
+        Mat kernel = new Mat(3, 3, CvType.CV_32F) {
+            {
+                put(0,0,1);
+                put(0,1,-2);
+                put(0,2,1);
+
+                put(1,0,-2);
+                put(1,1,4);
+                put(1,2,-2);
+
+                put(2,0,1);
+                put(2,1,-2);
+                put(2,2,1);
+
+            }
+        };
+
+        Mat destination = new Mat(image.rows(),image.cols(),image.type());
+        Imgproc.filter2D(image, destination, -1, kernel);
+        Core.absdiff(destination, Scalar.all(0), destination);
+        double total = Core.sumElems(destination).val[0];
+        Log.e("demon-go", Double.toString(total));
+
+        total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
+
+        return total;
+
+    }
+
+
 }
