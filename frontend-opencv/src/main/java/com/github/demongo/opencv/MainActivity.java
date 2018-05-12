@@ -12,9 +12,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
 
+import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -28,7 +30,27 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
+    private TemplateMatching templateMatching;
 
+    //this callback is needed because Android's onCreate is called before OpenCV is loaded
+    //-> hence Mat-initialization with "new Mat()" fails in onCreate
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i("OpenCV", "OpenCV loaded successfully");
+                    templateMatching = new TemplateMatching(getApplicationContext());
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,10 +87,10 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d("demon-go", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, null);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         } else {
             Log.d("demon-go", "OpenCV library found inside package. Using it!");
-            // mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
 
         openCvCameraView.enableView();
@@ -97,8 +119,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 */
 
         //        return currentFrame;
-
-
+        if (templateMatching!= null){
+            currentFrame = templateMatching.findTemplate(currentFrame);
+        }
         return ContourDrawer.draw_contours(currentFrame);
 
 
