@@ -4,12 +4,14 @@ package com.github.demongo.opencv;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -27,6 +29,7 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -35,6 +38,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
     private static final String TAG = MainActivity.class.getName();
-    private static final String URL = "http://192.168.1.149:8000";
+    private static final String URL = "http://192.168.178.46:5000";
 
 
     @Override
@@ -60,14 +64,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
 
-        final Button sendButton = findViewById(R.id.sendButton);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                // send();
-            }
-        });
 
     }
 
@@ -104,6 +100,15 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         // Log.e("demon-go", "ON CAMERA FRAME"); - Why would you do this?
         currentFrame = frame.rgba();
+
+        final Button sendButton = findViewById(R.id.sendButton);
+        sendButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                sendImage(currentFrame);
+            }
+        });
 
         /*Imgproc.putText(currentFrame,
                 Double.toString(getBlurValue(currentFrame)),
@@ -197,20 +202,20 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     }
 
-    /*
+
     private String matToBase64String(Mat mat) {
-        Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB8);
+        Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat, bmp);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bmp.compress(Bitmap.CompressFormat.JPEG, 92, stream);
         byte[] imageBytes = stream.toByteArray();
-        String encodedImage = Base64.encodeToString(imagesBytes, Base64.DEFAULT);
+        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
         return encodedImage;
     }
-    */
 
-    private void sendImage(Mat mat) {
+
+    private void sendImage(final Mat mat) {
         String url = URL + "/post";
 
         RequestQueue queue = Volley.newRequestQueue(this);
@@ -227,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             }
         }) {
             @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> parameters = new HashMap<String, String>();
                 parameters.put("image", matToBase64String(mat));
                 return parameters;
