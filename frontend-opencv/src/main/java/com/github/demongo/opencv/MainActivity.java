@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
             @Override
             public void onClick(View v) {
-                send();
+                // send();
             }
         });
 
@@ -197,7 +197,20 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     }
 
-    private void send() {
+    /*
+    private String matToBase64String(Mat mat) {
+        Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB8);
+        Utils.matToBitmap(mat, bmp);
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bmp.compress(Bitmap.CompressFormat.JPEG, 92, stream);
+        byte[] imageBytes = stream.toByteArray();
+        String encodedImage = Base64.encodeToString(imagesBytes, Base64.DEFAULT);
+        return encodedImage;
+    }
+    */
+
+    private void sendImage(Mat mat) {
         String url = URL + "/post";
 
         RequestQueue queue = Volley.newRequestQueue(this);
@@ -216,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             @Override
             protected Map<String, String> getParams() throws AuthFailureError {
                 Map<String, String> parameters = new HashMap<String, String>();
-                parameters.put("text", "test");
+                parameters.put("image", matToBase64String(mat));
                 return parameters;
             }
         };
