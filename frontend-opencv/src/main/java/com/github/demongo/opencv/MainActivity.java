@@ -120,9 +120,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         //        return currentFrame;
         if (templateMatching!= null){
-            currentFrame = templateMatching.findTemplate(currentFrame);
+            //currentFrame = templateMatching.findTemplate(currentFrame);
+            currentFrame = templateMatching.matchFeatures(currentFrame);
         }
-        return ContourDrawer.draw_contours(currentFrame);
+        //return ContourDrawer.draw_contours(currentFrame);
+        return currentFrame;
 
 
 
