@@ -1,7 +1,32 @@
 package com.github.demongo.opencv;
 
-public class Transitor {
-    /*private static final String URL = "http://172.18.1.79:5000";
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.util.Base64;
+import android.util.Log;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.opencv.android.Utils;
+import org.opencv.core.Mat;
+
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
+
+class Transitor {
+    private static final String TAG = Transitor.class.getName();
+    private static final String URL = "http://192.168.0.106:5000";
+    private RequestQueue queue;
+
+    public Transitor(Context context) {
+        this.queue = Volley.newRequestQueue(context);
+    }
 
     private String matToBase64String(Mat mat) {
         Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
@@ -16,10 +41,8 @@ public class Transitor {
     }
 
 
-    private void sendImage(final Mat mat) {
+    public void sendImage(final Mat mat) {
         String url = URL + "/post";
-
-        RequestQueue queue = Volley.newRequestQueue(this);
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override
@@ -40,7 +63,7 @@ public class Transitor {
             }
         };
 
-        queue.add(request);
+        this.queue.add(request);
         Log.e(TAG, "POST-request added");
-    }*/
+    }
 }

@@ -1,12 +1,8 @@
 package com.github.demongo.opencv;
 
-import android.graphics.Bitmap;
-import android.media.Image;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageView;
 
-import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -19,14 +15,14 @@ public class FrameSelector {
     private static final String TAG = FrameSelector.class.getName();
 
     private AnalysedFrame bestFrame;
-    private ImageView imageView;
+    private Transitor transitor;
 
-    FrameSelector() {
+    FrameSelector(Transitor transitor) {
         this.bestFrame = new AnalysedFrame();
         this.bestFrame.noise = 0.0;
         this.bestFrame.blur = 0.0;
 
-        this.imageView = imageView;
+        this.transitor = transitor;
     }
 
     private double estimateNoise(Mat image) {
@@ -99,9 +95,16 @@ public class FrameSelector {
                 4);
 
         if(this.bestFrame.blur < blur) {
+            double blurChange = blur - this.bestFrame.blur;
+
             this.bestFrame.blur = blur;
             this.bestFrame.noise = noise;
             this.bestFrame.frame = frame;
+
+            if(this.bestFrame.blur > 100 && blurChange > 5) {
+                Log.e(TAG, "newFrame: frame sent - " + this.bestFrame.blur + ", " + blurChange);
+                transitor.sendImage(this.bestFrame.frame);
+            }
 
             return this.bestFrame.frame;
         } else {

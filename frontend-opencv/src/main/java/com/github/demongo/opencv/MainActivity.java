@@ -64,7 +64,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
 
-        frameSelector = new FrameSelector();
+        Transitor transitor = new Transitor(this);
+        frameSelector = new FrameSelector(transitor);
     }
 
     @Override
