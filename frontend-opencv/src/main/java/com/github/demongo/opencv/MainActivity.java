@@ -100,15 +100,19 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-        displayFrame(this.frameSelector.newFrame(currentFrame));
+        Mat bestFrame = this.frameSelector.newFrame(currentFrame);
+        if(bestFrame != null) {
+            displayFrame(bestFrame);
+        }
+
         return currentFrame;
     }
 
-    private void displayFrame(Mat frame) {
-        if(frame.cols() > 0 && frame.rows() > 0) {
+    private void displayFrame(Mat bestFrame) {
+        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
             final ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            final Bitmap bmp = Bitmap.createBitmap(frame.cols(), frame.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(frame, bmp);
+            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(bestFrame, bmp);
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {

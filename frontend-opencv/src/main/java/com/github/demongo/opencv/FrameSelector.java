@@ -16,6 +16,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 public class FrameSelector {
+    private static final String TAG = FrameSelector.class.getName();
 
     private AnalysedFrame bestFrame;
     private ImageView imageView;
@@ -81,19 +82,7 @@ public class FrameSelector {
         double blur = getBlurValue(frame);
         double noise = estimateNoise(frame);
 
-        if(bestFrame.frame == null) {
-            bestFrame.frame = frame;
-        }
-
-        if(this.bestFrame.blur < blur) {
-            bestFrame.blur = blur;
-            bestFrame.noise = noise;
-            bestFrame.frame = frame;
-        }
-
-        Mat tmpFrame = bestFrame.frame;
-
-        Imgproc.putText(tmpFrame,
+        Imgproc.putText(frame,
                 "Blur: " + Double.toString(blur),
                 new Point(10, 50),
                 Core.FONT_HERSHEY_SIMPLEX ,
@@ -101,7 +90,7 @@ public class FrameSelector {
                 new Scalar(0, 0, 0),
                 4);
 
-        Imgproc.putText(tmpFrame,
+        Imgproc.putText(frame,
                 "Noise: " + Double.toString(noise),
                 new Point(10, 75),
                 Core.FONT_HERSHEY_SIMPLEX ,
@@ -109,7 +98,17 @@ public class FrameSelector {
                 new Scalar(0, 0, 0),
                 4);
 
-        return tmpFrame;
+        if(this.bestFrame.blur < blur) {
+            this.bestFrame.blur = blur;
+            this.bestFrame.noise = noise;
+            this.bestFrame.frame = frame;
+
+            return this.bestFrame.frame;
+        } else {
+            return null;
+        }
+
+
     }
 
 }
