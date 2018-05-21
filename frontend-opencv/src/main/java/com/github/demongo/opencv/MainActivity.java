@@ -26,6 +26,8 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
     private CameraBridgeViewBase openCvCameraView;
@@ -42,7 +44,14 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i("OpenCV", "OpenCV loaded successfully");
-                    templateMatching = new TemplateMatching(getApplicationContext());
+
+                    //if you want to test with less images to enhance performance simply
+                    templateMatching = new TemplateMatching(getApplicationContext(), new ArrayList<String>(){{
+                        add("template");
+                        add("mate_label");
+                        add("mate_flasche");
+
+                    }});
                 } break;
                 default:
                 {
@@ -98,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
-        Log.e("demon-go", "ON CAMERA FRAME");
+        //Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
         /*Imgproc.putText(currentFrame,
