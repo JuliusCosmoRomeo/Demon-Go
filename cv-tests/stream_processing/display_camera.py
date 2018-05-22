@@ -12,19 +12,26 @@ from time import sleep
 from urllib.request import urlopen
 from urllib.error import URLError
 
-from draw_contours import draw_contours
+from draw_contours import (
+    draw_contours,
+    hough_lines,
+)
 from rectangles import (
     RectangleDrawer
 )
 
-url = 'http://192.168.1.9:8080/'
+url = 'http://172.18.1.198:8080'
+
+cam = cv2.VideoCapture(0)
+
 
 def fetch_stream():
     r = RectangleDrawer()
     cv2.namedWindow('Video')
-    cv2.createTrackbar('AREA', 'Video', 7000, 100000, lambda x: None)
-    cv2.createTrackbar('thrs1', 'Video', 70, 100, lambda x: None)
 
+    # cv2.createTrackbar('AREA', 'Video', 7000, 100000, lambda x: None)
+    # cv2.createTrackbar('thrs1', 'Video', 17, 50, lambda x: None)
+    # cv2.createTrackbar('Gauss', 'Video', 11, 50, lambda x: None)
 
     while True:
         try:
@@ -42,22 +49,25 @@ def fetch_stream():
             jpg = data[a:b+2]
             data = data[b+2:]
             img = imutils.rotate_bound(
-                cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR),
+                cv2.imdecode(
+                    np.fromstring(jpg, dtype=np.uint8),
+                    cv2.IMREAD_COLOR),
                 90
             )
-
             draw_contours(img)
             cv2.setMouseCallback('Video', r.on_mouse, 0)
             r.draw(img)
             cv2.imshow('Video', img)
-            key = cv2.waitKey(1) 
+            key = cv2.waitKey(1)
             if key == 27:
                 exit(0)
             if key == 114:
                 r.reset()
 
+
 def main():
     fetch_stream()
+
 
 if __name__ == '__main__':
     main()
