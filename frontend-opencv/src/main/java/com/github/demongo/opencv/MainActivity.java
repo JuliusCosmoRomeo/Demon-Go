@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -47,8 +48,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
     private static final String TAG = MainActivity.class.getName();
-    private static final String URL = "http://192.168.178.46:5000";
-
+    private FrameSelector frameSelector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +64,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
 
-
+        Transitor transitor = new Transitor(this);
+        frameSelector = new FrameSelector(transitor);
     }
 
     @Override
@@ -98,42 +99,28 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
-        // Log.e("demon-go", "ON CAMERA FRAME"); - Why would you do this?
         currentFrame = frame.rgba();
 
-        final Button sendButton = findViewById(R.id.sendButton);
-        sendButton.setOnClickListener(new View.OnClickListener() {
+        Mat bestFrame = this.frameSelector.newFrame(currentFrame);
+        if(bestFrame != null) {
+            displayFrame(bestFrame);
+        }
 
-            @Override
-            public void onClick(View v) {
-                sendImage(currentFrame);
-            }
-        });
+        return currentFrame;
+    }
 
-        /*Imgproc.putText(currentFrame,
-                Double.toString(getBlurValue(currentFrame)),
-                new Point(10, 50),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-
-        Imgproc.putText(currentFrame,
-                Double.toString(estimateNoise(currentFrame)),
-                new Point(10, 70),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-*/
-
-        //        return currentFrame;
-
-
-        return ContourDrawer.draw_contours(currentFrame);
-
-
-
+    private void displayFrame(Mat bestFrame) {
+        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
+            final ImageView imageView = (ImageView) findViewById(R.id.imageView);
+            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(bestFrame, bmp);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bmp);
+                }
+            });
+        }
     }
 
     @Override
@@ -152,97 +139,4 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
     }
-
-    public double getBlurValue(Mat image) {
-        Mat gray = new Mat();
-        Mat destination = new Mat();
-  
-        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.Laplacian(gray, destination, 3);
-
-        MatOfDouble median = new MatOfDouble();
-        MatOfDouble std= new MatOfDouble();
-        Core.meanStdDev(destination, median , std);
-
-        return Math.pow(std.get(0,0)[0],2);
-    }
-
-    public double estimateNoise(Mat image) {
-        Mat grayMat = new Mat();
-        Imgproc.cvtColor(image, grayMat, Imgproc.COLOR_BGR2GRAY);
-        int H = image.height();
-        int W = image.width();
-
-        Mat kernel = new Mat(3, 3, CvType.CV_32F) {
-            {
-                put(0,0,1);
-                put(0,1,-2);
-                put(0,2,1);
-
-                put(1,0,-2);
-                put(1,1,4);
-                put(1,2,-2);
-
-                put(2,0,1);
-                put(2,1,-2);
-                put(2,2,1);
-
-            }
-        };
-
-        Mat destination = new Mat(image.rows(),image.cols(),image.type());
-        Imgproc.filter2D(image, destination, -1, kernel);
-        Core.absdiff(destination, Scalar.all(0), destination);
-        double total = Core.sumElems(destination).val[0];
-        Log.e("demon-go", Double.toString(total));
-
-        total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
-
-        return total;
-
-    }
-
-
-    private String matToBase64String(Mat mat) {
-        Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(mat, bmp);
-
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.JPEG, 92, stream);
-        byte[] imageBytes = stream.toByteArray();
-        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
-        return encodedImage;
-    }
-
-
-    private void sendImage(final Mat mat) {
-        String url = URL + "/post";
-
-        RequestQueue queue = Volley.newRequestQueue(this);
-
-        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
-            @Override
-            public void onResponse(String response) {
-                Log.i(TAG, response);
-            }
-        }, new Response.ErrorListener() {
-            @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.e(TAG,  error.toString());
-            }
-        }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> parameters = new HashMap<String, String>();
-                parameters.put("image", matToBase64String(mat));
-                return parameters;
-            }
-        };
-
-        queue.add(request);
-        Log.e(TAG, "POST-request added");
-
-    }
-
-
 }
