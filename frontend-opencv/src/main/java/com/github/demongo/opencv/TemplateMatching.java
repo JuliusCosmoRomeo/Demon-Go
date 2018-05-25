@@ -120,7 +120,7 @@ public class TemplateMatching {
             if(!good_matches.isEmpty()){
 
                 for (DMatch match : good_matches){
-                    Log.d("demon-go", "match: " + templ.uri + " distance " + match.distance);
+                    Log.i("demon-go", "match: " + templ.uri + " distance " + match.distance);
                 }
 
             }

@@ -12,6 +12,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
 
+import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
+import com.github.demongo.opencv.pipeline.Snapshot;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -33,7 +36,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
     private TemplateMatching templateMatching;
-
+    NoiseEstimationStep noiseEstimationStep;
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
     //-> hence Mat-initialization with "new Mat()" fails in onCreate
 
@@ -52,6 +55,10 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                         add("mate_flasche");
 
                     }});
+
+                    openCvCameraView.enableView();
+                    noiseEstimationStep = new NoiseEstimationStep();
+
                 } break;
                 default:
                 {
@@ -73,6 +80,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
+
+
+
 
     }
 
@@ -102,7 +112,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
 
-        openCvCameraView.enableView();
+
     }
 
     @Override
@@ -133,6 +143,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             currentFrame = templateMatching.matchFeatures(currentFrame);
         }
         //return ContourDrawer.draw_contours(currentFrame);
+        noiseEstimationStep.process(new Snapshot(currentFrame,1));
         return currentFrame;
 
 
@@ -155,6 +166,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
     }
+
+
     public double getBlurValue(Mat image) {
         Mat gray = new Mat();
         Mat destination = new Mat();
@@ -170,41 +183,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         //Log.e("demon-go", Double.toString(blurValue));
 
         return blurValue;
-    }
-
-    public double estimateNoise(Mat image) {
-        Mat grayMat = new Mat();
-        Imgproc.cvtColor(image, grayMat, Imgproc.COLOR_BGR2GRAY);
-        int H = image.height();
-        int W = image.width();
-
-        Mat kernel = new Mat(3, 3, CvType.CV_32F) {
-            {
-                put(0,0,1);
-                put(0,1,-2);
-                put(0,2,1);
-
-                put(1,0,-2);
-                put(1,1,4);
-                put(1,2,-2);
-
-                put(2,0,1);
-                put(2,1,-2);
-                put(2,2,1);
-
-            }
-        };
-
-        Mat destination = new Mat(image.rows(),image.cols(),image.type());
-        Imgproc.filter2D(image, destination, -1, kernel);
-        Core.absdiff(destination, Scalar.all(0), destination);
-        double total = Core.sumElems(destination).val[0];
-        Log.e("demon-go", Double.toString(total));
-
-        total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
-
-        return total;
-
     }
 
 
