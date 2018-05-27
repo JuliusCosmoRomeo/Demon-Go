@@ -24,7 +24,7 @@ class Transitor {
     private static final String URL = "http://192.168.0.106:5000";
     private RequestQueue queue;
 
-    public Transitor(Context context) {
+    Transitor(Context context) {
         this.queue = Volley.newRequestQueue(context);
     }
 

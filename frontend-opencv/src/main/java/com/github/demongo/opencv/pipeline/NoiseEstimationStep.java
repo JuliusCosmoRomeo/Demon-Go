@@ -9,8 +9,12 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 public class NoiseEstimationStep extends Step {
+    public NoiseEstimationStep() {
+    }
 
-    final Mat kernel = new Mat(3, 3, CvType.CV_32F) {
+    private static final String TAG = NoiseEstimationStep.class.getName();
+
+    private final Mat kernel = new Mat(3, 3, CvType.CV_32F) {
         {
             put(0,0,1);
             put(0,1,-2);
@@ -27,6 +31,9 @@ public class NoiseEstimationStep extends Step {
         }
     };
 
+    public NoiseEstimationStep(Snapshot snapshot) {
+        super(snapshot);
+    }
 
     private double estimateNoise(Mat image){
         Mat grayMat = new Mat();
@@ -34,25 +41,22 @@ public class NoiseEstimationStep extends Step {
         int H = image.height();
         int W = image.width();
 
-
         Mat destination = new Mat(image.rows(),image.cols(),image.type());
         Imgproc.filter2D(image, destination, -1, this.kernel);
         Core.absdiff(destination, Scalar.all(0), destination);
         double total = Core.sumElems(destination).val[0];
-        Log.e("demon-go", Double.toString(total));
+        Log.i(TAG, "estimateNoise.total: " + Double.toString(total));
 
         total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
         return total;
     }
 
     @Override
-    public void process(Snapshot last) {
-
-        double noisiness = this.estimateNoise(last.mat);
+    public void process() {
+        double noisiness = this.estimateNoise(this.snapshot.mat);
+        Log.i(TAG, "process.noisiness: " + noisiness);
         if (noisiness>1.5) {
-            Snapshot newSnap = new Snapshot(last.mat,noisiness);
-            Log.i("demon-go", "noisiness " + noisiness);
-            //this.output(newSnap);
+            this.snapshot.noiseScore = noisiness;
         }
     }
 

@@ -3,24 +3,29 @@ package com.github.demongo.opencv.pipeline;
 import java.util.ArrayList;
 
 public abstract class Step {
-    ArrayList<Step> nextSteps;
+    Snapshot snapshot;
 
-    public Step(){
-        nextSteps = new ArrayList<Step>();
+    Step(){
     }
 
-    public Step next(Step next){
-        nextSteps.add(next);
-        return next;
+    Step(Snapshot snapshot) {
+        this.snapshot = snapshot;
     }
 
-
-    abstract public void process(Snapshot last);
-
-    protected void output(Snapshot snap){
-        for (Step next : nextSteps){
-            next.process(snap);
-        }
+    public Snapshot getSnapshot() {
+        return snapshot;
     }
+
+    protected void setSnapshot(Snapshot snapshot) {
+        this.snapshot = snapshot;
+    }
+
+    public Step next(Step nextStep){
+        this.process();
+        nextStep.setSnapshot(this.snapshot);
+        return nextStep;
+    }
+
+    abstract public void process();
 
 }
