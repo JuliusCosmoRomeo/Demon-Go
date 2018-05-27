@@ -2,15 +2,29 @@ package com.github.demongo.opencv;
 
 
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Base64;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ImageView;
+
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
@@ -21,6 +35,7 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -30,6 +45,9 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
@@ -67,6 +85,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             }
         }
     };
+    private static final String TAG = MainActivity.class.getName();
+    private FrameSelector frameSelector;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,9 +102,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
 
-
-
-
+        Transitor transitor = new Transitor(this);
+        frameSelector = new FrameSelector(transitor);
     }
 
     @Override
@@ -117,37 +137,33 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
-        //Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
+        Mat bestFrame = this.frameSelector.newFrame(currentFrame);
+        if(bestFrame != null) {
+            displayFrame(bestFrame);
+        }
 
-        /*Imgproc.putText(currentFrame,
-                Double.toString(getBlurValue(currentFrame)),
-                new Point(10, 50),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-
-        Imgproc.putText(currentFrame,
-                Double.toString(estimateNoise(currentFrame)),
-                new Point(10, 70),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-*/
-
-        //        return currentFrame;
+        //return currentFrame;
         if (templateMatching!= null){
-            //currentFrame = templateMatching.findTemplate(currentFrame);
             currentFrame = templateMatching.matchFeatures(currentFrame);
         }
-        //return ContourDrawer.draw_contours(currentFrame);
         noiseEstimationStep.process(new Snapshot(currentFrame,1));
+
         return currentFrame;
+    }
 
-
-
+    private void displayFrame(Mat bestFrame) {
+        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
+            final ImageView imageView = (ImageView) findViewById(R.id.imageView);
+            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(bestFrame, bmp);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bmp);
+                }
+            });
+        }
     }
 
     @Override
@@ -166,24 +182,4 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
     }
-
-
-    public double getBlurValue(Mat image) {
-        Mat gray = new Mat();
-        Mat destination = new Mat();
-  
-        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.Laplacian(gray, destination, 3);
-
-        MatOfDouble median = new MatOfDouble();
-        MatOfDouble std= new MatOfDouble();
-        Core.meanStdDev(destination, median , std);
-
-        double blurValue = Math.pow(std.get(0,0)[0],2);
-        //Log.e("demon-go", Double.toString(blurValue));
-
-        return blurValue;
-    }
-
-
 }

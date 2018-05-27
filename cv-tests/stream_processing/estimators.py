@@ -4,8 +4,9 @@ import cv2
 import numpy as np
 from scipy.signal import convolve2d
 
+
 def estimate_noise(img):
-	# as per https://stackoverflow.com/a/25436112
+    # as per https://stackoverflow.com/a/25436112
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     H, W = img.shape[:2]
 

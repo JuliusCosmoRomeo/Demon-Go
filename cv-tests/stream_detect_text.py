@@ -127,13 +127,15 @@ import cv2
 import multiprocessing
 import numpy as np
 import queue
+import imutils
+
 
 from PIL import Image
 from time import sleep
 from urllib.request import urlopen
 from urllib.error import URLError
 
-url = 'http://172.18.1.198:8080/'
+url = 'http://192.168.1.9:8080/'
 DELETE_AFTER = 15
 
 frames = multiprocessing.Queue(1)
@@ -155,8 +157,8 @@ class Rotator:
         self._center = 0
 
     def __call__(self, img):
-        h, w = img.shape[:2]
-        center = (w / 2, h / 2)
+        w, h = img.shape[:2]
+        center = (h/2, w/2)
         M = cv2.getRotationMatrix2D(center, 270, 1.0)
         return cv2.warpAffine(img, M, (h, w))
 
@@ -184,13 +186,16 @@ def fetch_stream():
             print('Stream could not be opened, retrying...')
     data = b''
     while True:
-        data += stream.read(1024)
+        data += stream.read(10240)
         a = data.find(b'\xff\xd8')
         b = data.find(b'\xff\xd9')
         if a != -1 and b != -1:
             jpg = data[a:b+2]
             data = data[b+2:]
-            img = rotator(cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR))
+            img = imutils.rotate_bound(
+                cv2.imdecode(np.fromstring(jpg, dtype=np.uint8), cv2.IMREAD_COLOR),
+                90
+            )
             
             try:
                 new_result = results.get_nowait()
