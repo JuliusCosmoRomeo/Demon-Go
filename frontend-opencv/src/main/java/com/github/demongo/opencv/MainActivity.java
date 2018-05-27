@@ -26,9 +26,14 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
+import com.github.demongo.opencv.pipeline.Snapshot;
+
+import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
@@ -39,6 +44,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.ArrayList;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +53,38 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
+    private TemplateMatching templateMatching;
+    NoiseEstimationStep noiseEstimationStep;
+    //this callback is needed because Android's onCreate is called before OpenCV is loaded
+    //-> hence Mat-initialization with "new Mat()" fails in onCreate
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i("OpenCV", "OpenCV loaded successfully");
+
+                    //if you want to test with less images to enhance performance simply
+                    templateMatching = new TemplateMatching(getApplicationContext(), new ArrayList<String>(){{
+                        add("template");
+                        add("mate_label");
+                        add("mate_flasche");
+
+                    }});
+
+                    openCvCameraView.enableView();
+                    noiseEstimationStep = new NoiseEstimationStep();
+
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
     private static final String TAG = MainActivity.class.getName();
     private FrameSelector frameSelector;
 
@@ -88,23 +126,28 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         super.onResume();
         if (!OpenCVLoader.initDebug()) {
             Log.d("demon-go", "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, null);
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
         } else {
             Log.d("demon-go", "OpenCV library found inside package. Using it!");
-            // mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
 
-        openCvCameraView.enableView();
+
     }
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
-
         Mat bestFrame = this.frameSelector.newFrame(currentFrame);
         if(bestFrame != null) {
             displayFrame(bestFrame);
         }
+
+        //return currentFrame;
+        if (templateMatching!= null){
+            currentFrame = templateMatching.matchFeatures(currentFrame);
+        }
+        noiseEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
     }

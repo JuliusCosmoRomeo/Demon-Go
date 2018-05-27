@@ -48,6 +48,8 @@ www-test/
 *.iml
 /android/out/
 com_crashlytics_export_strings.xml
+frontend-opencv/gradlew*
+frontend-opencv/local.properties
 
 ## Eclipse
 
