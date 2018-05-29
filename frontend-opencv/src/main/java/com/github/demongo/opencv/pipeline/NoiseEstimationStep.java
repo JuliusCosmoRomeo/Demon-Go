@@ -49,11 +49,11 @@ public class NoiseEstimationStep extends Step {
     @Override
     public void process(Snapshot last) {
         double noisiness = this.estimateNoise(last.mat);
-        if (noisiness>1.5) {
+//        if (noisiness>1.5) {
+        if (noisiness>0.5) { // TODO: Never fulfilled if calculated on full frame
             Snapshot newSnap = new Snapshot(last.mat,noisiness);
             Log.i(TAG, "process.noisiness: " + noisiness);
-
-            //this.output(newSnap);
+            this.output(newSnap);
         }
     }
 

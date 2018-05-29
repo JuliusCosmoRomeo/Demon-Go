@@ -14,6 +14,7 @@ import android.widget.ImageView;
 
 import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
+import com.github.demongo.opencv.pipeline.SendingStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -34,6 +35,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private TemplateMatching templateMatching;
     NoiseEstimationStep noiseEstimationStep;
     BlurEstimationStep blurEstimationStep;
+    SendingStep sendingStep;
     private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
@@ -57,7 +59,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     openCvCameraView.enableView();
                     noiseEstimationStep = new NoiseEstimationStep();
                     blurEstimationStep = new BlurEstimationStep();
-                    blurEstimationStep.next(noiseEstimationStep);
+                    sendingStep = new SendingStep(MainActivity.this);
+
+                    blurEstimationStep
+                            .next(noiseEstimationStep)
+                            .next(sendingStep);
 
                 } break;
                 default:

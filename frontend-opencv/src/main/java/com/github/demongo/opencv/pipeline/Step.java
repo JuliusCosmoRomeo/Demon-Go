@@ -3,7 +3,7 @@ package com.github.demongo.opencv.pipeline;
 import java.util.ArrayList;
 
 public abstract class Step {
-    ArrayList<Step> nextSteps;
+    private ArrayList<Step> nextSteps;
 
     public Step(){
         nextSteps = new ArrayList<Step>();
