@@ -14,7 +14,6 @@ public abstract class Step {
         return next;
     }
 
-
     abstract public void process(Snapshot last);
 
     protected void output(Snapshot snap){

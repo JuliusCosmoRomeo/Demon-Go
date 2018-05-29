@@ -5,6 +5,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BlurMaskFilter;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -26,6 +27,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
 
@@ -55,9 +57,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private Mat currentFrame;
     private TemplateMatching templateMatching;
     NoiseEstimationStep noiseEstimationStep;
+    BlurEstimationStep blurEstimationStep;
+    private static final String TAG = MainActivity.class.getName();
+
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
     //-> hence Mat-initialization with "new Mat()" fails in onCreate
-
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -76,6 +80,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
                     openCvCameraView.enableView();
                     noiseEstimationStep = new NoiseEstimationStep();
+                    blurEstimationStep = new BlurEstimationStep();
+                    blurEstimationStep.next(noiseEstimationStep);
 
                 } break;
                 default:
@@ -85,8 +91,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             }
         }
     };
-    private static final String TAG = MainActivity.class.getName();
-    private FrameSelector frameSelector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,9 +105,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
-
-        Transitor transitor = new Transitor(this);
-        frameSelector = new FrameSelector(transitor);
     }
 
     @Override
@@ -138,20 +139,16 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
-        Mat bestFrame = this.frameSelector.newFrame(currentFrame);
-        if(bestFrame != null) {
-            displayFrame(bestFrame);
-        }
 
         //return currentFrame;
         if (templateMatching!= null){
             currentFrame = templateMatching.matchFeatures(currentFrame);
         }
-        noiseEstimationStep.process(new Snapshot(currentFrame,1));
+        blurEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
     }
-
+    
     private void displayFrame(Mat bestFrame) {
         if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
             final ImageView imageView = (ImageView) findViewById(R.id.imageView);
