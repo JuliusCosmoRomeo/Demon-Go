@@ -18,8 +18,11 @@ import org.opencv.core.Mat;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-public class SendingStep extends Step {
+public class SendingStep extends StepWithQueue {
     private static final String TAG = SendingStep.class.getName();
     private static final String URL = "http://192.168.0.106:5000";
 
@@ -27,6 +30,19 @@ public class SendingStep extends Step {
 
     public SendingStep(Context context) {
         this.requestQueue = Volley.newRequestQueue(context);
+
+        Runnable senderRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Snapshot best = getBest();
+                if (best != null){
+                    sendImage(best.mat);
+                }
+            }
+        };
+
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        executor.scheduleAtFixedRate(senderRunnable, 1, 2, TimeUnit.SECONDS);
     }
 
     private String matToBase64String(Mat mat) {
@@ -42,7 +58,7 @@ public class SendingStep extends Step {
     }
 
 
-    public void sendImage(final Mat mat) {
+    private void sendImage(final Mat mat) {
         String url = URL + "/post";
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
@@ -70,9 +86,10 @@ public class SendingStep extends Step {
 
     @Override
     public void process(Snapshot last) {
-        if(last.score > 0.8) { //Will later be replaced and Frames will be selected via queue
-            this.sendImage(last.mat);
-        }
+//        if(last.score > 0.8) { //Will later be replaced and Frames will be selected via queue
+//            this.sendImage(last.mat);
+//        }
+        this.queue(last);
         this.output(last);
     }
 }

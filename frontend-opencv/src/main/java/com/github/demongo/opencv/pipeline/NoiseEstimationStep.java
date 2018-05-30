@@ -51,7 +51,7 @@ public class NoiseEstimationStep extends Step {
         double noisiness = this.estimateNoise(last.mat);
 //        if (noisiness>1.5) {
         if (noisiness>0.5) { // TODO: Never fulfilled if calculated on full frame
-            Snapshot newSnap = new Snapshot(last.mat,noisiness);
+            Snapshot newSnap = new Snapshot(last.mat, noisiness * last.score); //TODO: evaluate metric
             Log.i(TAG, "process.noisiness: " + noisiness);
             this.output(newSnap);
         }
