@@ -9,6 +9,8 @@ import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,16 +20,16 @@ public class ContourDetectionStep extends Step {
     private static final String TAG = ContourDetectionStep.class.getName();
 
     private static Mat transform(Mat src) {
-        Mat transformedMat = new Mat()
+        Mat transformedMat = new Mat();
         Imgproc.cvtColor(src, transformedMat, Imgproc.COLOR_BGR2GRAY);
         Imgproc.GaussianBlur(transformedMat, transformedMat, new Size(9, 9), 0);
         double high_thresh = Imgproc.threshold(transformedMat, transformedMat, 70, 255, Imgproc.THRESH_BINARY);
         double low_thresh = 0.5 * high_thresh;
 
         Imgproc.bilateralFilter(transformedMat, transformedMat, 11, 17, 17);
-        Imgproc.Canny(transformedMat, transformedMat, low_thresh, high_thresh, 3);
+        Imgproc.Canny(transformedMat, transformedMat, transformedMat, low_thresh, high_thresh);
 
-        return transformedMat
+        return transformedMat;
     }
 
     private static Mat find_contours(Mat src) {
@@ -40,6 +42,7 @@ public class ContourDetectionStep extends Step {
         Log.i(TAG, "process.detected_contours: " + contours.size());
 
         for (int i = 0; i < contours.size(); i++) {
+            MatOfPoint thisContour = contours.get(i);
             MatOfPoint2f thisContour2f = new MatOfPoint2f();
             MatOfPoint approxContour = new MatOfPoint();
             MatOfPoint2f approxContour2f = new MatOfPoint2f();
@@ -54,6 +57,7 @@ public class ContourDetectionStep extends Step {
                 Imgproc.drawContours(src, contours, i, new Scalar(255, 255, 255), -1);
             }
         }
+        return src;
     }
 
     @Override
