@@ -1,4 +1,4 @@
-package com.github.demongo.opencv;
+package com.github.demongo.opencv.pipeline;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -19,13 +19,14 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-class Transitor {
-    private static final String TAG = Transitor.class.getName();
+public class SendingStep extends Step {
+    private static final String TAG = SendingStep.class.getName();
     private static final String URL = "http://192.168.0.106:5000";
-    private RequestQueue queue;
 
-    public Transitor(Context context) {
-        this.queue = Volley.newRequestQueue(context);
+    private RequestQueue requestQueue;
+
+    public SendingStep(Context context) {
+        this.requestQueue = Volley.newRequestQueue(context);
     }
 
     private String matToBase64String(Mat mat) {
@@ -63,7 +64,15 @@ class Transitor {
             }
         };
 
-        this.queue.add(request);
+        this.requestQueue.add(request);
         Log.e(TAG, "POST-request added");
+    }
+
+    @Override
+    public void process(Snapshot last) {
+        if(last.score > 0.8) { //Will later be replaced and Frames will be selected via queue
+            this.sendImage(last.mat);
+        }
+        this.output(last);
     }
 }
