@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 def save_image(image_string):
     filename = "images/" + datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
-    ending = ".txt"
+    ending = ".jpg"
     suffix = ""
 
     if os.path.isfile(filename + ending):
@@ -25,6 +25,7 @@ def save_image(image_string):
 
 @app.route('/post', methods=['GET', 'POST'])
 def get_image():
+    print("POST-Request")
     image_string = request.form['image']
     save_image(image_string)
 

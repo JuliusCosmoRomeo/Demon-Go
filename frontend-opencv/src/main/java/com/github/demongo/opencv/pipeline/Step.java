@@ -16,7 +16,7 @@ public abstract class Step {
 
     abstract public void process(Snapshot last);
 
-    protected void output(Snapshot snap){
+    void output(Snapshot snap){
         for (Step next : nextSteps){
             next.process(snap);
         }
