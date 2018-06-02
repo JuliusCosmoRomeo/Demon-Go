@@ -12,6 +12,9 @@ import android.util.Log;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
 import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.SendingStep;
@@ -36,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     NoiseEstimationStep noiseEstimationStep;
     BlurEstimationStep blurEstimationStep;
     SendingStep sendingStep;
+    private RequestQueue requestQueue;
     private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
@@ -59,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     openCvCameraView.enableView();
                     noiseEstimationStep = new NoiseEstimationStep();
                     blurEstimationStep = new BlurEstimationStep();
-                    sendingStep = new SendingStep(MainActivity.this);
+                    sendingStep = new SendingStep(requestQueue);
 
                     blurEstimationStep
                             .next(noiseEstimationStep)
@@ -87,12 +91,24 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
+
+        this.requestQueue = Volley.newRequestQueue(this);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         openCvCameraView.disableView();
+        // Should prevent Volley from trying to send stuff after App is destroyed
+        // Termination of requestQueue and the clearing also work but the scheduler keeps adding
+        // post requests
+//        this.requestQueue.stop();
+//        this.requestQueue.cancelAll(new RequestQueue.RequestFilter() {
+//            @Override
+//            public boolean apply(Request<?> request) {
+//                return true;
+//            }
+//        });
     }
 
     @Override
@@ -114,35 +130,18 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             Log.d("demon-go", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
-
-
     }
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-        //return currentFrame;
-        if (templateMatching!= null){
-            currentFrame = templateMatching.matchFeatures(currentFrame);
-        }
+//        if (templateMatching!= null){
+//            currentFrame = templateMatching.matchFeatures(currentFrame);
+//        }
         blurEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
-    }
-
-    private void displayFrame(Mat bestFrame) {
-        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
-            final ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(bestFrame, bmp);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    imageView.setImageBitmap(bmp);
-                }
-            });
-        }
     }
 
     @Override

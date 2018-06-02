@@ -6,12 +6,12 @@ import java.util.PriorityQueue;
 class SnapshotComparator implements Comparator<Snapshot> {
     @Override
     public int compare(Snapshot a, Snapshot b) {
-        return (int) Math.signum(a.score - b.score);
+        return (int) Math.signum(b.score - a.score);
     }
 }
 
 abstract class StepWithQueue extends Step {
-    PriorityQueue<Snapshot> snapshotQueue;
+    private PriorityQueue<Snapshot> snapshotQueue;
 
     StepWithQueue() {
        this.snapshotQueue = new PriorityQueue<>(10, new SnapshotComparator());

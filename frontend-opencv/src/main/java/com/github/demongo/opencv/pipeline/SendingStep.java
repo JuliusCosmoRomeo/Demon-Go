@@ -28,20 +28,22 @@ public class SendingStep extends StepWithQueue {
 
     private RequestQueue requestQueue;
 
-    public SendingStep(Context context) {
-        this.requestQueue = Volley.newRequestQueue(context);
+    public SendingStep(RequestQueue requestQueue) {
+        this.requestQueue = requestQueue;
 
+        // TODO: find good way to terminate if needed
         Runnable senderRunnable = new Runnable() {
             @Override
             public void run() {
                 Snapshot best = getBest();
                 if (best != null){
                     sendImage(best.mat);
+                    Log.i(TAG, "bestScore: " + best.score);
                 }
             }
         };
 
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        ScheduledExecutorService executor = Executors.newScheduledThreadPool(0);
         executor.scheduleAtFixedRate(senderRunnable, 1, 2, TimeUnit.SECONDS);
     }
 
@@ -64,7 +66,7 @@ public class SendingStep extends StepWithQueue {
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                Log.i(TAG, response);
+                Log.i(TAG, "Server response:" + response);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -84,12 +86,11 @@ public class SendingStep extends StepWithQueue {
         Log.e(TAG, "POST-request added");
     }
 
+
     @Override
     public void process(Snapshot last) {
-//        if(last.score > 0.8) { //Will later be replaced and Frames will be selected via queue
-//            this.sendImage(last.mat);
-//        }
         this.queue(last);
+        Log.i(TAG, "image added with score: " + last.score);
         this.output(last);
     }
 }

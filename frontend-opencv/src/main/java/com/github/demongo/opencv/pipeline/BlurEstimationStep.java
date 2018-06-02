@@ -21,14 +21,14 @@ public class BlurEstimationStep extends Step {
         MatOfDouble std= new MatOfDouble();
         Core.meanStdDev(destination, median , std);
 
-        double totalBluriness = Math.pow(std.get(0,0)[0],2);
-        return totalBluriness > 500 ? 1 : totalBluriness/500;
+        double totalBlurriness = Math.pow(std.get(0,0)[0],2);
+        return totalBlurriness > 500 ? 1 : totalBlurriness/500;
     }
 
     @Override
     public void process(Snapshot last) {
         double blurriness = getBlurValue(last.mat);
-        Log.i(TAG, "process.blurriness: " + blurriness);
+//        Log.i(TAG, "process.blurriness: " + blurriness);
         Snapshot newSnap = new Snapshot(last.mat, blurriness);
         this.output(newSnap);
     }
