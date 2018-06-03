@@ -5,6 +5,7 @@ import android.util.Log;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -18,43 +19,50 @@ import java.util.List;
 
 public class ContourDetectionStep extends Step {
     private static final String TAG = ContourDetectionStep.class.getName();
+    private static final double MIN_CONTOUR_SIZE = 700;
 
     private static Mat transform(Mat src) {
+        Imgproc.cvtColor(src, src, Imgproc.COLOR_BGRA2BGR);
+        Imgproc.GaussianBlur(src, src, new Size(9, 9), 0);
         Mat transformedMat = new Mat();
-        Imgproc.cvtColor(src, transformedMat, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.GaussianBlur(transformedMat, transformedMat, new Size(9, 9), 0);
-        double high_thresh = Imgproc.threshold(transformedMat, transformedMat, 70, 255, Imgproc.THRESH_BINARY);
+        double high_thresh = Imgproc.threshold(src, transformedMat, 70, 255, Imgproc.THRESH_BINARY);
         double low_thresh = 0.5 * high_thresh;
 
-        Imgproc.bilateralFilter(transformedMat, transformedMat, 11, 17, 17);
-        Imgproc.Canny(transformedMat, transformedMat, transformedMat, low_thresh, high_thresh);
+//        Imgproc.bilateralFilter(src, transformedMat, 11, 17, 17);
+//        Mat cannyMat = new Mat();
+        Imgproc.Canny(src, transformedMat, low_thresh, high_thresh);
 
         return transformedMat;
     }
 
-    private static Mat find_contours(Mat src) {
+    public Mat find_contours(Mat src) {
         Mat transformedMat = ContourDetectionStep.transform(src);
 
         final List<MatOfPoint> contours = new ArrayList<>();
         final Mat hierarchy = new Mat();
         Imgproc.findContours(transformedMat, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
-        Log.i(TAG, "process.detected_contours: " + contours.size());
-
         for (int i = 0; i < contours.size(); i++) {
             MatOfPoint thisContour = contours.get(i);
-            MatOfPoint2f thisContour2f = new MatOfPoint2f();
-            MatOfPoint approxContour = new MatOfPoint();
-            MatOfPoint2f approxContour2f = new MatOfPoint2f();
+            double contourArea = Imgproc.contourArea(thisContour);
 
-            thisContour.convertTo(thisContour2f, CvType.CV_32FC2);
+            if(contourArea > MIN_CONTOUR_SIZE) {
+                MatOfPoint2f thisContour2f = new MatOfPoint2f();
+                MatOfPoint approxContour = new MatOfPoint();
+                MatOfPoint2f approxContour2f = new MatOfPoint2f();
 
-            Imgproc.approxPolyDP(thisContour2f, approxContour2f, 2, true);
+                thisContour.convertTo(thisContour2f, CvType.CV_32FC2);
 
-            approxContour2f.convertTo(approxContour, CvType.CV_32S);
+                Imgproc.approxPolyDP(thisContour2f, approxContour2f, 2, true);
 
-            if (approxContour.size().height == 4) {
-                Imgproc.drawContours(src, contours, i, new Scalar(255, 255, 255), -1);
+                approxContour2f.convertTo(approxContour, CvType.CV_32S);
+
+                Rect rect = Imgproc.boundingRect(approxContour);
+//                Imgproc.rectangle(src, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
+//                Imgproc.drawContours(src, contours, i, new Scalar(0, 255, 255), -1);
+                Mat roi = src.submat(rect);
+                Snapshot newSnap = new Snapshot(roi, contourArea);
+                this.output(newSnap);
             }
         }
         return src;
@@ -62,9 +70,9 @@ public class ContourDetectionStep extends Step {
 
     @Override
     public void process(Snapshot last) {
-        Mat rectMat = ContourDetectionStep.transform(last.mat);
-        Snapshot newSnap = new Snapshot(rectMat, last.score);
-        this.output(newSnap);
+        Mat rectMat = this.find_contours(last.mat);
+        // Snapshot newSnap = new Snapshot(rectMat, last.score);
+        // this.output(newSnap);
     }
 
 }
