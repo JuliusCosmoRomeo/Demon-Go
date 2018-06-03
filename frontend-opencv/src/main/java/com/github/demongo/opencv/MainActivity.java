@@ -3,14 +3,12 @@ package com.github.demongo.opencv;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
-import android.widget.ImageView;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -26,7 +24,6 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
@@ -99,9 +96,10 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public void onDestroy() {
         super.onDestroy();
         openCvCameraView.disableView();
+
         // Should prevent Volley from trying to send stuff after App is destroyed
-        // Termination of requestQueue and the clearing also work but the scheduler keeps adding
-        // post requests
+        // Termination of requestQueue and the clearing also work but the scheduler keeps adding post requests
+        // TODO: Evaluate if this is needed or to what extend
 //        this.requestQueue.stop();
 //        this.requestQueue.cancelAll(new RequestQueue.RequestFilter() {
 //            @Override
@@ -109,6 +107,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 //                return true;
 //            }
 //        });
+
+        this.sendingStep.cancelExecutorService();
     }
 
     @Override
