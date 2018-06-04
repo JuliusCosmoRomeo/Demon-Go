@@ -79,15 +79,17 @@ public class BrandDetectionStep extends Step {
     private boolean matchFeatures(Mat frame){
         //TODO: try with grayscale
         //TODO: can we abstract from this?
+        long start = System.nanoTime();
         Mat descriptorsImg = new Mat();
         MatOfKeyPoint keypointsImg = new MatOfKeyPoint();
         Orbdetector.detect(frame, keypointsImg);
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
         MatOfDMatch matches = new MatOfDMatch();
-
+        Log.d("demon-go-brand-det", "init time " + (System.nanoTime() - start)+ "");
         for (Template templ : templateList){
+            long startMatching = System.nanoTime();
             matcher.match(descriptorsImg,templ.descriptors,matches);
-
+            
             List<DMatch> matchesList = matches.toList();
 
             for (int i=0;i<descriptorsImg.rows();i++){
@@ -96,6 +98,7 @@ public class BrandDetectionStep extends Step {
                     return true;
                 }
             }
+            Log.d("demon-go-brand-det", System.nanoTime() - startMatching + "");
         }
 
         return false;
