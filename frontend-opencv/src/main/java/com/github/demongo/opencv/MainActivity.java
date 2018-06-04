@@ -17,7 +17,9 @@ import com.github.demongo.opencv.pipeline.BrandDetectionStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.SendingStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
+import com.github.demongo.opencv.pipeline.Step;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -35,8 +37,10 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private Mat currentFrame;
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
-    BlurEstimationStep blurEstimationStep;
+    private BlurEstimationStep blurEstimationStep;
+    private Step firstStep;
     SendingStep sendingStep;
+    private CircularFifoQueue<Mat> nextFrames;
     private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
@@ -65,8 +69,14 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     blurEstimationStep
                             .next(brandDetectionStep)
                             .next(sendingStep);
-
+                    nextFrames = new CircularFifoQueue<>(10);
                     openCvCameraView.enableView();
+
+                    firstStep = brandDetectionStep;
+                    firstStep.setMeasureTime(true);
+                    firstStep.setNextFrames(nextFrames);
+                    Thread pipelineThread = new Thread(firstStep);
+                    pipelineThread.start();
 
                 } break;
                 default:
@@ -125,8 +135,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-
-        blurEstimationStep.process(new Snapshot(currentFrame,1));
+        nextFrames.add(currentFrame);
+        //blurEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
     }
