@@ -3,17 +3,19 @@ package com.github.demongo.opencv;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.os.Build;
+import android.graphics.Bitmap;
+import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
+import android.widget.ImageView;
 
+import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.BrandDetectionStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
+import com.github.demongo.opencv.pipeline.SendingStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -22,10 +24,8 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.Core;
+import org.opencv.android.Utils;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfDouble;
-import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
 
@@ -35,6 +35,9 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private Mat currentFrame;
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
+    BlurEstimationStep blurEstimationStep;
+    SendingStep sendingStep;
+    private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
     //-> hence Mat-initialization with "new Mat()" fails in onCreate
@@ -53,6 +56,16 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     }});
 
                     noiseEstimationStep = new NoiseEstimationStep();
+                    blurEstimationStep = new BlurEstimationStep();
+                    sendingStep = new SendingStep(MainActivity.this);
+
+                    blurEstimationStep
+                            .next(noiseEstimationStep)
+                            .next(sendingStep);
+                    blurEstimationStep
+                            .next(brandDetectionStep)
+                            .next(sendingStep);
+
                     openCvCameraView.enableView();
 
                 } break;
@@ -63,6 +76,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             }
         }
     };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,7 +90,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
-
     }
 
     @Override
@@ -110,15 +123,26 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
-        //Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
-        noiseEstimationStep.process(new Snapshot(currentFrame,1));
-        brandDetectionStep.process(new Snapshot(currentFrame, 1));
+
+        blurEstimationStep.process(new Snapshot(currentFrame,1));
+
         return currentFrame;
+    }
 
-
-
+    private void displayFrame(Mat bestFrame) {
+        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
+            final ImageView imageView = (ImageView) findViewById(R.id.imageView);
+            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(bestFrame, bmp);
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageBitmap(bmp);
+                }
+            });
+        }
     }
 
     @Override
@@ -137,24 +161,4 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 1);
         }
     }
-
-
-    public double getBlurValue(Mat image) {
-        Mat gray = new Mat();
-        Mat destination = new Mat();
-  
-        Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.Laplacian(gray, destination, 3);
-
-        MatOfDouble median = new MatOfDouble();
-        MatOfDouble std= new MatOfDouble();
-        Core.meanStdDev(destination, median , std);
-
-        double blurValue = Math.pow(std.get(0,0)[0],2);
-        //Log.e("demon-go", Double.toString(blurValue));
-
-        return blurValue;
-    }
-
-
 }

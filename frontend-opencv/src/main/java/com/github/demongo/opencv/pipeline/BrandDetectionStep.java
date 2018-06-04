@@ -27,6 +27,7 @@ import java.util.List;
 
 public class BrandDetectionStep extends Step {
 
+    private static final String TAG = "demon-go-brand-det";
     FeatureDetector Orbdetector;
     DescriptorExtractor OrbExtractor;
     DescriptorMatcher matcher;
@@ -76,7 +77,6 @@ public class BrandDetectionStep extends Step {
     */
     private boolean matchFeatures(Mat frame){
 
-        long start = System.nanoTime();
         Mat descriptorsImg = new Mat();
         MatOfKeyPoint keypointsImg = new MatOfKeyPoint();
 
@@ -84,9 +84,7 @@ public class BrandDetectionStep extends Step {
         Orbdetector.detect(frame, keypointsImg);
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
         MatOfDMatch matches = new MatOfDMatch();
-        Log.d("demon-go-brand-det", "init time " + (System.nanoTime() - start)+ "");
         for (Template templ : templateList){
-            long startMatching = System.nanoTime();
             matcher.match(descriptorsImg,templ.descriptors,matches);
 
             List<DMatch> matchesList = matches.toList();
@@ -94,10 +92,11 @@ public class BrandDetectionStep extends Step {
             for (int i=0;i<descriptorsImg.rows();i++){
                 //TODO: find a better threshold abstraction
                 if(matchesList.get(i).distance<25){
+                    Log.d(TAG, "match found " + templ.uri);
                     return true;
                 }
             }
-            Log.d("demon-go-brand-det", System.nanoTime() - startMatching + "");
+
         }
 
         return false;
@@ -109,7 +108,7 @@ public class BrandDetectionStep extends Step {
 
          if(matchFeatures(last.mat)){
              Snapshot newSnap = new Snapshot(last.mat,1);
-             Log.d("demon-go-brand-det", "match found");
+
              //this.output(newSnap);
          }
     }
