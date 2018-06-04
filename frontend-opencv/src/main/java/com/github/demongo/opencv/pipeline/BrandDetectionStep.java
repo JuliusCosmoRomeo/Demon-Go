@@ -69,8 +69,6 @@ public class BrandDetectionStep extends Step {
             OrbExtractor.compute(templ, keypointsTemplate, descriptorsTemplate);
             templateList.add(new Template(templ,keypointsTemplate,descriptorsTemplate,template));
         }
-
-
     }
 
 
@@ -78,14 +76,15 @@ public class BrandDetectionStep extends Step {
     /*
      * checks if for a given object with multiple images one match can be found
     */
-    private boolean matchFeatures(Mat img){
+    private boolean matchFeatures(Mat frame){
         //TODO: try with grayscale
         //TODO: can we abstract from this?
         Mat descriptorsImg = new Mat();
         MatOfKeyPoint keypointsImg = new MatOfKeyPoint();
-        Orbdetector.detect(img, keypointsImg);
-        OrbExtractor.compute(img, keypointsImg, descriptorsImg);
+        Orbdetector.detect(frame, keypointsImg);
+        OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
         MatOfDMatch matches = new MatOfDMatch();
+
         for (Template templ : templateList){
             matcher.match(descriptorsImg,templ.descriptors,matches);
 

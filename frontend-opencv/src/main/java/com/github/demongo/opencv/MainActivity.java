@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
 
+import com.github.demongo.opencv.pipeline.BrandDetectionStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
 
@@ -22,11 +23,8 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfDouble;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import java.util.ArrayList;
@@ -35,11 +33,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
     private CameraBridgeViewBase openCvCameraView;
     private Mat currentFrame;
-    private TemplateMatching templateMatching;
-    NoiseEstimationStep noiseEstimationStep;
+    private BrandDetectionStep brandDetectionStep;
+    private NoiseEstimationStep noiseEstimationStep;
+
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
     //-> hence Mat-initialization with "new Mat()" fails in onCreate
-
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
@@ -48,16 +46,14 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                 {
                     Log.i("OpenCV", "OpenCV loaded successfully");
 
-                    //if you want to test with less images to enhance performance simply
-                    templateMatching = new TemplateMatching(getApplicationContext(), new ArrayList<String>(){{
+                    brandDetectionStep = new BrandDetectionStep(getApplicationContext(), new ArrayList<String>(){{
                         add("template");
                         add("mate_label");
                         add("mate_flasche");
-
                     }});
 
-                    openCvCameraView.enableView();
                     noiseEstimationStep = new NoiseEstimationStep();
+                    openCvCameraView.enableView();
 
                 } break;
                 default:
@@ -80,9 +76,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
-
-
-
 
     }
 
@@ -120,30 +113,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         //Log.e("demon-go", "ON CAMERA FRAME");
         currentFrame = frame.rgba();
 
-        /*Imgproc.putText(currentFrame,
-                Double.toString(getBlurValue(currentFrame)),
-                new Point(10, 50),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-
-        Imgproc.putText(currentFrame,
-                Double.toString(estimateNoise(currentFrame)),
-                new Point(10, 70),
-                Core.FONT_HERSHEY_SIMPLEX ,
-                1,
-                new Scalar(0, 0, 0),
-                4);
-*/
-
-        //        return currentFrame;
-        if (templateMatching!= null){
-            //currentFrame = templateMatching.findTemplate(currentFrame);
-            currentFrame = templateMatching.matchFeatures(currentFrame);
-        }
-        //return ContourDrawer.draw_contours(currentFrame);
         noiseEstimationStep.process(new Snapshot(currentFrame,1));
+        brandDetectionStep.process(new Snapshot(currentFrame, 1));
         return currentFrame;
 
 
