@@ -19,12 +19,10 @@ import org.opencv.core.Scalar;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
-import org.opencv.features2d.Features2d;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 public class BrandDetectionStep extends Step {
@@ -36,7 +34,6 @@ public class BrandDetectionStep extends Step {
     ArrayList<Template> templateList = new ArrayList<>();
 
     public BrandDetectionStep(Context context, ArrayList<String> templates){
-        //TODO: do we need the context to open the input stream?
         //needed for feature matching
         Orbdetector = FeatureDetector.create(FeatureDetector.ORB);
         OrbExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
@@ -51,6 +48,7 @@ public class BrandDetectionStep extends Step {
             Mat descriptorsTemplate = new Mat();
 
             Uri uri = Uri.parse(baseURI + template);
+
             try {
                 stream = context.getContentResolver().openInputStream(uri);
             } catch (FileNotFoundException e) {
@@ -59,8 +57,8 @@ public class BrandDetectionStep extends Step {
 
             BitmapFactory.Options bmpFactoryOptions = new BitmapFactory.Options();
             bmpFactoryOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-
             Bitmap bmp = BitmapFactory.decodeStream(stream, null, bmpFactoryOptions);
+
             templ = new Mat();
             Utils.bitmapToMat(bmp, templ);
 
@@ -77,11 +75,12 @@ public class BrandDetectionStep extends Step {
      * checks if for a given object with multiple images one match can be found
     */
     private boolean matchFeatures(Mat frame){
-        //TODO: try with grayscale
-        //TODO: can we abstract from this?
+
         long start = System.nanoTime();
         Mat descriptorsImg = new Mat();
         MatOfKeyPoint keypointsImg = new MatOfKeyPoint();
+
+        //feature detection is very expensive: takes about 100 times as long as the matching
         Orbdetector.detect(frame, keypointsImg);
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
         MatOfDMatch matches = new MatOfDMatch();
@@ -89,7 +88,7 @@ public class BrandDetectionStep extends Step {
         for (Template templ : templateList){
             long startMatching = System.nanoTime();
             matcher.match(descriptorsImg,templ.descriptors,matches);
-            
+
             List<DMatch> matchesList = matches.toList();
 
             for (int i=0;i<descriptorsImg.rows();i++){
