@@ -28,15 +28,13 @@ public class ContourDetectionStep extends Step {
         double high_thresh = Imgproc.threshold(src, transformedMat, 70, 255, Imgproc.THRESH_BINARY);
         double low_thresh = 0.5 * high_thresh;
 
-//        Imgproc.bilateralFilter(src, transformedMat, 11, 17, 17);
-//        Mat cannyMat = new Mat();
         Imgproc.Canny(src, transformedMat, low_thresh, high_thresh);
 
         return transformedMat;
     }
 
     public Mat find_contours(Mat src) {
-        Mat transformedMat = ContourDetectionStep.transform(src);
+        Mat transformedMat = ContourDetectionStep.transform(src.clone());
 
         final List<MatOfPoint> contours = new ArrayList<>();
         final Mat hierarchy = new Mat();
@@ -70,9 +68,7 @@ public class ContourDetectionStep extends Step {
 
     @Override
     public void process(Snapshot last) {
-        Mat rectMat = this.find_contours(last.mat);
-        // Snapshot newSnap = new Snapshot(rectMat, last.score);
-        // this.output(newSnap);
+        this.find_contours(last.mat);
     }
 
 }
