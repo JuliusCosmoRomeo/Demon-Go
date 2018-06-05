@@ -1,4 +1,5 @@
 var express = require('express');
+var fs = require('fs');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -20,7 +21,7 @@ app.post('/post', (req, res) => {
   const path = '/images/' + uuidv4() + '.jpg';
   fs.writeFile(__dirname + path, buffer, 'binary', err => {
     if (err)
-      return console.err('failed to write image', err);
+      return console.log('failed to write image', err);
     io.sockets.emit('new image', {path});
   });
 });
