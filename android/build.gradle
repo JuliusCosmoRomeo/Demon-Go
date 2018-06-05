@@ -134,3 +134,4 @@ dependencies {
     implementation project(':opencv')
     implementation project(':pipeline')
 }
+
