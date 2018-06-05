@@ -42,7 +42,7 @@ public class SendingStep extends StepWithQueue {
         };
 
         this.executorService = Executors.newScheduledThreadPool(0);
-        this.executorService.scheduleAtFixedRate(senderRunnable, 1, 2, TimeUnit.SECONDS);
+        this.executorService.scheduleAtFixedRate(senderRunnable, 1, 500, TimeUnit.MILLISECONDS);
     }
 
     // TODO: Evaluate if/when this should be done
