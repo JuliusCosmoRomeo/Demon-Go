@@ -30,9 +30,7 @@ public class BlurEstimationStep extends Step {
         double blurriness = getBlurValue(last.mat);
         Log.i(TAG, "process.blurriness: " + blurriness);
         if (blurriness>=0.2) {
-
-            Snapshot newSnap = new Snapshot(last.mat, blurriness);
-            this.output(newSnap);
+            this.output(last.copyWithNewScore(blurriness));
         }
     }
 }
