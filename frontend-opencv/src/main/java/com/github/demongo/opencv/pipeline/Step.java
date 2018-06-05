@@ -44,7 +44,7 @@ public abstract class Step implements Runnable {
                     if (measureTime){
                         long start = System.nanoTime();
                         process(new Snapshot(frame, 1));
-                        Log.d("demon-go-step", "Execution time for last frame in s " + (float)(System.nanoTime() - start)/1000000000);
+                        Log.i("demon-go-step", "Execution time for last frame in s " + (float)(System.nanoTime() - start)/1000000000);
                     } else {
                         process(new Snapshot(frame, 1));
                     }

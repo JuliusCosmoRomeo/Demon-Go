@@ -28,7 +28,7 @@ public class BlurEstimationStep extends Step {
     @Override
     public void process(Snapshot last) {
         double blurriness = getBlurValue(last.mat);
-        Log.d(TAG, "process.blurriness: " + blurriness);
+        Log.i(TAG, "process.blurriness: " + blurriness);
         if (blurriness>=0.2) {
 
             Snapshot newSnap = new Snapshot(last.mat, blurriness);

@@ -120,7 +120,7 @@ public class BrandDetectionStep extends Step {
             for (int i=0;i<descriptorsImg.rows();i++){
                 //TODO: find a better threshold abstraction
                 if(matchesList.get(i).distance<25){
-                    Log.d(TAG, "match found " + templ.uri);
+                    Log.i(TAG, "match found " + templ.uri);
                     return true;
                 }
             }
@@ -136,8 +136,7 @@ public class BrandDetectionStep extends Step {
 
          if(matchFeatures(last.mat)){
              Snapshot newSnap = new Snapshot(last.mat,1);
-
-             //this.output(newSnap);
+             this.output(newSnap);
          }
     }
 
