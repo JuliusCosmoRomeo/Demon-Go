@@ -20,6 +20,8 @@ import java.util.List;
 public class ContourDetectionStep extends Step {
     private static final String TAG = ContourDetectionStep.class.getName();
     private static final double MIN_CONTOUR_SIZE = 700;
+    private static final boolean USE_BILATERAL = false;
+    private static final boolean DRAW_CONTOURS = false;
 
     private static Mat transform(Mat src) {
         Imgproc.cvtColor(src, src, Imgproc.COLOR_BGRA2BGR);
@@ -27,6 +29,12 @@ public class ContourDetectionStep extends Step {
         Mat transformedMat = new Mat();
         double high_thresh = Imgproc.threshold(src, transformedMat, 70, 255, Imgproc.THRESH_BINARY);
         double low_thresh = 0.5 * high_thresh;
+
+        if (USE_BILATERAL) {
+            Imgproc.bilateralFilter(src, transformedMat, 11, 17, 17);
+            src = transformedMat;
+            transformedMat = new Mat();
+        }
 
         Imgproc.Canny(src, transformedMat, low_thresh, high_thresh);
 
@@ -56,8 +64,12 @@ public class ContourDetectionStep extends Step {
                 approxContour2f.convertTo(approxContour, CvType.CV_32S);
 
                 Rect rect = Imgproc.boundingRect(approxContour);
-//                Imgproc.rectangle(src, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
-//                Imgproc.drawContours(src, contours, i, new Scalar(0, 255, 255), -1);
+
+                if (DRAW_CONTOURS) {
+                    Imgproc.rectangle(src, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
+                    Imgproc.drawContours(src, contours, i, new Scalar(0, 255, 255), -1);
+                }
+
                 Mat roi = src.submat(rect);
                 Snapshot newSnap = new Snapshot(roi, contourArea);
                 this.output(newSnap);
