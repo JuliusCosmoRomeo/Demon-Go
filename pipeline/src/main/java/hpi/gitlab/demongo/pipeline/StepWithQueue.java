@@ -1,4 +1,4 @@
-package com.github.demongo.opencv.pipeline;
+package hpi.gitlab.demongo.pipeline;
 
 import java.util.Comparator;
 import java.util.PriorityQueue;

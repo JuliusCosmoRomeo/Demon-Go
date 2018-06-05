@@ -1,4 +1,4 @@
-package com.github.demongo.opencv.pipeline;
+package hpi.gitlab.demongo.pipeline;
 
 import android.util.Log;
 
