@@ -63,4 +63,10 @@ public class Pipeline {
     public void add(Snapshot snapshot) {
         nextFrames.add(snapshot);
     }
+
+    public Mat debugAdd(Snapshot snapshot) {
+        Mat debug = snapshot.createDebugMat();
+        firstStep.process(snapshot);
+        return debug;
+    }
 }

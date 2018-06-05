@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private static final String TAG = MainActivity.class.getName();
     private Pipeline pipeline;
 
+    private boolean debugMode = true;
+
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
     //-> hence Mat-initialization with "new Mat()" fails in onCreate
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -98,10 +100,12 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-        this.pipeline.add(new Snapshot(currentFrame, 1));
-        //blurEstimationStep.process(new Snapshot(currentFrame,1));
-
-        return currentFrame;
+        if (debugMode) {
+            return this.pipeline.debugAdd(new Snapshot(currentFrame, 1));
+        } else {
+            this.pipeline.add(new Snapshot(currentFrame, 1));
+            return currentFrame;
+        }
     }
 
     @Override
