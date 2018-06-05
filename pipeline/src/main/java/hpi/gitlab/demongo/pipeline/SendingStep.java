@@ -1,4 +1,4 @@
-package com.github.demongo.opencv.pipeline;
+package hpi.gitlab.demongo.pipeline;
 
 import android.graphics.Bitmap;
 import android.util.Base64;
