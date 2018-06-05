@@ -16,6 +16,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.BrandDetectionStep;
+import com.github.demongo.opencv.pipeline.ContourDetectionStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.SendingStep;
 import com.github.demongo.opencv.pipeline.Snapshot;
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
     private BlurEstimationStep blurEstimationStep;
+    private ContourDetectionStep contourDetectionStep;
     private Step firstStep;
     SendingStep sendingStep;
     private RequestQueue requestQueue;
@@ -63,9 +65,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
                     noiseEstimationStep = new NoiseEstimationStep();
                     blurEstimationStep = new BlurEstimationStep();
+                    contourDetectionStep = new ContourDetectionStep();
                     sendingStep = new SendingStep(requestQueue);
 
                     blurEstimationStep
+                            .next(contourDetectionStep)
                             .next(noiseEstimationStep)
                             .next(sendingStep);
                     blurEstimationStep
