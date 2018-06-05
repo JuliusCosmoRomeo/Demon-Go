@@ -13,7 +13,7 @@ import static java.lang.System.nanoTime;
 
 public abstract class Step implements Runnable {
     private ArrayList<Step> nextSteps;
-    private CircularFifoQueue<Mat> nextFrames;
+    private CircularFifoQueue<Snapshot> nextFrames;
 
     public void setMeasureTime(boolean measureTime) {
         this.measureTime = measureTime;
@@ -25,7 +25,7 @@ public abstract class Step implements Runnable {
         measureTime = false;
     }
 
-    public void setNextFrames(CircularFifoQueue<Mat> nextFrames) {
+    public void setNextFrames(CircularFifoQueue<Snapshot> nextFrames) {
         this.nextFrames = nextFrames;
     }
 
@@ -39,14 +39,14 @@ public abstract class Step implements Runnable {
 
         while(true){
             try {
-                Mat frame = nextFrames.poll();
-                if (frame!=null) {
+                Snapshot snapshot = nextFrames.poll();
+                if (snapshot != null) {
                     if (measureTime){
                         long start = System.nanoTime();
-                        process(new Snapshot(frame, 1));
-                        Log.i("demon-go-step", "Execution time for last frame in s " + (float)(System.nanoTime() - start)/1000000000);
+                        process(snapshot);
+                        Log.i("demon-go-step", "Execution time for last frame in s " + (float)(System.nanoTime() - start) / 1e9);
                     } else {
-                        process(new Snapshot(frame, 1));
+                        process(snapshot);
                     }
                 }
             } catch(NoSuchElementException e){

@@ -19,7 +19,7 @@ public class Pipeline {
     private Step firstStep;
     SendingStep sendingStep;
     private RequestQueue requestQueue;
-    private CircularFifoQueue<Mat> nextFrames;
+    private CircularFifoQueue<Snapshot> nextFrames;
 
     public Pipeline(Context context) {
         this.requestQueue = Volley.newRequestQueue(context);
@@ -56,7 +56,7 @@ public class Pipeline {
         this.sendingStep.cancelExecutorService();
     }
 
-    public void add(Mat frame) {
-        nextFrames.add(frame);
+    public void add(Snapshot snapshot) {
+        nextFrames.add(snapshot);
     }
 }

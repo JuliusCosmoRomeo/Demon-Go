@@ -26,6 +26,12 @@ public class ARSnapshot extends Snapshot {
     private float[] viewProjectionMatrix = new float[16];
     private float[] points;
 
+    private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix) {
+        super(mat, score);
+        this.points = points;
+        this.viewProjectionMatrix = viewProjectionMatrix;
+    }
+
     ARSnapshot(double score, Frame frame) throws NotYetAvailableException {
         super(matFromFrame(frame), score);
 
@@ -160,5 +166,17 @@ public class ARSnapshot extends Snapshot {
         direction.nor();
 
         return new Ray(origin, direction);
+    }
+
+    public ARSnapshot copyWith(Mat newMat, double newScore) {
+        return new ARSnapshot(newMat, newScore, points, viewProjectionMatrix);
+    }
+
+    public ARSnapshot copyWithNewMat(Mat newMat) {
+        return new ARSnapshot(newMat, score, points, viewProjectionMatrix);
+    }
+
+    public ARSnapshot copyWithNewScore(double newScore) {
+        return new ARSnapshot(mat, newScore, points, viewProjectionMatrix);
     }
 }
