@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     Thread pipelineThread = new Thread(firstStep);
                     pipelineThread.start();
 
+
                 } break;
                 default:
                 {
