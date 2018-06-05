@@ -58,7 +58,7 @@ public abstract class Step implements Runnable {
 
     abstract public void process(Snapshot last);
 
-    void output(Snapshot snap){
+    protected void output(Snapshot snap){
         for (Step next : nextSteps){
             next.process(snap);
         }

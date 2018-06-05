@@ -10,22 +10,22 @@ class SnapshotComparator implements Comparator<Snapshot> {
     }
 }
 
-abstract class StepWithQueue extends Step {
+public abstract class StepWithQueue extends Step {
     private PriorityQueue<Snapshot> snapshotQueue;
 
-    StepWithQueue() {
+    protected StepWithQueue() {
        this.snapshotQueue = new PriorityQueue<>(10, new SnapshotComparator());
     }
 
-    void queue(Snapshot snapshot) {
+    protected void queue(Snapshot snapshot) {
         snapshotQueue.add(snapshot);
     }
 
-    Snapshot getBest() {
+    protected Snapshot getBest() {
         return this.snapshotQueue.poll();
     }
 
-    Snapshot getBestAndClear() {
+    protected Snapshot getBestAndClear() {
         Snapshot best = this.snapshotQueue.peek();
         this.snapshotQueue.clear();
         return best;

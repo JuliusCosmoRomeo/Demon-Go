@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
 
+import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                 {
                     Log.i("OpenCV", "OpenCV loaded successfully");
 
-                    pipeline = new Pipeline(getApplicationContext());
+                    pipeline = new Pipeline(getApplicationContext(), new NullStep());
                     openCvCameraView.enableView();
                 } break;
                 default:

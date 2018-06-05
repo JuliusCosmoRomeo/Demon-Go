@@ -13,6 +13,6 @@ public class AndroidLauncher extends BaseARCoreActivity {
 		super.onCreate(savedInstanceState);
 		AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
 		// config.useImmersiveMode = true;
-		initialize(new DemonGoGame(), config);
+		initialize(new DemonGoGame(this), config);
 	}
 }
