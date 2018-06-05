@@ -1,5 +1,7 @@
 package com.github.demongo;
 
+import android.util.Log;
+
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
@@ -20,6 +22,7 @@ public class AngleChangeStep extends StepWithQueue {
         queue(last);
 
         if (hasNewAngle) {
+            Log.e("demon-go-angle", "angle change output");
             this.output(getBestAndClear());
             hasNewAngle = false;
         }

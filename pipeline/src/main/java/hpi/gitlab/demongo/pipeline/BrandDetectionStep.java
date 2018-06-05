@@ -53,17 +53,16 @@ public class BrandDetectionStep extends Step {
 
         //read the template images and save them in the local template list
         InputStream stream = null;
-        String baseURI = "android.resource://com.github.demongo.opencv/drawable/";
         for (String template : templates){
             Mat templ;
             MatOfKeyPoint keypointsTemplate = new MatOfKeyPoint();
             Mat descriptorsTemplate = new Mat();
 
-            Uri uri = Uri.parse(baseURI + template);
+            Uri uri = Uri.parse(template + ".png");
 
             try {
-                stream = context.getContentResolver().openInputStream(uri);
-            } catch (FileNotFoundException e) {
+                stream = context.getAssets().open(uri.toString());
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 

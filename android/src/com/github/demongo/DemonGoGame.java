@@ -165,7 +165,9 @@ public class DemonGoGame extends ARCoreScene {
 			demonTarget.set(pose.tx(), pose.ty(), pose.tz());
 		}*/
 
-        angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
+        if (angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy())) {
+        	overlay.signalNewAngle();
+		}
 		input(frame);
 
 		if (demon != null) {
