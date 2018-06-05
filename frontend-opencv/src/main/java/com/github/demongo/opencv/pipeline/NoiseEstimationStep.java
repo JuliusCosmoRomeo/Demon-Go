@@ -40,7 +40,7 @@ public class NoiseEstimationStep extends Step {
         Imgproc.filter2D(image, destination, -1, this.kernel);
         Core.absdiff(destination, Scalar.all(0), destination);
         double total = Core.sumElems(destination).val[0];
-        Log.i(TAG, "estimateNoise.total: " + Double.toString(total));
+//        Log.i(TAG, "estimateNoise.total: " + Double.toString(total));
 
         total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
         return total;
@@ -49,10 +49,14 @@ public class NoiseEstimationStep extends Step {
     @Override
     public void process(Snapshot last) {
         double noisiness = this.estimateNoise(last.mat);
-//        if (noisiness>1.5) {
-        if (noisiness>0.5) { // TODO: Never fulfilled if calculated on full frame
-            Snapshot newSnap = new Snapshot(last.mat,noisiness);
-            Log.i(TAG, "process.noisiness: " + noisiness);
+        if (noisiness>1.5) {// TODO: Never fulfilled if calculated on full frame
+            Snapshot newSnap;
+            if (last.score > 0) {
+                newSnap = new Snapshot(last.mat, noisiness * last.score); //TODO: evaluate metric
+            } else {
+                newSnap = new Snapshot(last.mat, noisiness);
+            }
+//        Log.i(TAG, "process.noisiness: " + noisiness);
             this.output(newSnap);
         }
     }

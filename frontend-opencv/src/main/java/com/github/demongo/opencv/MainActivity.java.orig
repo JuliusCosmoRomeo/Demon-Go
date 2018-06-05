@@ -3,7 +3,6 @@ package com.github.demongo.opencv;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -41,8 +40,11 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     private BlurEstimationStep blurEstimationStep;
     private Step firstStep;
     SendingStep sendingStep;
-    private RequestQueue requestQueue;
+<<<<<<< HEAD
     private CircularFifoQueue<Mat> nextFrames;
+=======
+    private RequestQueue requestQueue;
+>>>>>>> master
     private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
@@ -74,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     nextFrames = new CircularFifoQueue<>(10);
                     openCvCameraView.enableView();
 
-                    firstStep = blurEstimationStep;
+                    firstStep = brandDetectionStep;
                     firstStep.setMeasureTime(true);
                     firstStep.setNextFrames(nextFrames);
                     Thread pipelineThread = new Thread(firstStep);
@@ -140,8 +142,15 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
+<<<<<<< HEAD
         nextFrames.add(currentFrame);
         //blurEstimationStep.process(new Snapshot(currentFrame,1));
+=======
+//        if (templateMatching!= null){
+//            currentFrame = templateMatching.matchFeatures(currentFrame);
+//        }
+        blurEstimationStep.process(new Snapshot(currentFrame,1));
+>>>>>>> master
 
         return currentFrame;
     }
