@@ -97,17 +97,6 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         super.onDestroy();
         openCvCameraView.disableView();
 
-        // Should prevent Volley from trying to send stuff after App is destroyed
-        // Termination of requestQueue and the clearing also work but the scheduler keeps adding post requests
-        // TODO: Evaluate if this is needed or to what extend
-//        this.requestQueue.stop();
-//        this.requestQueue.cancelAll(new RequestQueue.RequestFilter() {
-//            @Override
-//            public boolean apply(Request<?> request) {
-//                return true;
-//            }
-//        });
-
         this.sendingStep.cancelExecutorService();
     }
 
