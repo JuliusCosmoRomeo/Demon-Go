@@ -41,22 +41,22 @@ import java.nio.FloatBuffer;
 import java.util.Collection;
 
 public class DemonGoGame extends ARCoreScene {
-	private Array<ModelInstance> instances = new Array<>();
 	private AssetManager assetManager;
 	private Environment environment;
-	private ParticleSystem particleSystem;
 	private Model pointCubeModel;
+	private ModelInstance originIndicator;
 
 	private boolean loading = true;
 	private Overlay overlay;
 
 	private Array<ModelInstance> pointCubes = new Array<>();
-	private ModelInstance demon;
-	Vector3 demonTarget = new Vector3(0, 0, 0);
-	Anchor demonAnchor = null;
-	Matrix4 lastPictureTransform = null;
+	private Demon demon;
+	private Anchor demonAnchor = null;
+	private Matrix4 lastPictureTransform = null;
 
 	private final float POINT_SIZE = 0.03f;
+
+	private ARSnapshot lastSnapshot = null;
 
 	@Override
 	public void create () {
@@ -64,18 +64,22 @@ public class DemonGoGame extends ARCoreScene {
 
 		OpenCVLoader.initDebug();
 
-		particleSystem = new ParticleSystem();
+		assetManager = new AssetManager();
 
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
-		assetManager = new AssetManager();
-		assetManager.load("demon01.g3db", Model.class);
-
 		overlay = new Overlay();
 
 		createPointCube();
+		createOriginIndicator();
+	}
+
+	private void createOriginIndicator() {
+		ModelBuilder modelBuilder = new ModelBuilder();
+		originIndicator = new ModelInstance(modelBuilder.createXYZCoordinates(1, new Material(),
+				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorPacked));
 	}
 
 	private void createPointCube() {
@@ -86,26 +90,8 @@ public class DemonGoGame extends ARCoreScene {
 	}
 
 	private void assetsLoaded() {
-	    demon = new ModelInstance(assetManager.get("demon01.g3db", Model.class));
-		instances.add(demon);
+	    demon = new Demon(getCamera(), assetManager);
 		loading = false;
-	}
-
-	private ParticleEffect createParticleSystem() {
-		PointSpriteParticleBatch batch = new PointSpriteParticleBatch();
-		batch.setCamera(getCamera());
-		particleSystem.add(batch);
-
-		assetManager.load("test.pfx",
-				ParticleEffect.class,
-				new ParticleEffectLoader.ParticleEffectLoadParameter(particleSystem.getBatches()));
-		assetManager.finishLoading();
-
-		ParticleEffect effect = assetManager.get("test.pfx");
-		effect.init();
-		effect.start();
-		particleSystem.add(effect);
-		return effect;
 	}
 
 	private void input(Frame frame) {
@@ -116,14 +102,19 @@ public class DemonGoGame extends ARCoreScene {
         float x = Gdx.input.getX();
         float y = Gdx.input.getY();
 
-        for (HitResult hit : frame.hitTest(x, y)) {
+        if (lastSnapshot != null) {
+        	demon.setTarget(lastSnapshot.projectPoint(x, y));
+        	Log.e("demon-go-ar", demon.getTarget().toString());
+		}
+
+        /*for (HitResult hit : frame.hitTest(x, y)) {
             if (demonAnchor != null)
                 demonAnchor.detach();
 
             demonAnchor = hit.createAnchor();
             // we only use the closest hit, if any
             break;
-        }
+        }*/
     }
 
     private void checkPictureTransformDelta() {
@@ -190,36 +181,26 @@ public class DemonGoGame extends ARCoreScene {
 		checkPictureTransformDelta();
 		input(frame);
 
-        if (demonAnchor != null) {
-            demonTarget.set(demonAnchor.getPose().tx(), demonAnchor.getPose().ty(), demonAnchor.getPose().tz());
-        }
-
 		if (demon != null) {
-            Vector3 current = new Vector3();
-            demon.transform.getTranslation(current);
-            demon.transform.setToTranslation(current.lerp(demonTarget, 2 * Gdx.graphics.getDeltaTime()));
-            demon.transform.scale(0.5f, 0.5f, 0.5f);
+			// if (demonAnchor != null) {
+				// demonTarget.set(demonAnchor.getPose().tx(), demonAnchor.getPose().ty(), demonAnchor.getPose().tz());
+			// }
+			if (false && num > 0) {
+				// pointCubes.get(num - 1).transform.getTranslation(demon.target);
+			}
+			demon.move();
         }
 
 		try {
-			Image image = frame.acquireCameraImage();
-			Image.Plane plane = image.getPlanes()[0];
-			ByteBuffer buffer = plane.getBuffer();
-			Mat mat = new Mat(image.getHeight(), image.getWidth(), CvType.CV_8UC4);
-			byte[] pixels = new byte[buffer.limit()];
-			buffer.position(0);
-			buffer.get(pixels);
-			mat.put(0, 0, pixels);
-			image.close();
+			lastSnapshot = new ARSnapshot(1.0, frame);
 		} catch (NotYetAvailableException e) {
+			lastSnapshot = null;
 			Log.e("demon-go", "no image yet");
 		}
 
-		particleSystem.updateAndDraw();
-
-		modelBatch.render(instances, environment);
-		modelBatch.render(particleSystem, environment);
+		demon.render(modelBatch, environment);
 		modelBatch.render(pointCubes, environment);
+		modelBatch.render(originIndicator, environment);
 	}
 
 	@Override
@@ -231,10 +212,5 @@ public class DemonGoGame extends ARCoreScene {
 	@Override
 	protected void postRender(Frame frame) {
 	    overlay.render(frame.getCamera().getPose());
-	}
-
-	@Override
-	public void dispose () {
-		instances.clear();
 	}
 }
