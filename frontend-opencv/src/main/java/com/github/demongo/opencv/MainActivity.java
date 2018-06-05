@@ -3,15 +3,16 @@ package com.github.demongo.opencv;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.WindowManager;
-import android.widget.ImageView;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
 import com.github.demongo.opencv.pipeline.BlurEstimationStep;
 import com.github.demongo.opencv.pipeline.NoiseEstimationStep;
 import com.github.demongo.opencv.pipeline.SendingStep;
@@ -23,7 +24,6 @@ import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     NoiseEstimationStep noiseEstimationStep;
     BlurEstimationStep blurEstimationStep;
     SendingStep sendingStep;
+    private RequestQueue requestQueue;
     private static final String TAG = MainActivity.class.getName();
 
     //this callback is needed because Android's onCreate is called before OpenCV is loaded
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
                     openCvCameraView.enableView();
                     noiseEstimationStep = new NoiseEstimationStep();
                     blurEstimationStep = new BlurEstimationStep();
-                    sendingStep = new SendingStep(MainActivity.this);
+                    sendingStep = new SendingStep(requestQueue);
 
                     blurEstimationStep
                             .next(noiseEstimationStep)
@@ -87,12 +88,16 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
         openCvCameraView.setCvCameraViewListener(this);
+
+        this.requestQueue = Volley.newRequestQueue(this);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         openCvCameraView.disableView();
+
+        this.sendingStep.cancelExecutorService();
     }
 
     @Override
@@ -114,35 +119,18 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
             Log.d("demon-go", "OpenCV library found inside package. Using it!");
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
-
-
     }
 
     @Override
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-        //return currentFrame;
-        if (templateMatching!= null){
-            currentFrame = templateMatching.matchFeatures(currentFrame);
-        }
+//        if (templateMatching!= null){
+//            currentFrame = templateMatching.matchFeatures(currentFrame);
+//        }
         blurEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
-    }
-
-    private void displayFrame(Mat bestFrame) {
-        if(bestFrame.cols() > 0 && bestFrame.rows() > 0) {
-            final ImageView imageView = (ImageView) findViewById(R.id.imageView);
-            final Bitmap bmp = Bitmap.createBitmap(bestFrame.cols(), bestFrame.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(bestFrame, bmp);
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    imageView.setImageBitmap(bmp);
-                }
-            });
-        }
     }
 
     @Override

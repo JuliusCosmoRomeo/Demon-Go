@@ -1,6 +1,5 @@
 package com.github.demongo.opencv.pipeline;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Base64;
 import android.util.Log;
@@ -10,7 +9,6 @@ import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
@@ -18,22 +16,44 @@ import org.opencv.core.Mat;
 import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
-public class SendingStep extends Step {
+public class SendingStep extends StepWithQueue {
     private static final String TAG = SendingStep.class.getName();
-    private static final String URL = "http://192.168.0.106:5000";
+    private static final String URL = "http://10.42.0.1:5000";
 
     private RequestQueue requestQueue;
+    private ScheduledExecutorService executorService;
 
-    public SendingStep(Context context) {
-        this.requestQueue = Volley.newRequestQueue(context);
+    public SendingStep(RequestQueue requestQueue) {
+        this.requestQueue = requestQueue;
+
+        Runnable senderRunnable = new Runnable() {
+            @Override
+            public void run() {
+                Snapshot best = getBest();
+                if (best != null){
+                    sendImage(best.mat);
+                    Log.i(TAG, "bestScore: " + best.score);
+                }
+            }
+        };
+
+        this.executorService = Executors.newScheduledThreadPool(0);
+        this.executorService.scheduleAtFixedRate(senderRunnable, 1, 2, TimeUnit.SECONDS);
+    }
+
+    // TODO: Evaluate if/when this should be done
+    public void cancelExecutorService() {
+        this.executorService.shutdown();
     }
 
     private String matToBase64String(Mat mat) {
         Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat, bmp);
 
-        // TODO: convert directly to jpeg
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bmp.compress(Bitmap.CompressFormat.JPEG, 92, stream);
         byte[] imageBytes = stream.toByteArray();
@@ -42,13 +62,13 @@ public class SendingStep extends Step {
     }
 
 
-    public void sendImage(final Mat mat) {
+    private void sendImage(final Mat mat) {
         String url = URL + "/post";
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                Log.i(TAG, response);
+                Log.i(TAG, "Server response: " + response);
             }
         }, new Response.ErrorListener() {
             @Override
@@ -68,11 +88,11 @@ public class SendingStep extends Step {
         Log.e(TAG, "POST-request added");
     }
 
+
     @Override
     public void process(Snapshot last) {
-        if(last.score > 0.8) { //Will later be replaced and Frames will be selected via queue
-            this.sendImage(last.mat);
-        }
+        this.queue(last);
+//        Log.i(TAG, "image added with score: " + last.score);
         this.output(last);
     }
 }
