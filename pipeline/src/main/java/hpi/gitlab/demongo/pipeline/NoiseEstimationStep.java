@@ -9,7 +9,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 public class NoiseEstimationStep extends Step {
-    private static final String TAG = NoiseEstimationStep.class.getName();
+    private static final String TAG = "demon-go-noise-step";
 
     private final Mat kernel = new Mat(3, 3, CvType.CV_32F) {
         {
@@ -40,7 +40,6 @@ public class NoiseEstimationStep extends Step {
         Imgproc.filter2D(image, destination, -1, this.kernel);
         Core.absdiff(destination, Scalar.all(0), destination);
         double total = Core.sumElems(destination).val[0];
-//        Log.i(TAG, "estimateNoise.total: " + Double.toString(total));
 
         total = total * Math.sqrt(0.5 * Math.PI) / (6 * (W-2) * (H-2));
         return total;
@@ -52,11 +51,11 @@ public class NoiseEstimationStep extends Step {
         if (noisiness>1.5) {// TODO: Never fulfilled if calculated on full frame
             Snapshot newSnap;
             if (last.score > 0) {
-                newSnap = new Snapshot(last.mat, noisiness * last.score); //TODO: evaluate metric
+                newSnap = last.copyWithNewScore(noisiness * last.score); //TODO: evaluate metric
             } else {
-                newSnap = new Snapshot(last.mat, noisiness);
+                newSnap = last.copyWithNewScore(noisiness * last.score);
             }
-//        Log.i(TAG, "process.noisiness: " + noisiness);
+            Log.i(TAG, "noisiness: " + noisiness);
             this.output(newSnap);
         }
     }
