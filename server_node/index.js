@@ -35,6 +35,7 @@ io.on('connection', function(socket){
   // TODO maybe init new sockets with existing pictures: socket.emit('init');
 });
 
-http.listen(process.env.PORT || 6666, function(){
-  console.log('listening on *:6666');
+var port = process.env.PORT || 8088;
+http.listen(port, function(){
+  console.log('listening on *:' + port);
 });
