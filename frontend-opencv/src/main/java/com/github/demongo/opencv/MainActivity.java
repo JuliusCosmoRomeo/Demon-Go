@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.WindowManager;
 
 import hpi.gitlab.demongo.pipeline.Pipeline;
+import hpi.gitlab.demongo.pipeline.Snapshot;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -96,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
     public Mat onCameraFrame(CvCameraViewFrame frame) {
         currentFrame = frame.rgba();
 
-        this.pipeline.add(currentFrame);
+        this.pipeline.add(new Snapshot(currentFrame, 1));
         //blurEstimationStep.process(new Snapshot(currentFrame,1));
 
         return currentFrame;
