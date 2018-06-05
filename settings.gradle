@@ -1,2 +1,2 @@
 include 'android', 'core'
-include ':opencv', ':android-opencv', ':demongoopencv', ':frontend-opencv'
+include ':opencv', ':frontend-opencv', ':pipeline'

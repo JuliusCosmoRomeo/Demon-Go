@@ -19,17 +19,15 @@ import org.opencv.core.Mat;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-public class ARSnapshot {
+import hpi.gitlab.demongo.pipeline.Snapshot;
 
-    Mat mat;
-    double score;
+public class ARSnapshot extends Snapshot {
 
     private float[] viewProjectionMatrix = new float[16];
     private float[] points;
 
     ARSnapshot(double score, Frame frame) throws NotYetAvailableException {
-        this.mat = matFromFrame(frame);
-        this.score = score;
+        super(matFromFrame(frame), score);
 
         PointCloud c = frame.acquirePointCloud();
         FloatBuffer cloud = c.getPoints();
@@ -46,7 +44,7 @@ public class ARSnapshot {
         getViewProjectionMatrix(frame.getCamera());
     }
 
-    private Mat matFromFrame(Frame frame) throws NotYetAvailableException {
+    private static Mat matFromFrame(Frame frame) throws NotYetAvailableException {
         Image image = frame.acquireCameraImage();
         Image.Plane plane = image.getPlanes()[0];
         ByteBuffer buffer = plane.getBuffer();

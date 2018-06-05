@@ -62,7 +62,7 @@ project(":android") {
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         implementation 'com.android.support:appcompat-v7:27.1.1'
         implementation 'com.android.support:design:27.1.1'
-        implementation 'com.google.ar:core:1.2.0'
+        implementation 'com.google.ar:core:1.2.1'
     }
 }
 
