@@ -135,8 +135,7 @@ public class BrandDetectionStep extends Step {
     public void process(Snapshot last) {
 
          if(matchFeatures(last.mat)){
-             Snapshot newSnap = new Snapshot(last.mat,1);
-             this.output(newSnap);
+             this.output(last);
          }
     }
 
