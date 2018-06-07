@@ -41,8 +41,8 @@ public class ContourDetectionStep extends Step {
         return transformedMat;
     }
 
-    public Mat find_contours(Mat src) {
-        Mat transformedMat = ContourDetectionStep.transform(src.clone());
+    public Mat find_contours(Snapshot snap) {
+        Mat transformedMat = ContourDetectionStep.transform(snap.mat.clone());
 
         final List<MatOfPoint> contours = new ArrayList<>();
         final Mat hierarchy = new Mat();
@@ -66,21 +66,20 @@ public class ContourDetectionStep extends Step {
                 Rect rect = Imgproc.boundingRect(approxContour);
 
                 if (DRAW_CONTOURS) {
-                    Imgproc.rectangle(src, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
-                    Imgproc.drawContours(src, contours, i, new Scalar(0, 255, 255), -1);
+                    Imgproc.rectangle(snap.mat, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
+                    Imgproc.drawContours(snap.mat, contours, i, new Scalar(0, 255, 255), -1);
                 }
 
-                Mat roi = src.submat(rect);
-                Snapshot newSnap = new Snapshot(roi, contourArea);
-                this.output(newSnap);
+                Mat roi = snap.mat.submat(rect);
+                this.output(snap.copyWithNewMat(roi));
             }
         }
-        return src;
+        return snap.mat;
     }
 
     @Override
     public void process(Snapshot last) {
-        this.find_contours(last.mat);
+        this.find_contours(last);
     }
 
 }

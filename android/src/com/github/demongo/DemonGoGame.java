@@ -1,5 +1,6 @@
 package com.github.demongo;
 
+import android.content.Context;
 import android.media.Image;
 import android.util.Log;
 
@@ -40,6 +41,8 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.Collection;
 
+import hpi.gitlab.demongo.pipeline.Pipeline;
+
 public class DemonGoGame extends ARCoreScene {
 	private AssetManager assetManager;
 	private Environment environment;
@@ -52,17 +55,28 @@ public class DemonGoGame extends ARCoreScene {
 	private Array<ModelInstance> pointCubes = new Array<>();
 	private Demon demon;
 	private Anchor demonAnchor = null;
-	private Matrix4 lastPictureTransform = null;
+
+	private Pipeline pipeline;
+	private AngleChangeStep angleChangeStep;
 
 	private final float POINT_SIZE = 0.03f;
 
 	private ARSnapshot lastSnapshot = null;
+
+	private Context context;
+
+	DemonGoGame(Context context) {
+		this.context = context;
+	}
 
 	@Override
 	public void create () {
 		super.create();
 
 		OpenCVLoader.initDebug();
+
+		angleChangeStep = new AngleChangeStep();
+		pipeline = new Pipeline(context, angleChangeStep);
 
 		assetManager = new AssetManager();
 
@@ -117,30 +131,6 @@ public class DemonGoGame extends ARCoreScene {
         }*/
     }
 
-    private void checkPictureTransformDelta() {
-	    Vector3 lastPosition = new Vector3();
-	    Vector3 currentPosition = new Vector3();
-
-	    Matrix4 current = getCamera().view;
-
-	    current.getTranslation(currentPosition);
-        lastPictureTransform.getTranslation(lastPosition);
-
-        Quaternion lastRotation = new Quaternion();
-        Quaternion currentRotation = new Quaternion();
-
-        current.getRotation(currentRotation);
-        lastPictureTransform.getRotation(lastRotation);
-
-        float lastAngle = lastRotation.getAngle();
-        float currentAngle = currentRotation.getAngle();
-
-        if (lastPosition.dst(currentPosition) > 0.2 || Math.abs(lastAngle - currentAngle) > 10) {
-            lastPictureTransform.set(current);
-            overlay.signalNewAngle();
-        }
-    }
-
 	@Override
 	public void render (Frame frame, ModelBatch modelBatch) {
 		if (loading && assetManager.update()) {
@@ -175,10 +165,9 @@ public class DemonGoGame extends ARCoreScene {
 			demonTarget.set(pose.tx(), pose.ty(), pose.tz());
 		}*/
 
-        if (lastPictureTransform == null) {
-            lastPictureTransform = getCamera().view.cpy();
-        }
-		checkPictureTransformDelta();
+        if (angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy())) {
+        	overlay.signalNewAngle();
+		}
 		input(frame);
 
 		if (demon != null) {
@@ -193,6 +182,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
+			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
 			lastSnapshot = null;
 			Log.e("demon-go", "no image yet");

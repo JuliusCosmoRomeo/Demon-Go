@@ -8,7 +8,7 @@ android {
             aidl.srcDirs = ['src']
             renderscript.srcDirs = ['src']
             res.srcDirs = ['res']
-            assets.srcDirs = ['assets']
+            assets.srcDirs = ['assets', '../pipeline/src/main/assets']
             jniLibs.srcDirs = ['libs']
         }
 
@@ -132,5 +132,6 @@ idea {
 }
 dependencies {
     implementation project(':opencv')
-    implementation project(path: ':pipeline')
+    implementation project(':pipeline')
 }
+

@@ -21,7 +21,7 @@ public class Pipeline {
     private RequestQueue requestQueue;
     private CircularFifoQueue<Snapshot> nextFrames;
 
-    public Pipeline(Context context) {
+    public Pipeline(Context context, Step angleChangeStep) {
         this.requestQueue = Volley.newRequestQueue(context);
 
         brandDetectionStep = new BrandDetectionStep(context, new ArrayList<String>(){{
@@ -36,10 +36,14 @@ public class Pipeline {
         sendingStep = new SendingStep(requestQueue);
 
         blurEstimationStep
+                .next(angleChangeStep);
+
+        angleChangeStep
                 .next(contourDetectionStep)
                 .next(noiseEstimationStep)
                 .next(sendingStep);
-        blurEstimationStep
+
+        angleChangeStep
                 .next(brandDetectionStep)
                 .next(sendingStep);
         nextFrames = new CircularFifoQueue<>(10);
@@ -58,5 +62,11 @@ public class Pipeline {
 
     public void add(Snapshot snapshot) {
         nextFrames.add(snapshot);
+    }
+
+    public Mat debugAdd(Snapshot snapshot) {
+        Mat debug = snapshot.createDebugMat();
+        firstStep.process(snapshot);
+        return debug;
     }
 }
