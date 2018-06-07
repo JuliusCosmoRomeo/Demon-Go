@@ -20,8 +20,9 @@ import java.util.List;
 public class ContourDetectionStep extends Step {
     private static final String TAG = ContourDetectionStep.class.getName();
     private static final double MIN_CONTOUR_SIZE = 700;
+    private static final double MAX_CONTOUR_EDGES = 20;
+
     private static final boolean USE_BILATERAL = false;
-    private static final boolean DRAW_CONTOURS = false;
 
     private static Mat transform(Mat src) {
         Imgproc.cvtColor(src, src, Imgproc.COLOR_BGRA2BGR);
@@ -63,18 +64,27 @@ public class ContourDetectionStep extends Step {
 
                 approxContour2f.convertTo(approxContour, CvType.CV_32S);
 
-                Rect rect = Imgproc.boundingRect(approxContour);
 
-                if (DRAW_CONTOURS) {
-                    Imgproc.rectangle(snap.mat, rect.tl(), rect.br(), new Scalar(255, 255, 0), 1, 8, 0);
-                    Imgproc.drawContours(snap.mat, contours, i, new Scalar(0, 255, 255), -1);
+                if (MAX_CONTOUR_EDGES == 0 || (approxContour.size().height > 2 && approxContour.size().height < MAX_CONTOUR_EDGES)) {
+
+                    Rect rect = Imgproc.boundingRect(approxContour);
+                    final List<MatOfPoint> approx = new ArrayList<>();
+                    approx.add(approxContour);
+
+
+                    if (snap.isDebug()) {
+                        //                    snap.debugMat = transformedMat;
+                        Imgproc.rectangle(snap.getDebugMat(), rect.tl(), rect.br(), new Scalar(255, 255, 0), 2, 8, 0);
+                        Imgproc.drawContours(snap.getDebugMat(), contours, i, new Scalar(0, 255, 255), 3);
+                        Imgproc.drawContours(snap.getDebugMat(), approx, 0, new Scalar(255, 0, 0), 2);
+                    }
+
+                    Mat roi = snap.mat.submat(rect);
+                    this.output(snap.copyWithNewMat(roi));
                 }
-
-                Mat roi = snap.mat.submat(rect);
-                this.output(snap.copyWithNewMat(roi));
             }
         }
-        return snap.mat;
+        return transformedMat;
     }
 
     @Override

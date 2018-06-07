@@ -37,4 +37,8 @@ public class Snapshot {
     public Mat getDebugMat() {
         return debugMat;
     }
+
+    public boolean isDebug() {
+        return (getDebugMat() != null);
+    }
 }
