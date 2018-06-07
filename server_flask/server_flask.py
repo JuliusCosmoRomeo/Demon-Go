@@ -25,8 +25,8 @@ def save_image(image_string):
 
 @app.route('/post', methods=['GET', 'POST'])
 def get_image():
-    print("POST-Request")
     image_string = request.form['image']
+    # print("POST-Request", request.form['score'])
     save_image(image_string)
 
     return 'gotcha'
