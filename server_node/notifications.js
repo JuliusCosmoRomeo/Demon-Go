@@ -1,9 +1,10 @@
 const admin = require('firebase-admin');
+const path = require('path');
 
 let _serviceAccount
 function getServiceAccount() {
   if (!_serviceAccount) {
-    _serviceAccount = require(path.join(__dirname, '..', '..', 'firebase-adminsdk.json'));
+    _serviceAccount = require(path.join(__dirname, 'firebase-adminsdk.json'));
     admin.initializeApp({
       credential: admin.credential.cert(_serviceAccount),
       databaseURL: 'https://demon-go.firebaseio.com'
@@ -23,7 +24,7 @@ module.exports.sendTo = function(text, token) {
       body: text
     },
     token
-  }).then(function (response) {
+  }, {timeToLive: 10}).then(function (response) {
     console.log('Successfully sent message:', response)
   })
   .catch(function (error) {
