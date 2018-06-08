@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class BrandDetectionStep extends Step {
@@ -30,10 +31,10 @@ public class BrandDetectionStep extends Step {
     FeatureDetector Orbdetector;
     DescriptorExtractor OrbExtractor;
     DescriptorMatcher matcher;
-    //all templates go into this list
-    ArrayList<Template> templateList = new ArrayList<>();
+    //all templates go into this map
+    HashMap<String, ArrayList<Template>> objectTemplateMap = new HashMap();
 
-    public BrandDetectionStep(Context context, ArrayList<String> templates){
+    public BrandDetectionStep(Context context, HashMap<String, ArrayList<String>> templatesMap){
         //needed for feature matching
         Orbdetector = FeatureDetector.create(FeatureDetector.ORB);
 
@@ -53,30 +54,43 @@ public class BrandDetectionStep extends Step {
 
         //read the template images and save them in the local template list
         InputStream stream = null;
-        for (String template : templates){
-            Mat templ;
-            MatOfKeyPoint keypointsTemplate = new MatOfKeyPoint();
-            Mat descriptorsTemplate = new Mat();
+        for (String object : templatesMap.keySet()){
+            for (String templateString : templatesMap.get(object)) {
+                Mat templ;
+                MatOfKeyPoint keypointsTemplate = new MatOfKeyPoint();
+                Mat descriptorsTemplate = new Mat();
 
-            Uri uri = Uri.parse(template + ".png");
+                Uri uri = Uri.parse(templateString + ".png");
 
-            try {
-                stream = context.getAssets().open(uri.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
+                try {
+                    stream = context.getAssets().open(uri.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                BitmapFactory.Options bmpFactoryOptions = new BitmapFactory.Options();
+                bmpFactoryOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap bmp = BitmapFactory.decodeStream(stream, null, bmpFactoryOptions);
+
+                templ = new Mat();
+                Utils.bitmapToMat(bmp, templ);
+
+                //get the keypoints of the template
+                Orbdetector.detect(templ, keypointsTemplate);
+                OrbExtractor.compute(templ, keypointsTemplate, descriptorsTemplate);
+
+                //add the template to the objectTemplateMap
+                final Template template = new Template(templ, keypointsTemplate, descriptorsTemplate, templateString);
+                ArrayList<Template> templateListForObject = new ArrayList<>();
+                if (templatesMap.get(object) == null) {
+                    templateListForObject = new ArrayList<Template>() {{
+                        add(template);
+                    }};
+                } else {
+                    templateListForObject.add(template);
+                }
+                objectTemplateMap.put(object, templateListForObject);
             }
-
-            BitmapFactory.Options bmpFactoryOptions = new BitmapFactory.Options();
-            bmpFactoryOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            Bitmap bmp = BitmapFactory.decodeStream(stream, null, bmpFactoryOptions);
-
-            templ = new Mat();
-            Utils.bitmapToMat(bmp, templ);
-
-            //get the keypoints of the template
-            Orbdetector.detect(templ, keypointsTemplate);
-            OrbExtractor.compute(templ, keypointsTemplate, descriptorsTemplate);
-            templateList.add(new Template(templ,keypointsTemplate,descriptorsTemplate,template));
         }
     }
 
@@ -110,17 +124,21 @@ public class BrandDetectionStep extends Step {
         //feature detection is very expensive: takes about 100 times as long as the matching (~0.25s)
         Orbdetector.detect(frame, keypointsImg);
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
+
         MatOfDMatch matches = new MatOfDMatch();
-        for (Template templ : templateList){
-            matcher.match(descriptorsImg,templ.descriptors,matches);
+        for (String objectName : objectTemplateMap.keySet()){
 
-            List<DMatch> matchesList = matches.toList();
+            for (Template templ : objectTemplateMap.get(objectName)) {
+                matcher.match(descriptorsImg, templ.descriptors, matches);
 
-            for (int i=0;i<descriptorsImg.rows();i++){
-                //TODO: find a better threshold abstraction
-                if(matchesList.get(i).distance<25){
-                    Log.i(TAG, "match found " + templ.uri);
-                    return true;
+                List<DMatch> matchesList = matches.toList();
+
+                for (int i = 0; i < descriptorsImg.rows(); i++) {
+                    //TODO: find a better threshold abstraction
+                    if (matchesList.get(i).distance < 25) {
+                        Log.i(TAG, "match found " + templ.uri);
+                        return true;
+                    }
                 }
             }
 
