@@ -49,6 +49,10 @@ public class Snapshot {
         return debugMat;
     }
 
+    public boolean isDebug() {
+        return (getDebugMat() != null);
+    }
+
     private String matToBase64String(Mat mat) {
         Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat, bmp);
