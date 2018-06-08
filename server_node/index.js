@@ -32,10 +32,6 @@ app.post('/post', (req, res) => {
 app.use('/images', express.static(__dirname + '/images'))
 
 io.on('connection', function(socket){
-  socket.on('disconnect', function(){
-    console.log('user disconnected');
-  });
-
   // TODO maybe init new sockets with existing pictures: socket.emit('init');
 });
 
