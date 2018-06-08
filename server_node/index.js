@@ -18,8 +18,6 @@ app.post('/post', (req, res) => {
   // answer immediately, client doesnt care if we save
   res.send();
 
-  notifications.sendTo('Got one!', req.body.token);
-
   var buffer = Buffer.from(req.body.image, 'base64');
   const path = '/images/' + uuidv4() + '.jpg';
   fs.writeFile(__dirname + path, buffer, 'binary', err => {
@@ -27,6 +25,8 @@ app.post('/post', (req, res) => {
       return console.log('failed to write image', err);
     io.sockets.emit('new image', {path});
   });
+
+  notifications.sendTo('Got one!', req.body.token);
 });
 
 app.use('/images', express.static(__dirname + '/images'))
