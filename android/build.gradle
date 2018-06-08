@@ -133,6 +133,5 @@ idea {
 dependencies {
     implementation project(':opencv')
     implementation project(':pipeline')
-    implementation 'com.google.firebase:firebase-messaging:17.0.0'
 }
 
