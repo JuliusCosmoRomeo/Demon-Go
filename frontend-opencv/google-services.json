@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "933333304173",
+    "firebase_url": "https://demon-go.firebaseio.com",
+    "project_id": "demon-go",
+    "storage_bucket": "demon-go.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:933333304173:android:bebb0cdd365f161d",
+        "android_client_info": {
+          "package_name": "com.github.demongo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "933333304173-9ivmop97h7uh0mpe4escdte11p6m6p3h.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "933333304173-9ivmop97h7uh0mpe4escdte11p6m6p3h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6jtZ2nUOV0SIMXNknAFhJ2O-HPdrx_TU"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

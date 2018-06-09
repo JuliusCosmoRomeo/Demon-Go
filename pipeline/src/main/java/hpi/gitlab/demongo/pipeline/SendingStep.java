@@ -67,7 +67,6 @@ public class SendingStep extends StepWithQueue {
         Log.e(TAG, "POST-request added: ");
     }
 
-
     @Override
     public void process(Snapshot last) {
         this.queue(last);

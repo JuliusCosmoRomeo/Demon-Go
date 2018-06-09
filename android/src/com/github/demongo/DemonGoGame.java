@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.Collection;
 
+import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
@@ -76,7 +77,8 @@ public class DemonGoGame extends ARCoreScene {
 		OpenCVLoader.initDebug();
 
 		angleChangeStep = new AngleChangeStep();
-		pipeline = new Pipeline(context, angleChangeStep);
+		// currently angle change is disabled for debugging
+		pipeline = new Pipeline(context, new NullStep());
 
 		assetManager = new AssetManager();
 

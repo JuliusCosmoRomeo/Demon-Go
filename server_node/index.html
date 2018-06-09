@@ -31,7 +31,8 @@ body {
       function addImage(path) {
           var img = new Image();
           img.src = path;
-          document.getElementById('gallery').appendChild(img);
+          var gallery = document.getElementById('gallery');
+          gallery.insertBefore(img, gallery.childNodes[0]);
       }
 
       socket.on('new image', data => {

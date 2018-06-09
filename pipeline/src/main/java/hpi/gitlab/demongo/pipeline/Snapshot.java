@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.util.Base64;
 import android.util.Log;
 
+import com.google.firebase.iid.FirebaseInstanceId;
+
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
@@ -47,6 +49,10 @@ public class Snapshot {
         return debugMat;
     }
 
+    public boolean isDebug() {
+        return (getDebugMat() != null);
+    }
+
     private String matToBase64String(Mat mat) {
         Bitmap bmp = Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(mat, bmp);
@@ -61,7 +67,8 @@ public class Snapshot {
     public Map<String, String> getRequestParameterList() {
         Map<String, String> parameters = new HashMap<String, String>();
         parameters.put("image", matToBase64String(this.mat));
-//        parameters.put("score", Double.toString(this.score));
+        parameters.put("token", FirebaseInstanceId.getInstance().getToken());
+        // parameters.put("score", Double.toString(this.score));
         return parameters;
     }
 }
