@@ -52,6 +52,7 @@ public class DemonGoGame extends ARCoreScene {
 
 	private boolean loading = true;
 	private Overlay overlay;
+	private Hud hud;
 
 	private Array<ModelInstance> pointCubes = new Array<>();
 	private Demon demon;
@@ -87,6 +88,7 @@ public class DemonGoGame extends ARCoreScene {
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
 		overlay = new Overlay();
+		hud = new Hud(context);
 
 		createPointCube();
 		createOriginIndicator();
@@ -204,5 +206,7 @@ public class DemonGoGame extends ARCoreScene {
 	@Override
 	protected void postRender(Frame frame) {
 	    overlay.render(frame.getCamera().getPose());
+
+	    hud.draw();
 	}
 }
