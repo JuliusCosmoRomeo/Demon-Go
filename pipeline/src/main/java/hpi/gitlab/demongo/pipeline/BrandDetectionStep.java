@@ -81,8 +81,8 @@ public class BrandDetectionStep extends Step {
 
                 //add the template to the objectTemplateMap
                 final Template template = new Template(templ, keypointsTemplate, descriptorsTemplate, templateString);
-                ArrayList<Template> templateListForObject = new ArrayList<>();
-                if (templatesMap.get(object) == null) {
+                ArrayList<Template> templateListForObject = objectTemplateMap.get(object);
+                if (templateListForObject == null) {
                     templateListForObject = new ArrayList<Template>() {{
                         add(template);
                     }};
@@ -129,6 +129,7 @@ public class BrandDetectionStep extends Step {
         for (String objectName : objectTemplateMap.keySet()){
 
             for (Template templ : objectTemplateMap.get(objectName)) {
+
                 matcher.match(descriptorsImg, templ.descriptors, matches);
 
                 List<DMatch> matchesList = matches.toList();

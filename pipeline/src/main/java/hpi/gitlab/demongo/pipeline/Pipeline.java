@@ -24,7 +24,7 @@ public class Pipeline {
     private CircularFifoQueue<Snapshot> nextFrames;
     private final HashMap<String, ArrayList<String>> objectTemplateNameMap = new HashMap<String, ArrayList<String>>(){{
         put("mate", new ArrayList<String>(){{
-            add("mate_icon");
+            add("mate_logo");
             add("mate_label");
             add("mate_flasche");
         }});
