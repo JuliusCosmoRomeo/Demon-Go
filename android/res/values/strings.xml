@@ -2,5 +2,6 @@
 <resources>
 
     <string name="app_name">demon-go</string>
+    <string name="access_token">pk.eyJ1IjoidG9tOTUiLCJhIjoiZGViYjdmYWY3ZjkwNDI3NDc0ZjVhYjUyNmMwNzZiOGUifQ.FDip-XDthjFB5PM_J3EpYQ</string>
 
 </resources>
