@@ -3,6 +3,8 @@ package hpi.gitlab.demongo.pipeline;
 import android.content.Context;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.opencv.core.Mat;
 
@@ -21,15 +23,18 @@ public class Pipeline {
     SendingStep sendingStep;
     private RequestQueue requestQueue;
     private CircularFifoQueue<Snapshot> nextFrames;
+    private final HashMap<String, ArrayList<String>> objectTemplateNameMap = new HashMap<String, ArrayList<String>>(){{
+        put("mate", new ArrayList<String>(){{
+            add("mate_logo");
+            add("mate_label");
+            add("mate_flasche");
+        }});
+    }};
 
     public Pipeline(Context context, Step angleChangeStep) {
         this.requestQueue = Volley.newRequestQueue(context);
 
-        brandDetectionStep = new BrandDetectionStep(context, new ArrayList<String>(){{
-            add("template");
-            add("mate_label");
-            add("mate_flasche");
-        }});
+        brandDetectionStep = new BrandDetectionStep(context, objectTemplateNameMap);
 
         noiseEstimationStep = new NoiseEstimationStep();
         blurEstimationStep = new BlurEstimationStep();

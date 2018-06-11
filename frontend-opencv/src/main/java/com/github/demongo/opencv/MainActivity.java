@@ -22,6 +22,8 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
 
+import static android.view.View.SYSTEM_UI_FLAG_FULLSCREEN;
+
 public class MainActivity extends AppCompatActivity implements CvCameraViewListener2 {
 
     private CameraBridgeViewBase openCvCameraView;
@@ -64,6 +66,7 @@ public class MainActivity extends AppCompatActivity implements CvCameraViewListe
 
         openCvCameraView = (CameraBridgeViewBase) findViewById(R.id.activity_surface_view);
         openCvCameraView.setVisibility(CameraBridgeViewBase.VISIBLE);
+        openCvCameraView.setSystemUiVisibility(SYSTEM_UI_FLAG_FULLSCREEN);
         openCvCameraView.setCvCameraViewListener(this);
     }
 
