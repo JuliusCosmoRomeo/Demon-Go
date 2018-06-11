@@ -40,7 +40,8 @@ public class Pipeline {
         blurEstimationStep
                 .next(angleChangeStep);
         angleChangeStep
-                .next(directSendStep);
+                .next(directSendStep)
+                .next(sendingStep);
         angleChangeStep
                 .next(contourDetectionStep)
                 .next(noiseEstimationStep)
