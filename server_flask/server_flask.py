@@ -97,6 +97,8 @@ def get_image():
         np.fromstring(image_data, dtype=np.uint8),
         cv2.IMREAD_COLOR
     )
+    if img is None or img.shape[0] == 0 or img.shape[1] == 0:
+        return 'Nope'
 
     path = save_image(img)
     socketio.emit(
