@@ -1,9 +1,17 @@
 package hpi.gitlab.demongo.pipeline;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
 
 import org.opencv.android.Utils;
@@ -34,7 +42,16 @@ public class BrandDetectionStep extends Step {
     //all templates go into this map
     HashMap<String, ArrayList<Template>> objectTemplateMap = new HashMap();
 
+
+    private Context context;
+    private long lastNotificationTimestamp = System.currentTimeMillis();
+    private final String NOTIFICATION_CHANNEL_ID = "demon-go-notifications";
+    private int notificationId = 0;
+
     public BrandDetectionStep(Context context, HashMap<String, ArrayList<String>> templatesMap){
+        this.context = context;
+        createNotificationChannel();
+
         //needed for feature matching
         Orbdetector = FeatureDetector.create(FeatureDetector.ORB);
 
@@ -113,7 +130,6 @@ public class BrandDetectionStep extends Step {
     }
 
 
-
     /*
      * checks if for a given object with multiple images one match can be found
     */
@@ -138,6 +154,12 @@ public class BrandDetectionStep extends Step {
                     //TODO: find a better threshold abstraction
                     if (matchesList.get(i).distance < 25) {
                         Log.i(TAG, "match found " + templ.uri);
+                        if (System.currentTimeMillis() - lastNotificationTimestamp > 3000){
+                            sendNotification(objectName);
+                            lastNotificationTimestamp = System.currentTimeMillis();
+                        }
+
+
                         return true;
                     }
                 }
@@ -155,6 +177,40 @@ public class BrandDetectionStep extends Step {
          if(matchFeatures(last.mat)){
              this.output(last);
          }
+    }
+
+    private void sendNotification(String object){
+        String content = "";
+        if (object.equals("mate")){
+            content = "Try out Flora Mate now. Only 0.2 g sugar more than your Club Mate";
+        }
+
+        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context,NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.notification_icon)
+                .setContentTitle("Still thirsty?")
+                .setContentText(content)
+                .setPriority(NotificationCompat.PRIORITY_MAX);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+
+        // notificationId is a unique int for each notification that you must define
+        notificationManager.notify(notificationId++, notificationBuilder.build());
+    }
+
+    private void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "demon-go-brand-recognition";
+            int importance = NotificationManager.IMPORTANCE_MAX;
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     class Template {
