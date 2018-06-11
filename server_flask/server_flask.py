@@ -72,12 +72,15 @@ def find_text():
             print('Got frame.')
         except queue.Empty:
             continue
-        rst = prediction_function(img)
-        if rst['text_lines']:
-            draw_text_boxes(img, rst)
-            filename = save_image(img)
-            # crop_text(img, rst['text_lines'])
-            results.put([filename])
+        try:
+            rst = prediction_function(img)
+            if rst['text_lines']:
+                draw_text_boxes(img, rst)
+                filename = save_image(img)
+                # crop_text(img, rst['text_lines'])
+                results.put([filename])
+        except cv2.error:
+            pass
 
 
 @app.route('/', methods=['GET'])
