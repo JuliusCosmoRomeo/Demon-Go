@@ -5,7 +5,7 @@ import android.util.Log;
 public class DirectSendStep extends Step {
     private static final String TAG = "demon-go-direct-send";
 
-    private int frame_counter = 100;
+    private int frame_counter = 0;
 
     @Override
     public void process(Snapshot last) {

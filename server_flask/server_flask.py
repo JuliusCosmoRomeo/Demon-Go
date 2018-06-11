@@ -38,7 +38,7 @@ def draw_text_boxes(img, rst):
         d = d.reshape(-1, 2)
         cv2.polylines(
             img, [d], isClosed=True,
-            color=(255, 255, 0), thickness=1)
+            color=(255, 255, 0), thickness=3)
     return img
 
 
@@ -73,8 +73,11 @@ def find_text():
         except queue.Empty:
             continue
         rst = prediction_function(img)
-        crop_text(img, rst['text_lines'])
-        results.put(rst)
+        if rst['text_lines']:
+            draw_text_boxes(img, rst)
+            filename = save_image(img)
+            # crop_text(img, rst['text_lines'])
+            results.put(filename)
 
 
 @app.route('/', methods=['GET'])
@@ -100,6 +103,12 @@ def get_image():
 
     frames.put_nowait(img.copy())
 
+    for filename in results.get():
+        socketio.emit(
+            'new image',
+            {'path': filename}
+        )
+
     return 'gotcha'
 
 
@@ -108,10 +117,12 @@ def test():
     # print("POST-Request", request.form['score'])
 
     img = cv2.imread('static/IMG_2000.jpg', cv2.IMREAD_COLOR)
-    path = save_image(img)
+    frames.put_nowait(img.copy())
+
+    filename = results.get()
     socketio.emit(
         'new image',
-        {'path': path}
+        {'path': filename}
     )
 
     return 'gotcha'
