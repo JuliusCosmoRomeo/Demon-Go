@@ -24,7 +24,6 @@ def save_image(img):
     filename = f'static/{uuid.uuid4()}.jpg'
 
     cv2.imwrite(filename, img)
-
     return filename
 
 
@@ -32,15 +31,36 @@ frames = multiprocessing.Queue()
 results = multiprocessing.Queue()
 
 
-def draw_text_boxes(illu, rst):
+def draw_text_boxes(img, rst):
     for t in rst['text_lines']:
         d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                       t['y2'], t['x3'], t['y3']], dtype='int32')
         d = d.reshape(-1, 2)
         cv2.polylines(
-            illu, [d], isClosed=True,
+            img, [d], isClosed=True,
             color=(255, 255, 0), thickness=1)
-    return illu
+    return img
+
+
+def crop_text(img, points):
+
+    files = []
+    for textbox in points:
+        min_x = 10000
+        max_x = 0
+        min_y = 10000
+        max_y = 0
+        for key, value in textbox.items():
+
+            if key.startswith('x'):
+                min_x = min(min_x, int(value))
+                max_x = max(max_x, int(value))
+            elif key.startswith('y'):
+                min_y = min(min_y, int(value))
+                max_y = max(max_y, int(value))
+            else:
+                files.append(save_image(img[min_y:max_y, min_x:max_x]))
+    results.put(files)
 
 
 def find_text():
@@ -48,20 +68,13 @@ def find_text():
 
     while True:
         try:
-            img = frames.get(timeout=0.5)
+            img = frames.get(timeout=0.05)
             print('Got frame.')
         except queue.Empty:
             continue
-        print('Processing image..')
         rst = prediction_function(img)
-        draw_text_boxes(img, rst)
-        print(f'Found {len(rst)} results')
-        filename = save_image(img)
+        crop_text(img, rst['text_lines'])
         results.put(rst)
-        socketio.emit(
-            'new image',
-            {'path': filename}
-        )
 
 
 @app.route('/', methods=['GET'])
@@ -79,7 +92,27 @@ def get_image():
         cv2.IMREAD_COLOR
     )
 
+    path = save_image(img)
+    socketio.emit(
+        'new image',
+        {'path': path}
+    )
+
     frames.put_nowait(img.copy())
+
+    return 'gotcha'
+
+
+@app.route('/test', methods=['GET', 'POST'])
+def test():
+    # print("POST-Request", request.form['score'])
+
+    img = cv2.imread('static/IMG_2000.jpg', cv2.IMREAD_COLOR)
+    path = save_image(img)
+    socketio.emit(
+        'new image',
+        {'path': path}
+    )
 
     return 'gotcha'
 

@@ -16,6 +16,7 @@ public class Pipeline {
     private NoiseEstimationStep noiseEstimationStep;
     private BlurEstimationStep blurEstimationStep;
     private ContourDetectionStep contourDetectionStep;
+    private DirectSendStep directSendStep;
     private Step firstStep;
     SendingStep sendingStep;
     private RequestQueue requestQueue;
@@ -33,11 +34,13 @@ public class Pipeline {
         noiseEstimationStep = new NoiseEstimationStep();
         blurEstimationStep = new BlurEstimationStep();
         contourDetectionStep = new ContourDetectionStep();
+        directSendStep = new DirectSendStep();
         sendingStep = new SendingStep(requestQueue);
 
         blurEstimationStep
                 .next(angleChangeStep);
-
+        angleChangeStep
+                .next(directSendStep);
         angleChangeStep
                 .next(contourDetectionStep)
                 .next(noiseEstimationStep)
