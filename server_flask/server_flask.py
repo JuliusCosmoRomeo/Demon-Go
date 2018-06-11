@@ -69,11 +69,6 @@ def find_text():
     while True:
         try:
             img = frames.get(timeout=0.05)
-            print('Got frame.')
-            print(img.shape)
-            if not img:
-                print('Skipping..')
-                continue
         except queue.Empty:
             continue
         try:
@@ -83,7 +78,7 @@ def find_text():
                 filename = save_image(img)
                 # crop_text(img, rst['text_lines'])
                 results.put([filename])
-        except cv2.error:
+        except (cv2.error, AssertionError):
             pass
 
 
