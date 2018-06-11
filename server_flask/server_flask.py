@@ -77,7 +77,7 @@ def find_text():
             draw_text_boxes(img, rst)
             filename = save_image(img)
             # crop_text(img, rst['text_lines'])
-            results.put(filename)
+            results.put([filename])
 
 
 @app.route('/', methods=['GET'])
