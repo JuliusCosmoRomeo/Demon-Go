@@ -1,12 +1,11 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 27
 
-
-
     defaultConfig {
-        applicationId "com.github.demongo.opencv"
+        applicationId "com.github.demongo"
         minSdkVersion 19
         targetSdkVersion 27
         versionCode 1
@@ -22,13 +21,14 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':opencv')
 
+    implementation 'com.android.support:support-media-compat:27.1.1'
+    implementation 'com.android.support:support-v4:27.1.1'
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     testImplementation 'junit:junit:4.12'
@@ -37,4 +37,7 @@ dependencies {
     implementation 'org.apache.commons:commons-collections4:4.1'
     implementation 'com.android.volley:volley:1.1.0'
     implementation project(path: ':pipeline')
+
+    implementation 'com.google.firebase:firebase-core:16.0.0'
+    implementation 'com.google.firebase:firebase-messaging:17.0.0'
 }

@@ -18,12 +18,11 @@ const TITLES = ['Look!'];
 module.exports.sendTo = function(text, token) {
   const serviceAccount = getServiceAccount()
 
-  return admin.messaging().send({
+  return admin.messaging().sendToDevice(token, {
     notification: {
       title: TITLES[parseInt(Math.random() * TITLES.length)],
       body: text
-    },
-    token
+    }
   }, {timeToLive: 10}).then(function (response) {
     console.log('Successfully sent message:', response)
   })

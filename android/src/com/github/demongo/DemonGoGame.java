@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.Collection;
 
+import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
@@ -51,6 +52,7 @@ public class DemonGoGame extends ARCoreScene {
 
 	private boolean loading = true;
 	private Overlay overlay;
+	private Hud hud;
 
 	private Array<ModelInstance> pointCubes = new Array<>();
 	private Demon demon;
@@ -76,7 +78,8 @@ public class DemonGoGame extends ARCoreScene {
 		OpenCVLoader.initDebug();
 
 		angleChangeStep = new AngleChangeStep();
-		pipeline = new Pipeline(context, angleChangeStep);
+		// currently angle change is disabled for debugging
+		pipeline = new Pipeline(context, new NullStep());
 
 		assetManager = new AssetManager();
 
@@ -85,6 +88,7 @@ public class DemonGoGame extends ARCoreScene {
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
 		overlay = new Overlay();
+		hud = new Hud(context);
 
 		createPointCube();
 		createOriginIndicator();
@@ -202,5 +206,7 @@ public class DemonGoGame extends ARCoreScene {
 	@Override
 	protected void postRender(Frame frame) {
 	    overlay.render(frame.getCamera().getPose());
+
+	    hud.draw();
 	}
 }
