@@ -42,7 +42,9 @@ public class BrandDetectionStep extends Step {
     //all templates go into this map
     HashMap<String, ArrayList<Template>> objectTemplateMap = new HashMap();
 
+
     private Context context;
+    private long lastNotificationTimestamp = System.currentTimeMillis();
     private final String NOTIFICATION_CHANNEL_ID = "demon-go-notifications";
     private int notificationId = 0;
 
@@ -152,7 +154,12 @@ public class BrandDetectionStep extends Step {
                     //TODO: find a better threshold abstraction
                     if (matchesList.get(i).distance < 25) {
                         Log.i(TAG, "match found " + templ.uri);
-                        sendNotification(objectName);
+                        if (System.currentTimeMillis() - lastNotificationTimestamp > 3000){
+                            sendNotification(objectName);
+                            lastNotificationTimestamp = System.currentTimeMillis();
+                        }
+
+
                         return true;
                     }
                 }
