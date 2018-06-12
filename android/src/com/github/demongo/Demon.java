@@ -59,7 +59,10 @@ public class Demon {
             velocity.scl(0.9999f);
         }
 
-        instance.transform.setToTranslation(target);
+        Vector3 t = new Vector3();
+        instance.transform.getTranslation(t);
+        t.lerp(target, Gdx.graphics.getDeltaTime() * 10);
+        instance.transform.setToTranslation(t);
 
         // instance.transform.setToWorld(position, acceleration.nor(), new Vector3(0, 1, 0));
         // instance.transform.scale(0.3f, 0.3f, 0.3f);
