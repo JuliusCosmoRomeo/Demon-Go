@@ -71,7 +71,7 @@ public class Pipeline {
 
     public Mat debugAdd(Snapshot snapshot) {
         Mat debug = snapshot.createDebugMat();
-        firstStep.process(snapshot);
+        firstStep.start(snapshot);
         return debug;
     }
 }
