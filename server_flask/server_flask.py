@@ -46,11 +46,18 @@ def get_image():
     return 'gotcha'
 
 
-@app.route('/test', methods=['GET', 'POST'])
+@app.route('/test', methods=['POST'])
 def test():
-    # print("POST-Request", request.form['score'])
 
-    img = cv2.imread('static/TEST_IMAGE2.jpg', cv2.IMREAD_COLOR)
+    img_id = request.json.get('test_image', 1)
+    filename = f'static/TEST_IMAGE{img_id}.jpg'
+
+    img = cv2.imread(filename, cv2.IMREAD_COLOR)
+    socketio.emit(
+        'new image',
+        {'path': filename}
+    )
+
     td.in_queue.put_nowait(img.copy())
 
     for filename in td.out_queue.get():

@@ -9,20 +9,6 @@ import numpy as np
 sys.path.append("./EAST")
 from EAST.run_demo_server import get_predictor
 
-import pdb
-
-class ForkedPdb(pdb.Pdb):
-    """A Pdb subclass that may be used
-    from a forked multiprocessing child
-
-    """
-    def interaction(self, *args, **kwargs):
-        _stdin = sys.stdin
-        try:
-            sys.stdin = open('/dev/stdin')
-            pdb.Pdb.interaction(self, *args, **kwargs)
-        finally:
-            sys.stdin = _stdin
 
 class TextDetection:
 
@@ -89,6 +75,10 @@ class TextDetection:
                 img = self.in_queue.get(timeout=self.QUEUE_TIMEOUT)
             except queue.Empty:
                 continue
+
+            x, y, _ = img.shape
             rst = prediction_function(img)['text_lines']
             if rst:
                 self.process(img, rst)
+            else:
+                self.out_queue.put([])
