@@ -26,10 +26,13 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Anchor;
+import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
+import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 import com.google.ar.core.PointCloud;
 
@@ -40,6 +43,7 @@ import org.opencv.core.Mat;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.Collection;
+import java.util.List;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
@@ -47,21 +51,18 @@ import hpi.gitlab.demongo.pipeline.Pipeline;
 public class DemonGoGame extends ARCoreScene {
 	private AssetManager assetManager;
 	private Environment environment;
-	private Model pointCubeModel;
-	private ModelInstance originIndicator;
 
 	private boolean loading = true;
 	private Overlay overlay;
 	private Hud hud;
+	private PvP pvp = null;
+	private ARDebug arDebug;
 
-	private Array<ModelInstance> pointCubes = new Array<>();
 	private Demon demon;
-	private Anchor demonAnchor = null;
 
 	private Pipeline pipeline;
 	private AngleChangeStep angleChangeStep;
 
-	private final float POINT_SIZE = 0.03f;
 
 	private ARSnapshot lastSnapshot = null;
 
@@ -87,24 +88,18 @@ public class DemonGoGame extends ARCoreScene {
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
+		arDebug = new ARDebug();
 		overlay = new Overlay();
-		hud = new Hud(context);
+		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
+			@Override
+			public void onPvPStarted() {
+				pvp = new PvP(context, hud);
+			}
+		});
 
-		createPointCube();
-		createOriginIndicator();
-	}
-
-	private void createOriginIndicator() {
-		ModelBuilder modelBuilder = new ModelBuilder();
-		originIndicator = new ModelInstance(modelBuilder.createXYZCoordinates(1, new Material(),
-				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.ColorPacked));
-	}
-
-	private void createPointCube() {
-		ModelBuilder modelBuilder = new ModelBuilder();
-		pointCubeModel = modelBuilder.createBox(POINT_SIZE, POINT_SIZE, POINT_SIZE,
-				new Material(ColorAttribute.createDiffuse(Color.GREEN)),
-				VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+		Config config = new Config(getSession());
+		config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
+		getSession().configure(config);
 	}
 
 	private void assetsLoaded() {
@@ -112,62 +107,44 @@ public class DemonGoGame extends ARCoreScene {
 		loading = false;
 	}
 
-	private void input(Frame frame) {
-	    if (!Gdx.input.justTouched()) {
-	        return;
+	private Anchor cloudAnchor;
+	private void maybeCreatePvPCloudAnchor() {
+	    Collection<Plane> planes = getSession().getAllTrackables(Plane.class);
+		if (pvp != null && !planes.isEmpty()) {
+            cloudAnchor = getSession().createAnchor(planes.iterator().next().getCenterPose());
+            getSession().hostCloudAnchor(cloudAnchor);
         }
+	}
 
-        float x = Gdx.input.getX();
-        float y = Gdx.input.getY();
+	private void checkCloudAnchor() {
+	    if (cloudAnchor == null)
+	        return;
 
-        if (lastSnapshot != null) {
-        	demon.setTarget(lastSnapshot.projectPoint(x, y));
-        	Log.e("demon-go-ar", demon.getTarget().toString());
-		}
+	    Anchor.CloudAnchorState state = cloudAnchor.getCloudAnchorState();
+	    if (state.isError()) {
+            // TODO
+	        Log.e("demon-go-pvp", "failed to create cloud anchor!");
+        } else if (state == Anchor.CloudAnchorState.SUCCESS) {
+	        pvp.updateCloudAnchorId(cloudAnchor.getCloudAnchorId());
+        }
+    }
 
-        /*for (HitResult hit : frame.hitTest(x, y)) {
-            if (demonAnchor != null)
-                demonAnchor.detach();
-
-            demonAnchor = hit.createAnchor();
-            // we only use the closest hit, if any
-            break;
-        }*/
+	private void input(Frame frame) {
+	    // temporary solution for guiding the demon, to be replaced by pipeline's movement direction
+	    if (Gdx.input.justTouched() && lastSnapshot != null) {
+            demon.setTarget(lastSnapshot.projectPoint(Gdx.input.getX(), Gdx.input.getY()));
+        }
     }
 
 	@Override
-	public void render (Frame frame, ModelBatch modelBatch) {
+	public void render(Frame frame, ModelBatch modelBatch) {
 		if (loading && assetManager.update()) {
 			assetsLoaded();
 		}
 
-		PointCloud cloud = frame.acquirePointCloud();
-		FloatBuffer points = cloud.getPoints();
-
-		int num = 0;
-		while (points.hasRemaining()) {
-		    ModelInstance cube;
-			if (num < pointCubes.size) {
-			    cube = pointCubes.get(num);
-			} else {
-                cube = new ModelInstance(pointCubeModel);
-                pointCubes.add(cube);
-			}
-
-			cube.transform.setToTranslation(points.get(), points.get(), points.get());
-			float confidence = points.get();
-
-            cube.materials.get(0).set(ColorAttribute.createDiffuse(Color.RED.lerp(Color.GREEN, confidence)));
-			num++;
+		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
+		    hud.setLoading(false);
 		}
-
-		cloud.release();
-
-		/*Collection<Plane> planes = getSession().getAllTrackables(Plane.class);
-		if (!planes.isEmpty()) {
-			Pose pose = planes.iterator().next().getCenterPose();
-			demonTarget.set(pose.tx(), pose.ty(), pose.tz());
-		}*/
 
         if (angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy())) {
         	overlay.signalNewAngle();
@@ -175,12 +152,6 @@ public class DemonGoGame extends ARCoreScene {
 		input(frame);
 
 		if (demon != null) {
-			// if (demonAnchor != null) {
-				// demonTarget.set(demonAnchor.getPose().tx(), demonAnchor.getPose().ty(), demonAnchor.getPose().tz());
-			// }
-			if (false && num > 0) {
-				// pointCubes.get(num - 1).transform.getTranslation(demon.target);
-			}
 			demon.move();
         }
 
@@ -193,8 +164,9 @@ public class DemonGoGame extends ARCoreScene {
 		}
 
 		demon.render(modelBatch, environment);
-		modelBatch.render(pointCubes, environment);
-		modelBatch.render(originIndicator, environment);
+
+		arDebug.update(frame);
+		arDebug.draw(modelBatch, environment);
 	}
 
 	@Override

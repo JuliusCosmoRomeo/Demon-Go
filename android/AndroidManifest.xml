@@ -13,6 +13,7 @@
         android:theme="@style/GdxTheme" >
 
         <meta-data android:name="com.google.ar.core" android:value="required" />
+        <meta-data android:name="com.google.ar.API_KEY" android:value="AIzaSyC6jtZ2nUOV0SIMXNknAFhJ2O-HPdrx_TU" />
 
         <activity
             android:name="com.github.demongo.AndroidLauncher"

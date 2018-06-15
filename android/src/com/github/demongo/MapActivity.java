@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.demongo.MapUtils.move;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
@@ -105,24 +106,12 @@ public class MapActivity extends AppCompatActivity {
         mapboxMap.addMarker(marker);
 
         List<LatLng> polygon = new ArrayList<>();
-        // polygon.add(new LatLng(lat - 0.1, lng - 0.1));
-        // polygon.add(new LatLng(lat + 0.1, lng - 0.1));
-        // polygon.add(new LatLng(lat + 0.1, lng + 0.1));
-        // polygon.add(new LatLng(lat - 0.1, lng + 0.1));
-        // polygon.add(move(pos, 0, 100));
-        // polygon.add(move(pos, 100, 0));
-        // polygon.add(move(pos, 0, -100));
-        // polygon.add(move(pos, -100,0));
+        polygon.add(MapUtils.move(pos, 0, 100));
+        polygon.add(MapUtils.move(pos, 100, 0));
+        polygon.add(MapUtils.move(pos, 0, -100));
+        polygon.add(MapUtils.move(pos, -100,0));
 
-        // mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
-    }
-
-    // https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-a-latitude-longitude-by-some-amount-of-meters
-    LatLng move(LatLng source, double x, double y) {
-        return new LatLng(
-                source.getLatitude() + x / 1000.0 / (Math.cos(source.getLatitude()) * 111111.0),
-                source.getLongitude() + y / 1000.0 / 111111.0
-        );
+        mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
     }
 
     private void addNewMarker(double lat, double lng) {
