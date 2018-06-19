@@ -182,12 +182,12 @@ public class BrandDetectionStep extends Step {
     private void sendNotification(String object){
         String content = "";
         if (object.equals("mate")){
-            content = "Try out Flora Mate now. Only 0.2 g sugar more than your Club Mate";
+            content = "Flora Mate. Erfrischt und belebt";
         }
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context,NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.notification_icon)
-                .setContentTitle("Still thirsty?")
+                .setContentTitle("Need some refreshment?")
                 .setContentText(content)
                 .setPriority(NotificationCompat.PRIORITY_MAX);
 
