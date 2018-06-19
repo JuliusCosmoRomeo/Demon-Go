@@ -12,7 +12,7 @@ from EAST.run_demo_server import get_predictor
 
 class TextDetection:
 
-    CHECKPOINT_PATH = 'EAST/east_icdar2015_resnet_v1_50_rbox'
+    CHECKPOINT_PATH = 'east_icdar2015_resnet_v1_50_rbox'
     QUEUE_TIMEOUT = 0.05
 
     def __init__(self, in_queue=None, out_queue=None, split=False):
@@ -76,7 +76,6 @@ class TextDetection:
             except queue.Empty:
                 continue
 
-            x, y, _ = img.shape
             rst = prediction_function(img)['text_lines']
             if rst:
                 self.process(img, rst)
