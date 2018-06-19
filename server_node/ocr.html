@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>OCR</title>
+    <script type="text/javascript" src='https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js'></script>
+</head>
+<body>
+    <input type="text" id="url" placeholder="Image URL" />
+    <input type="button" id="run_button" value="Run" />
+    <div id="results"> </div>
+    <script>
+      function runOCR() {
+        Tesseract.recognize("test.jpg")
+          .then(function(result){
+            console.log(result);
+            document.getElementById("results")
+              .innerText = result.text;
+          })
+          .catch(function(error) {
+            console.log(error)
+          });
+      }
+
+      document.getElementById("run_button")
+        .addEventListener("click", function(e) {
+          runOCR();
+        });
+    </script>
+</body>
+</html>
