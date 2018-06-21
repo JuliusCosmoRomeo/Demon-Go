@@ -1,0 +1,1 @@
+tesseract imagelist output --oem 1 --psm 8 -l deu+eng

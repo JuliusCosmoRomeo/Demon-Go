@@ -34,7 +34,7 @@ class TextDetection:
             d = d.reshape(-1, 2)
             cv2.polylines(
                 img, [d], isClosed=True,
-                color=(255, 255, 0), thickness=3)
+                color=(255, 255, 0), thickness=1)
         filename = self.save_image(img)
 
         self.out_queue.put([filename])
