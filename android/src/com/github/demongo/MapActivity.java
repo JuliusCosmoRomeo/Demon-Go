@@ -86,10 +86,12 @@ public class MapActivity extends AppCompatActivity {
                     GeoPoint position = stash.getLocation();
                     if (position != null)  {
                         Log.i("demon-go-map", "Radius " + stash.getRadius());
+                        boolean isCurrentPlayer = stash.getPlayerID() == 0;
                         if (stash.getRadius()!=-1){
-                            addMarker(position.getLatitude(), position.getLongitude(), stash.getRadius());
+                            addMarker(position.getLatitude(), position.getLongitude(), stash.getRadius(), isCurrentPlayer);
                         } else {
-                            addMarker(position.getLatitude(), position.getLongitude(), 1);
+
+                            addMarker(position.getLatitude(), position.getLongitude(), 1, isCurrentPlayer);
                         }
                     }
                 }
@@ -119,24 +121,19 @@ public class MapActivity extends AppCompatActivity {
         return polygon;
     }
 
-    private void addMarker(double lat, double lng, long radius) {
+    private void addMarker(double lat, double lng, long radius, boolean isCurrentPlayer) {
         LatLng pos = new LatLng(lat, lng);
         MarkerOptions marker = new MarkerOptions();
         marker.setPosition(pos);
         mapboxMap.addMarker(marker);
 
-        /*List<LatLng> polygon = new ArrayList<>();
-        polygon.add(MapUtils.move(pos, 0, 100));
-        polygon.add(MapUtils.move(pos, 100, 0));
-        polygon.add(MapUtils.move(pos, 0, -100));
-        polygon.add(MapUtils.move(pos, -100,0));
-*/
         List<LatLng> polygon = getStashPerimeter(pos,radius);
-        mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
+        String colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
+        mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString)));
     }
 
     private void addNewMarker(double lat, double lng, long radiusInKm) {
-        addMarker(lat, lng, radiusInKm);
+        addMarker(lat, lng, radiusInKm, true);
 
         Stash stash = new Stash(0,new GeoPoint(lat, lng), radiusInKm, 1000,0);
 
