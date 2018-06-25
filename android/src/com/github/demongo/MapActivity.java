@@ -31,11 +31,8 @@ import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static com.github.demongo.MapUtils.move;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
@@ -116,11 +113,11 @@ public class MapActivity extends AppCompatActivity {
 
     private void addNewMarker(double lat, double lng) {
         addMarker(lat, lng);
-        Map<String,Object> data = new HashMap<>();
-        data.put("position", new GeoPoint(lat, lng));
-        data.put("amount", 200.0);
 
-        db.collection("stashes").add(data);
+        Stash stash = new Stash(0,new GeoPoint(lat, lng),1000,0);
+
+        db.collection("stashes").add(stash.getMap());
+
     }
 
     private void setupBuildings() {
