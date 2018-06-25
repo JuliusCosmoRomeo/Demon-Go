@@ -17,6 +17,7 @@ import numpy
 from numpy.fft import rfft
 import matplotlib.pyplot as plt
 from matplotlib.mlab import rms_flat
+
 try:
     # More accurate peak finding from
     # https://gist.github.com/endolith/255291#file-parabolic-py
@@ -27,7 +28,7 @@ try:
 except ImportError:
     from numpy import argmax
 
-filename = 'test5.jpg'
+filename = 'static/pink.png'
 
 # Load file, converting to grayscale
 I = asarray(Image.open(filename).convert('L'))

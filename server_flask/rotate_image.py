@@ -1,4 +1,4 @@
-import imutils as imutils
+import imutils
 import cv2
 
 angle = -5

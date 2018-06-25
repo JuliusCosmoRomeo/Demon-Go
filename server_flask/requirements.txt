@@ -1,3 +1,7 @@
+imutils
+matplotlib
+numpy
+Pillow
 flask
 flask-socketio
 gevent

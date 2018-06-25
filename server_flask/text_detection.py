@@ -6,6 +6,8 @@ from multiprocessing import Queue
 import cv2
 import numpy as np
 
+from ocr import process_img
+
 sys.path.append("./EAST")
 from EAST.run_demo_server import get_predictor
 
@@ -23,12 +25,28 @@ class TextDetection:
     @staticmethod
     def save_image(img):
         filename = f'static/{uuid.uuid4()}.jpg'
+        print(filename + ": ", end="")
 
         cv2.imwrite(filename, img)
         return filename
 
+    @staticmethod
+    def expand_text_box(rst):
+        for t in rst:
+            t['x0'] -= 5
+            t['y0'] -= 5
+            t['x1'] += 5
+            t['y1'] -= 5
+            t['x2'] += 5
+            t['y2'] += 5
+            t['x3'] -= 5
+            t['y3'] += 5
+        return rst
+
     def draw_text_boxes(self, img, rst):
         for t in rst:
+            # d = np.array([t['x0'] - 5, t['y0'] - 5, t['x1'] + 5, t['y1'] - 5, t['x2'] + 5,
+            #               t['y2'] + 5, t['x3'] - 5, t['y3'] + 5], dtype='int32')
             d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                           t['y2'], t['x3'], t['y3']], dtype='int32')
             d = d.reshape(-1, 2)
@@ -61,9 +79,9 @@ class TextDetection:
                     min_y = min(min_y, clamp(v, HEIGHT))
                     max_y = max(max_y, clamp(v, HEIGHT))
                 else:
-                    files.append(self.save_image(
-                        img[min_y:max_y, min_x:max_x]
-                    ))
+                    cropped_img = img[min_y:max_y, min_x:max_x]
+                    files.append(self.save_image(cropped_img))
+                    process_img(cropped_img)
 
         self.out_queue.put(files)
 
@@ -76,7 +94,7 @@ class TextDetection:
             except queue.Empty:
                 continue
 
-            rst = prediction_function(img)['text_lines']
+            rst = self.expand_text_box(prediction_function(img)['text_lines'])
             if rst:
                 self.process(img, rst)
             else:
