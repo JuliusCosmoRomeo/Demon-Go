@@ -1,19 +1,14 @@
 package com.github.demongo;
 
-import android.gesture.GestureOverlayView;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 
-import com.badlogic.gdx.math.Circle;
-import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -22,15 +17,13 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
-import com.mapbox.mapboxsdk.annotations.Polygon;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
-import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
-import com.mapbox.mapboxsdk.style.light.Position;
+import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +64,7 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(@NonNull LatLng point) {
-                        addNewMarker(point.getLatitude(), point.getLongitude());
+                        addNewMarker(point.getLatitude(), point.getLongitude(), ThreadLocalRandom.current().nextInt(1, 5 + 1));
                     }
                 });
             }
@@ -89,9 +82,15 @@ public class MapActivity extends AppCompatActivity {
                 }
 
                 for (QueryDocumentSnapshot doc : snapshot) {
-                    GeoPoint position = (GeoPoint) doc.get("position");
+                    Stash stash = new Stash(doc.getData());
+                    GeoPoint position = stash.getLocation();
                     if (position != null)  {
-                        addMarker(position.getLatitude(), position.getLongitude());
+                        Log.i("demon-go-map", "Radius " + stash.getRadius());
+                        if (stash.getRadius()!=-1){
+                            addMarker(position.getLatitude(), position.getLongitude(), stash.getRadius());
+                        } else {
+                            addMarker(position.getLatitude(), position.getLongitude(), 1);
+                        }
                     }
                 }
             }
@@ -114,14 +113,13 @@ public class MapActivity extends AppCompatActivity {
             theta = i * slice;
             x = distanceX * Math.cos(theta);
             y = distanceY * Math.sin(theta);
-            Log.d("demon-go-map", x + " " + y);
             polygon.add(new LatLng(position.getLatitude() + y, position.getLongitude() + x));
         }
 
         return polygon;
     }
 
-    private void addMarker(double lat, double lng) {
+    private void addMarker(double lat, double lng, long radius) {
         LatLng pos = new LatLng(lat, lng);
         MarkerOptions marker = new MarkerOptions();
         marker.setPosition(pos);
@@ -133,14 +131,14 @@ public class MapActivity extends AppCompatActivity {
         polygon.add(MapUtils.move(pos, 0, -100));
         polygon.add(MapUtils.move(pos, -100,0));
 */
-        List<LatLng> polygon = getStashPerimeter(pos,3);
+        List<LatLng> polygon = getStashPerimeter(pos,radius);
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
     }
 
-    private void addNewMarker(double lat, double lng) {
-        addMarker(lat, lng);
+    private void addNewMarker(double lat, double lng, long radiusInKm) {
+        addMarker(lat, lng, radiusInKm);
 
-        Stash stash = new Stash(0,new GeoPoint(lat, lng),1000,0);
+        Stash stash = new Stash(0,new GeoPoint(lat, lng), radiusInKm, 1000,0);
 
         db.collection("stashes").add(stash.getMap());
 
