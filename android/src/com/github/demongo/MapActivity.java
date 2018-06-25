@@ -98,25 +98,24 @@ public class MapActivity extends AppCompatActivity {
         });
     }
 
-    private List<LatLng> getStashPerimeter(LatLng position, double radius) {
+    private List<LatLng> getStashPerimeter(LatLng position, double radiusInKm) {
 
         final int numberOfSides = 64;
         // these are conversion constants
-        final double distanceX = radius / (111.319 * Math.cos(position.getLatitude() * Math.PI / 180));
-        final double distanceY = radius / 110.574;
+        final double distanceX = radiusInKm / (111.319 * Math.cos(position.getLatitude() * Math.PI / 180));
+        final double distanceY = radiusInKm / 110.574;
 
         double slice = (2 * Math.PI) / numberOfSides;
 
 
         double theta, x,y;
-        LatLng next;
         List<LatLng> polygon = new ArrayList<>();
         for (int i=0;i<numberOfSides;i++) {
             theta = i * slice;
             x = distanceX * Math.cos(theta);
             y = distanceY * Math.sin(theta);
-            //could be wrong
-            polygon.add(MapUtils.move(position, position.getLongitude() + x, position.getLatitude() + y));
+            Log.d("demon-go-map", x + " " + y);
+            polygon.add(new LatLng(position.getLatitude() + y, position.getLongitude() + x));
         }
 
         return polygon;
@@ -134,7 +133,7 @@ public class MapActivity extends AppCompatActivity {
         polygon.add(MapUtils.move(pos, 0, -100));
         polygon.add(MapUtils.move(pos, -100,0));
 */
-        List<LatLng> polygon = getStashPerimeter(pos,30);
+        List<LatLng> polygon = getStashPerimeter(pos,3);
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
     }
 

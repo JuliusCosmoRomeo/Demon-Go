@@ -26,12 +26,11 @@ public class Stash {
         this.location = location;
         this.capacity = capacity;
         this.filled = filled;
-        this.map = new HashMap<String, Object>(){{
-            put(PLAYER_ID,playerID);
-            put(POSITION,location);
-            put(CAPACITY,capacity);
-            put(FILLED,filled);
-        }};
+        this.map = new HashMap<String, Object>();
+        this.map.put(PLAYER_ID,playerID);
+        this.map.put(POSITION,location);
+        this.map.put(CAPACITY,capacity);
+        this.map.put(FILLED,filled);
     }
 
     public Stash(int filled, HashMap<String, Object> map){
