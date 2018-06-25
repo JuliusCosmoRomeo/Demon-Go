@@ -1,5 +1,6 @@
 package com.github.demongo;
 
+import android.gesture.GestureOverlayView;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -29,6 +30,7 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
+import com.mapbox.mapboxsdk.style.light.Position;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,18 +98,43 @@ public class MapActivity extends AppCompatActivity {
         });
     }
 
+    private List<LatLng> getStashPerimeter(LatLng position, double radius) {
+
+        final int numberOfSides = 64;
+        // these are conversion constants
+        final double distanceX = radius / (111.319 * Math.cos(position.getLatitude() * Math.PI / 180));
+        final double distanceY = radius / 110.574;
+
+        double slice = (2 * Math.PI) / numberOfSides;
+
+
+        double theta, x,y;
+        LatLng next;
+        List<LatLng> polygon = new ArrayList<>();
+        for (int i=0;i<numberOfSides;i++) {
+            theta = i * slice;
+            x = distanceX * Math.cos(theta);
+            y = distanceY * Math.sin(theta);
+            //could be wrong
+            polygon.add(MapUtils.move(position, position.getLongitude() + x, position.getLatitude() + y));
+        }
+
+        return polygon;
+    }
+
     private void addMarker(double lat, double lng) {
         LatLng pos = new LatLng(lat, lng);
         MarkerOptions marker = new MarkerOptions();
         marker.setPosition(pos);
         mapboxMap.addMarker(marker);
 
-        List<LatLng> polygon = new ArrayList<>();
+        /*List<LatLng> polygon = new ArrayList<>();
         polygon.add(MapUtils.move(pos, 0, 100));
         polygon.add(MapUtils.move(pos, 100, 0));
         polygon.add(MapUtils.move(pos, 0, -100));
         polygon.add(MapUtils.move(pos, -100,0));
-
+*/
+        List<LatLng> polygon = getStashPerimeter(pos,30);
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor("#33ff0000")));
     }
 
