@@ -11,7 +11,7 @@ from text_detection import TextDetection
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-td = TextDetection(split=False)
+td = TextDetection(split=True)
 
 
 @app.route('/', methods=['GET'])
@@ -48,10 +48,7 @@ def get_image():
 
 @app.route('/test', methods=['POST', 'GET'])
 def test():
-    # print("JSON: ", request.get_json())
-    # img_id = request.json.get('test_image', 1)
-    # filename = f'static/TEST_IMAGE{img_id}.jpg'
-    filename = 'static/finance.png'
+    filename = 'examples/fsr.jpg'
     print(filename)
 
     img = cv2.imread(filename, cv2.IMREAD_COLOR)

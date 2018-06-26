@@ -6,7 +6,7 @@ from multiprocessing import Queue
 import cv2
 import numpy as np
 
-from ocr import process_img
+from ocr import get_word_from_img
 
 sys.path.append("./EAST")
 from EAST.run_demo_server import get_predictor
@@ -32,6 +32,7 @@ class TextDetection:
 
     @staticmethod
     def expand_text_box(rst):
+        # I'd love to hear about feedback which improves this ;)
         for t in rst:
             t['x0'] -= 5
             t['y0'] -= 5
@@ -45,8 +46,6 @@ class TextDetection:
 
     def draw_text_boxes(self, img, rst):
         for t in rst:
-            # d = np.array([t['x0'] - 5, t['y0'] - 5, t['x1'] + 5, t['y1'] - 5, t['x2'] + 5,
-            #               t['y2'] + 5, t['x3'] - 5, t['y3'] + 5], dtype='int32')
             d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                           t['y2'], t['x3'], t['y3']], dtype='int32')
             d = d.reshape(-1, 2)
@@ -81,7 +80,7 @@ class TextDetection:
                 else:
                     cropped_img = img[min_y:max_y, min_x:max_x]
                     files.append(self.save_image(cropped_img))
-                    process_img(cropped_img)
+                    get_word_from_img(cropped_img)
 
         self.out_queue.put(files)
 
