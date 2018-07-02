@@ -1,7 +1,11 @@
 package com.github.demongo;
 
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -16,6 +20,10 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.BaseMarkerOptions;
+import com.mapbox.mapboxsdk.annotations.Icon;
+import com.mapbox.mapboxsdk.annotations.IconFactory;
+import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
@@ -67,6 +75,17 @@ public class MapActivity extends AppCompatActivity {
                         addNewMarker(point.getLatitude(), point.getLongitude(), ThreadLocalRandom.current().nextInt(1, 5 + 1));
                     }
                 });
+                mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(@NonNull Marker marker) {
+                        StashMarker stashMarker = (StashMarker) marker;
+                        Intent stashIntent = new Intent(MapActivity.this,StashActivity.class);
+                        stashIntent.setExtrasClassLoader(ParcelableGeoPoint.class.getClassLoader());
+                        stashIntent.putExtra("stash", stashMarker.getStash());
+                        startActivity(stashIntent);
+                        return true;
+                    }
+                });
             }
         });
     }
@@ -87,12 +106,10 @@ public class MapActivity extends AppCompatActivity {
                     if (position != null)  {
                         Log.i("demon-go-map", "Radius " + stash.getRadius());
                         boolean isCurrentPlayer = stash.getPlayerID() == 0;
-                        if (stash.getRadius()!=-1){
-                            addMarker(position.getLatitude(), position.getLongitude(), stash.getRadius(), isCurrentPlayer);
-                        } else {
-
-                            addMarker(position.getLatitude(), position.getLongitude(), 1, isCurrentPlayer);
+                        if (stash.getRadius()==-1){
+                            stash.setRadius(1);
                         }
+                        addMarker(stash, isCurrentPlayer);
                     }
                 }
             }
@@ -121,21 +138,22 @@ public class MapActivity extends AppCompatActivity {
         return polygon;
     }
 
-    private void addMarker(double lat, double lng, long radius, boolean isCurrentPlayer) {
-        LatLng pos = new LatLng(lat, lng);
-        MarkerOptions marker = new MarkerOptions();
+    private void addMarker(Stash stash, boolean isCurrentPlayer) {
+        LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
+        StashMarkerOptions marker = new StashMarkerOptions(stash);
         marker.setPosition(pos);
         mapboxMap.addMarker(marker);
 
-        List<LatLng> polygon = getStashPerimeter(pos,radius);
+
+        List<LatLng> polygon = getStashPerimeter(pos,stash.getRadius());
         String colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString)));
     }
 
     private void addNewMarker(double lat, double lng, long radiusInKm) {
-        addMarker(lat, lng, radiusInKm, true);
+        Stash stash = new Stash(0,new ParcelableGeoPoint(new GeoPoint(lat, lng)), radiusInKm, 1000,0);
+        addMarker(stash, true);
 
-        Stash stash = new Stash(0,new GeoPoint(lat, lng), radiusInKm, 1000,0);
 
         db.collection("stashes").add(stash.getMap());
 
@@ -215,5 +233,79 @@ public class MapActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         mapView.onSaveInstanceState(outState);
+    }
+
+    public class StashMarker extends Marker {
+
+        private Stash stash;
+
+        public StashMarker(BaseMarkerOptions baseMarkerOptions, Stash stash) {
+            super(baseMarkerOptions);
+            this.stash = stash;
+        }
+
+        public Stash getStash() {
+            return stash;
+        }
+    }
+
+    class StashMarkerOptions extends BaseMarkerOptions<StashMarker, StashMarkerOptions> {
+
+        private Stash stash;
+
+        public StashMarkerOptions stash(Stash stash) {
+            this.stash = stash;
+            return getThis();
+        }
+
+        public StashMarkerOptions(Stash stash) {
+            super();
+            this.stash = stash;
+        }
+
+        private StashMarkerOptions(Parcel in) {
+            position((LatLng) in.readParcelable(LatLng.class.getClassLoader()));
+            snippet(in.readString());
+            String iconId = in.readString();
+            Bitmap iconBitmap = in.readParcelable(Bitmap.class.getClassLoader());
+            Icon icon = IconFactory.recreate(iconId, iconBitmap);
+            icon(icon);
+            stash((Stash)in.readParcelable(Stash.class.getClassLoader()));
+        }
+
+        @Override
+        public StashMarkerOptions getThis() {
+            return this;
+        }
+
+        @Override
+        public StashMarker getMarker() {
+            return new StashMarker(this, stash);
+        }
+
+        public final Parcelable.Creator<StashMarkerOptions> CREATOR
+                = new Parcelable.Creator<StashMarkerOptions>() {
+            public StashMarkerOptions createFromParcel(Parcel in) {
+                return new StashMarkerOptions(in);
+            }
+
+            public StashMarkerOptions[] newArray(int size) {
+                return new StashMarkerOptions[size];
+            }
+        };
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            out.writeParcelable(position, flags);
+            out.writeString(snippet);
+            out.writeString(icon.getId());
+            out.writeParcelable(icon.getBitmap(), flags);
+            out.writeParcelable(stash,flags);
+        }
     }
 }
