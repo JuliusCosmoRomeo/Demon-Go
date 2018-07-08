@@ -1,18 +1,27 @@
 package com.github.demongo;
 
-import android.content.Intent;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcel;
+import android.os.ParcelUuid;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -24,13 +33,14 @@ import com.mapbox.mapboxsdk.annotations.BaseMarkerOptions;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.Marker;
-import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
+
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.ArrayList;
@@ -49,6 +59,9 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionHei
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionOpacity;
 
 public class MapActivity extends AppCompatActivity {
+    private static final String TAG = "demon-go-map";
+    public static final UUID playerId = UUID.fromString("1b9624f8-4683-41c6-823e-89932573aa67");
+
     private MapView mapView;
     private MapboxMap mapboxMap;
 
@@ -72,10 +85,16 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(@NonNull LatLng point) {
-                        addNewMarker(point.getLatitude(), point.getLongitude(), ThreadLocalRandom.current().nextInt(1, 5 + 1));
+                        Stash stash = new Stash(new ParcelUuid(UUID.randomUUID()), new ParcelUuid(playerId),
+                                new ParcelableGeoPoint(new GeoPoint(point.getLatitude(), point.getLongitude())),
+                                ThreadLocalRandom.current().nextInt(1, 5 + 1),
+                                1000,
+                                0);
+
+                        addNewMarker(stash);
                     }
                 });
-                mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
+                /*mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
                     @Override
                     public boolean onMarkerClick(@NonNull Marker marker) {
                         StashMarker stashMarker = (StashMarker) marker;
@@ -85,7 +104,50 @@ public class MapActivity extends AppCompatActivity {
                         startActivity(stashIntent);
                         return true;
                     }
-                });
+                });*/
+
+                addCustomInfoWindowAdapter();
+            }
+        });
+    }
+
+
+    private void addCustomInfoWindowAdapter() {
+        mapboxMap.setInfoWindowAdapter(new MapboxMap.InfoWindowAdapter() {
+
+            @Override
+            public View getInfoWindow(@NonNull Marker marker) {
+                StashMarker stashMarker = (StashMarker) marker;
+                final Stash stash = stashMarker.getStash();
+                View container = getLayoutInflater().inflate(R.layout.map_info_window, null);
+                TextView playerName = container.findViewById(R.id.playerName);
+                playerName.setText("Player 1");
+                TextView radius = container.findViewById(R.id.radius);
+                radius.setText("Radius:" + stash.getRadius()+ " km");
+                TextView capacity = container.findViewById(R.id.capacity);
+                capacity.setText(stash.getFilled() +"/" +stash.getCapacity() + " EP");
+                LinearLayout buttonContainer = container.findViewById(R.id.buttonContainer);
+                if (isCurrentPlayer(stash.getPlayerID())){
+                    ImageButton defendBtn = new ImageButton(MapActivity.this);
+                    defendBtn.setImageResource(R.drawable.icons8_schild);
+                    buttonContainer.addView(defendBtn);
+                    ImageButton depositBtn = new ImageButton(MapActivity.this);
+                    depositBtn.setImageResource(R.drawable.icons8_gelddose);
+                    depositBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            showDepositPopup(stash);
+                        }
+                    });
+                    buttonContainer.addView(depositBtn);
+                } else {
+                    ImageButton attackBtn = new ImageButton(MapActivity.this);
+                    attackBtn.setImageResource(R.drawable.icons8_schwert);
+                    buttonContainer.addView(attackBtn);
+                }
+
+
+                return container;
             }
         });
     }
@@ -96,16 +158,19 @@ public class MapActivity extends AppCompatActivity {
             public void onEvent(@Nullable QuerySnapshot snapshot,
                                 @Nullable FirebaseFirestoreException e) {
                 if (e != null || snapshot == null) {
-                    Log.w("demon-go-map", "Listen failed.", e);
+                    Log.w(TAG, "Listen failed.", e);
                     return;
                 }
 
                 for (QueryDocumentSnapshot doc : snapshot) {
+                    Log.i(TAG, doc.getId());
                     Stash stash = new Stash(doc.getData());
                     GeoPoint position = stash.getLocation();
                     if (position != null)  {
-                        Log.i("demon-go-map", "Radius " + stash.getRadius());
-                        boolean isCurrentPlayer = stash.getPlayerID() == 0;
+                        Log.i(TAG, "Radius " + stash.getRadius());
+                        Log.i(TAG, "Filled " + stash.getFilled());
+
+                        boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
                         if (stash.getRadius()==-1){
                             stash.setRadius(1);
                         }
@@ -150,12 +215,9 @@ public class MapActivity extends AppCompatActivity {
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString)));
     }
 
-    private void addNewMarker(double lat, double lng, long radiusInKm) {
-        Stash stash = new Stash(0,new ParcelableGeoPoint(new GeoPoint(lat, lng)), radiusInKm, 1000,0);
+    private void addNewMarker(Stash stash) {
         addMarker(stash, true);
-
-
-        db.collection("stashes").add(stash.getMap());
+        db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
 
     }
 
@@ -178,6 +240,72 @@ public class MapActivity extends AppCompatActivity {
                 fillExtrusionOpacity(0.9f)
         );
         mapboxMap.addLayer(fillExtrusionLayer);
+    }
+
+    private boolean isCurrentPlayer(ParcelUuid uuid){
+        if (uuid==null){
+            return false;
+        }
+        return uuid.getUuid() == this.playerId;
+    }
+
+    public void showDepositPopup(final Stash stash){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LinearLayout dialogView =  (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_deposit_stash,null);
+        final SeekBar slider = dialogView.findViewById(R.id.deposit_slider);
+        slider.setMax((int)(stash.getCapacity() - stash.getFilled()));
+        slider.setProgress(0);
+        final TextView depositText = dialogView.findViewById(R.id.deposit_value);
+        depositText.setText("0");
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                depositText.setText(progress + "");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+        builder.setMessage("Wie viel EP möchtest du im Versteck ablegen?")
+                .setTitle("Put into stash")
+                .setView(dialogView)
+                .setPositiveButton("Deposit", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        //deposit value to stash
+                        Log.i(TAG, "deposited " + slider.getProgress() + " moneydos");
+                        stash.setFilled(stash.getFilled() + slider.getProgress());
+                        db.collection("stashes").document(stash.getId().toString()).set(stash.getMap()).addOnSuccessListener(new OnSuccessListener<Void>() {
+                            @Override
+                            public void onSuccess(Void aVoid) {
+                                Log.d(TAG, "DocumentSnapshot successfully written! "+ stash.getId() + " " +stash.getFilled() + " " + stash.getMap().get("filled"));
+                            }
+                        })
+                                .addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+                                        Log.w(TAG, "Error writing document", e);
+                                    }
+                                });;
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Log.i(TAG, "canceled");
+                    }
+                });
+
+// 3. Get the AlertDialog from create()
+        AlertDialog dialog = builder.create();
+        dialog.show();
     }
 
     @Override

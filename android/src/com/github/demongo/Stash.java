@@ -1,36 +1,36 @@
 package com.github.demongo;
 
 import android.os.Parcel;
+import android.os.ParcelUuid;
 import android.os.Parcelable;
-import android.util.Log;
 
 import com.google.firebase.firestore.GeoPoint;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class Stash implements Parcelable {
-    public final long MAX_CAPACITY = 10000;
-    public final long MAX_RADIUS = 500;
     private final String CAPACITY = "capacity";
     private final String FILLED = "filled";
     private final String POSITION = "position";
     private final String RADIUS = "radius";
     private final String PLAYER_ID = "player_id";
+    private final String STASH_ID = "stash_id";
 
-
-    private final long playerID;
+    private final ParcelUuid id;
+    private final ParcelUuid playerID;
     private final ParcelableGeoPoint location;
     private long radius;
     private final long capacity;
-    private final long filled;
+
+    private long filled;
 
     //in the map Geopoints are saved instead of ParcelableGeoPoints
     private Map<String,Object> map;
 
-    public Stash(long playerID, ParcelableGeoPoint location, long radius, long capacity, long filled) {
-
+    public Stash(ParcelUuid id, ParcelUuid playerID, ParcelableGeoPoint location, long radius, long capacity, long filled) {
+        this.id = id;
         this.playerID = playerID;
         this.location = location;
         this.radius = radius;
@@ -46,17 +46,21 @@ public class Stash implements Parcelable {
 
     public Stash(Map<String, Object> map){
         this.map = map;
-        this.playerID = map.get(PLAYER_ID) != null ? (long) map.get(PLAYER_ID) : -1;
+        this.id = map.get(STASH_ID) != null ? ParcelUuid.fromString((String) map.get(STASH_ID)) : new ParcelUuid(UUID.randomUUID());
+        this.playerID = new ParcelUuid(MapActivity.playerId); // map.get(PLAYER_ID) != null ? ParcelUuid.fromString(map.get(PLAYER_ID) + "") :
         this.location = new ParcelableGeoPoint((GeoPoint) map.get(POSITION));
         this.capacity = map.get(CAPACITY) != null ? (long) map.get(CAPACITY) : -1;
         this.filled = map.get(FILLED) != null ? (long) map.get(FILLED) : -1;
         this.radius = map.get(RADIUS) != null ? (long) map.get(RADIUS) : -1;
     }
 
+
     protected Stash(Parcel in) {
+        //does the order of values make a difference?
         capacity = in.readLong();
         radius = in.readLong();
-        playerID = in.readLong();
+        playerID = in.readParcelable(ParcelUuid.class.getClassLoader());
+        id = in.readParcelable(ParcelUuid.class.getClassLoader());
         filled = in.readLong();
         location = in.readParcelable(ParcelableGeoPoint.class.getClassLoader());
     }
@@ -77,7 +81,11 @@ public class Stash implements Parcelable {
         return map;
     }
 
-    public long getPlayerID() {
+    public ParcelUuid getId() {
+        return id;
+    }
+
+    public ParcelUuid getPlayerID() {
         return playerID;
     }
 
@@ -100,6 +108,12 @@ public class Stash implements Parcelable {
 
     public void setRadius(long radius) {
         this.radius = radius;
+        this.map.put(RADIUS,this.radius);
+    }
+
+    public void setFilled(long filled) {
+        this.filled = filled;
+        this.map.put(FILLED,this.filled);
     }
 
     public String toString(){
@@ -117,7 +131,9 @@ public class Stash implements Parcelable {
         out.writeLong(radius);
         out.writeLong(capacity);
         out.writeLong(filled);
-        out.writeLong(playerID);
+        out.writeParcelable(playerID,flags);
+        out.writeParcelable(id,flags);
         out.writeParcelable(location,flags);
     }
+
 }
