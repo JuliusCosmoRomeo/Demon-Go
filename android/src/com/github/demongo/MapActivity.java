@@ -1,6 +1,7 @@
 package com.github.demongo;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
+import android.widget.TabHost;
 import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -116,7 +118,7 @@ public class MapActivity extends AppCompatActivity {
         mapboxMap.setInfoWindowAdapter(new MapboxMap.InfoWindowAdapter() {
 
             @Override
-            public View getInfoWindow(@NonNull Marker marker) {
+            public View getInfoWindow(@NonNull final Marker marker) {
                 StashMarker stashMarker = (StashMarker) marker;
                 final Stash stash = stashMarker.getStash();
                 View container = getLayoutInflater().inflate(R.layout.map_info_window, null);
@@ -130,13 +132,19 @@ public class MapActivity extends AppCompatActivity {
                 if (isCurrentPlayer(stash.getPlayerID())){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
                     defendBtn.setImageResource(R.drawable.icons8_schild);
+                    defendBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            startActivity(new Intent(MapActivity.this,DemonGallery.class));
+                        }
+                    });
                     buttonContainer.addView(defendBtn);
                     ImageButton depositBtn = new ImageButton(MapActivity.this);
                     depositBtn.setImageResource(R.drawable.icons8_gelddose);
                     depositBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            showDepositPopup(stash);
+                            showDepositPopup(stash, marker);
                         }
                     });
                     buttonContainer.addView(depositBtn);
@@ -163,8 +171,15 @@ public class MapActivity extends AppCompatActivity {
                 }
 
                 for (QueryDocumentSnapshot doc : snapshot) {
-                    Log.i(TAG, doc.getId());
+                    Log.i(TAG, "stash id " + doc.getId());
+
                     Stash stash = new Stash(doc.getData());
+                    if (!doc.getId().toString().contains("-")){
+
+                        Log.i(TAG, " old stash " + stash.toString());
+                        db.collection("stashes").document(doc.getId().toString())
+                                .delete();
+                    }
                     GeoPoint position = stash.getLocation();
                     if (position != null)  {
                         Log.i(TAG, "Radius " + stash.getRadius());
@@ -249,14 +264,14 @@ public class MapActivity extends AppCompatActivity {
         return uuid.getUuid() == this.playerId;
     }
 
-    public void showDepositPopup(final Stash stash){
+    public void showDepositPopup(final Stash stash, final Marker marker){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LinearLayout dialogView =  (LinearLayout)getLayoutInflater().inflate(R.layout.dialog_deposit_stash,null);
         final SeekBar slider = dialogView.findViewById(R.id.deposit_slider);
-        slider.setMax((int)(stash.getCapacity() - stash.getFilled()));
-        slider.setProgress(0);
+        slider.setMax((int)(stash.getCapacity()));
+        slider.setProgress((int)stash.getFilled());
         final TextView depositText = dialogView.findViewById(R.id.deposit_value);
-        depositText.setText("0");
+        depositText.setText("" + stash.getFilled());
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -281,11 +296,12 @@ public class MapActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         //deposit value to stash
                         Log.i(TAG, "deposited " + slider.getProgress() + " moneydos");
-                        stash.setFilled(stash.getFilled() + slider.getProgress());
+                        marker.hideInfoWindow();
+                        stash.setFilled(slider.getProgress());
                         db.collection("stashes").document(stash.getId().toString()).set(stash.getMap()).addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                Log.d(TAG, "DocumentSnapshot successfully written! "+ stash.getId() + " " +stash.getFilled() + " " + stash.getMap().get("filled"));
+                                Log.d(TAG, "DocumentSnapshot successfully written! ");
                             }
                         })
                                 .addOnFailureListener(new OnFailureListener() {
@@ -293,7 +309,7 @@ public class MapActivity extends AppCompatActivity {
                                     public void onFailure(@NonNull Exception e) {
                                         Log.w(TAG, "Error writing document", e);
                                     }
-                                });;
+                                });
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {

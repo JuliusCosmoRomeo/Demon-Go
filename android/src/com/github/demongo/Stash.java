@@ -37,7 +37,8 @@ public class Stash implements Parcelable {
         this.capacity = capacity;
         this.filled = filled;
         this.map = new HashMap<String, Object>();
-        this.map.put(PLAYER_ID,playerID);
+        this.map.put(PLAYER_ID,playerID.toString());
+        this.map.put(STASH_ID,id.toString());
         this.map.put(POSITION,location.getGeoPoint()); //watch out -> in the map we save GeoPoints, not ParcelableGeoPoints
         this.map.put(RADIUS,radius);
         this.map.put(CAPACITY,capacity);

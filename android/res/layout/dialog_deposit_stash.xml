@@ -6,7 +6,6 @@
 
     <SeekBar
         android:id="@+id/deposit_slider"
-        style="@style/Widget.AppCompat.SeekBar.Discrete"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         />
