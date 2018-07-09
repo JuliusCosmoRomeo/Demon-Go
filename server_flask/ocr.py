@@ -12,8 +12,10 @@ def get_word_from_img(img):
     rotation = -analyse_rotation(img)
     rotated_img = imutils.rotate_bound(img, rotation)
 
-    img_text = pytesseract.image_to_string(rotated_img, lang='eng', boxes=False, config='--psm 8 --oem 1')
+    img_text = pytesseract.image_to_string(rotated_img, lang='eng+deu', boxes=False, config='--psm 8 --oem 1')
     print(img_text)
+
+    return img_text, rotation
 
 
 if __name__ == '__main__':

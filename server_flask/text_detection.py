@@ -1,5 +1,6 @@
-import sys
 import queue
+import sqlite3
+import sys
 import uuid
 from multiprocessing import Queue
 
@@ -32,7 +33,7 @@ class TextDetection:
 
     @staticmethod
     def expand_text_box(rst):
-        # I'd love to hear about feedback which improves this ;)
+        # I'd love to hear feedback which improves this code ;)
         for t in rst:
             t['x0'] -= 5
             t['y0'] -= 5
@@ -56,6 +57,14 @@ class TextDetection:
 
         self.out_queue.put([filename])
 
+    @staticmethod
+    def write_data(values):
+        conn = sqlite3.connect("collected_data.db")
+        c = conn.cursor()
+        c.executemany('INSERT INTO data VALUES (?, ?, ?, ?)', values)
+        conn.commit()
+        conn.close()
+
     def crop_text(self, img, points):
 
         def clamp(n, largest):
@@ -64,6 +73,7 @@ class TextDetection:
         HEIGHT, WIDTH, _ = img.shape
 
         files = []
+        data = []
         for textbox in points:
             min_x = 10000
             max_x = 0
@@ -79,9 +89,13 @@ class TextDetection:
                     max_y = max(max_y, clamp(v, HEIGHT))
                 else:
                     cropped_img = img[min_y:max_y, min_x:max_x]
-                    files.append(self.save_image(cropped_img))
-                    get_word_from_img(cropped_img)
+                    filename = self.save_image(cropped_img)
+                    files.append(filename)
+                    img_text, rotation = get_word_from_img(cropped_img)
+                    # Cols are user_id, filename, text, rotation
+                    data.append((1, filename, img_text, int(rotation)))
 
+        self.write_data(data)
         self.out_queue.put(files)
 
     def detect_text(self):
