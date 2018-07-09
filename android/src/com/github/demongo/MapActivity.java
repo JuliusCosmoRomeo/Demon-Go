@@ -3,6 +3,7 @@ package com.github.demongo;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -19,7 +20,6 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
-import android.widget.TabHost;
 import android.widget.TextView;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -30,17 +30,26 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.mapbox.geojson.Feature;
+import com.mapbox.geojson.FeatureCollection;
+import com.mapbox.geojson.Geometry;
+import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.BaseMarkerOptions;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.geometry.LatLng;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
+import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
+import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -63,12 +72,19 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionOpa
 public class MapActivity extends AppCompatActivity {
     private static final String TAG = "demon-go-map";
     public static final UUID playerId = UUID.fromString("1b9624f8-4683-41c6-823e-89932573aa67");
+    private static final String MARKER_SOURCE = "markers-source";
+    private static final String MARKER_STYLE_LAYER = "markers-style-layer";
+    private static final String MARKER_IMAGE = "custom-marker";
+    static final int GALLERY_REQUEST = 1;  // The request code
+
 
     private MapView mapView;
     private MapboxMap mapboxMap;
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    private Stash currentStash;
+    private int demonCount = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +98,11 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
                 mapboxMap = map;
+                //add the demon icon as resource to the map
+                Bitmap icon = BitmapFactory.decodeResource(
+                        MapActivity.this.getResources(), R.drawable.demon);
+                mapboxMap.addImage(MARKER_IMAGE, icon);
+
                 setupBuildings();
                 fetchMarkers();
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
@@ -93,7 +114,8 @@ public class MapActivity extends AppCompatActivity {
                                 1000,
                                 0);
 
-                        addNewMarker(stash);
+                        //addNewMarker(stash);
+                        addDemonMarker(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp),point);
                     }
                 });
                 /*mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
@@ -135,7 +157,11 @@ public class MapActivity extends AppCompatActivity {
                     defendBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            startActivity(new Intent(MapActivity.this,DemonGallery.class));
+                            Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
+                            demonGallery.putExtra("action", DemonGallery.Action.Defend);
+                            currentStash = stash;
+                            marker.hideInfoWindow();
+                            startActivityForResult(demonGallery,GALLERY_REQUEST);
                         }
                     });
                     buttonContainer.addView(defendBtn);
@@ -234,6 +260,25 @@ public class MapActivity extends AppCompatActivity {
         addMarker(stash, true);
         db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
 
+    }
+
+    private void addDemonMarker(Demon demon, LatLng target) {
+        List<Feature> features = new ArrayList<>();
+        /* Source: A data source specifies the geographic coordinate where the image marker gets placed. */
+        features.add(Feature.fromGeometry(Point.fromLngLat(target.getLongitude(),target.getLatitude())));
+        FeatureCollection featureCollection = FeatureCollection.fromFeatures(features);
+        GeoJsonSource source = new GeoJsonSource(MARKER_SOURCE + demonCount, featureCollection);
+
+        mapboxMap.addSource(source);
+
+        /* Style layer: A style layer ties together the source and image and specifies how they are displayed on the map. */
+        SymbolLayer markerStyleLayer = new SymbolLayer(MARKER_STYLE_LAYER + demonCount, MARKER_SOURCE + demonCount)
+                .withProperties(
+                        PropertyFactory.iconAllowOverlap(true),
+                        PropertyFactory.iconImage(MARKER_IMAGE)
+                );
+        mapboxMap.addLayer(markerStyleLayer);
+        demonCount++;
     }
 
     private void setupBuildings() {
@@ -377,6 +422,22 @@ public class MapActivity extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         mapView.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        if (requestCode == GALLERY_REQUEST) {
+            // Make sure the request was successful
+            if (resultCode == RESULT_OK) {
+                Demon demon = data.getParcelableExtra("demon");
+                Log.i(TAG,demon.toString());
+                // The user picked a contact.
+                // The Intent's data Uri identifies which contact was selected.
+                addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
+                // Do something with the contact here (bigger example below)
+            }
+        }
     }
 
     public class StashMarker extends Marker {

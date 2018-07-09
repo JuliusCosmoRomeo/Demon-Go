@@ -5,10 +5,47 @@
     android:layout_height="match_parent"
     android:background="#FFFFFF">
 
-    <ImageView
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/notification_icon"
-        android:id="@+id/imageView" />
+        android:background="#FFFFFF"
+        android:orientation="vertical">
 
+        <TextView
+            android:id="@+id/demon_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Imp"
+            android:textColor="#ddac00"
+            android:textSize="40sp" />
+
+        <ImageView
+            android:id="@+id/image_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:src="@drawable/notification_icon" />
+
+        <TextView
+            android:id="@+id/demon_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="demonius"
+            android:textSize="40sp" />
+
+        <TextView
+            android:id="@+id/hp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="40/100 hp"
+            android:textSize="30sp" />
+        <ImageButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/icons8_schild"
+            android:layout_gravity="center"
+            android:id="@+id/action_button"/>
+    </LinearLayout>
 </LinearLayout>
