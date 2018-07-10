@@ -3,6 +3,7 @@ import sqlite3
 import sys
 import uuid
 from multiprocessing import Queue
+from datetime import datetime
 
 import cv2
 import numpy as np
@@ -61,7 +62,7 @@ class TextDetection:
     def write_data(values):
         conn = sqlite3.connect("collected_data.db")
         c = conn.cursor()
-        c.executemany('INSERT INTO data VALUES (?, ?, ?, ?)', values)
+        c.executemany('INSERT INTO data VALUES (?, ?, ?, ?, ?, ?)', values)
         conn.commit()
         conn.close()
 
@@ -91,11 +92,14 @@ class TextDetection:
                     cropped_img = img[min_y:max_y, min_x:max_x]
                     filename = self.save_image(cropped_img)
                     files.append(filename)
-                    img_text, rotation = get_word_from_img(cropped_img)
-                    # Cols are user_id, filename, text, rotation
-                    data.append((1, filename, img_text, int(rotation)))
+                    img_text, rotation, conf = get_word_from_img(cropped_img)
+                    now = datetime.now().isoformat(timespec='milliseconds')
 
-        self.write_data(data)
+                    # Cols are user_id, filename, text, rotation, time, confidence
+                    data.append((1, filename, img_text, int(rotation), now, str(conf)))
+
+        if data:
+            self.write_data(data)
         self.out_queue.put(files)
 
     def detect_text(self):
