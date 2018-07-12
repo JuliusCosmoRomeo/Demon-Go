@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Demon GO Gallery</title>
+
+<!-- <link href="https://fonts.googleapis.com/css?family=Jua" rel="stylesheet"> -->
+<style>
+body {
+  font-family: Jua;
+    padding: 30px;
+}
+      h1 {
+        font-size: 4rem;
+      }
+      img {
+        max-width: 200px;
+        float: left;
+        margin: 1em;
+      }
+</style>
+  </head>
+  <body>
+
+    <h1>Demon GO Gallery</h1>
+  <div id="gallery"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+    <script>
+      var socket = io();
+
+      function addImage(path) {
+          var img = new Image();
+          img.src = path;
+          var gallery = document.getElementById('gallery');
+          document.getElementById('gallery').appendChild(img);
+      }
+
+      socket.on('new image', data => {
+          addImage(data.path);
+      });
+
+      socket.on('init', data => {
+          data.forEach(addImage);
+      });
+    </script>
+  </body>
+</html>
