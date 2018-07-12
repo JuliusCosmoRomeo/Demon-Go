@@ -1,26 +1,38 @@
 package com.github.demongo;
 
 import android.opengl.Matrix;
+import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 
 public class Demon {
 
+    enum Phase {
+        SCANNING,
+        CAPTURING
+    }
+
     private Vector3 target = new Vector3();
 
     private static final float SPEED = 30;
+    private static final float SPHERE_SIZE = 0.8f;
     private static final String MODEL_PATH = "demon01.g3db";
 
     private ModelInstance instance;
@@ -28,15 +40,51 @@ public class Demon {
     private Vector3 velocity = new Vector3();
     private Vector3 position = new Vector3();
 
+    private Phase phase = Phase.SCANNING;
+
     Demon(Camera camera, AssetManager assetManager) {
         assetManager.load(MODEL_PATH, Model.class);
         assetManager.finishLoading();
         instance = new ModelInstance(assetManager.get(MODEL_PATH, Model.class));
 
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Model sphereModel = modelBuilder.createSphere(SPHERE_SIZE, SPHERE_SIZE, SPHERE_SIZE, 10,10,
+                new Material(ColorAttribute.createDiffuse(Color.RED)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        instance = new ModelInstance(sphereModel);
+
         particleSystem = createParticleSystem(assetManager, camera);
     }
 
+
+    private static float easeInOutQuad(float t) {
+        return t<.5 ? 2*t*t : -1+(4-2*t)*t;
+    }
+
+    private static final float X_Z_METERS = 4.0f;
+    private static final float Y_TO_TOP_METERS = 1.5f;
+    private static final float Y_TO_BOTTOM_METERS = 1.0f;
+    private Vector3 randomLastPosition = new Vector3();
+    private Vector3 randomTargetPosition = new Vector3();
+    private Vector3 randomCurrentPosition = new Vector3();
+    private float interpTime = 0.0f;
     public void move() {
+        if (phase == Phase.SCANNING) {
+            interpTime += Gdx.graphics.getDeltaTime() * 0.3;
+            if (interpTime >= 1.0f) {
+                interpTime = 0.0f;
+                randomLastPosition.set(randomTargetPosition);
+                randomTargetPosition.set(
+                        ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
+                        ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
+                        ((float) Math.random()) * (Y_TO_BOTTOM_METERS + Y_TO_TOP_METERS) - Y_TO_BOTTOM_METERS);
+            }
+            randomCurrentPosition.set(randomLastPosition);
+            randomCurrentPosition.lerp(randomTargetPosition, easeInOutQuad(interpTime));
+            instance.transform.setTranslation(randomCurrentPosition);
+            return;
+        }
+
         instance.transform.getTranslation(position);
         position.add(velocity.scl(Gdx.graphics.getDeltaTime()));
 

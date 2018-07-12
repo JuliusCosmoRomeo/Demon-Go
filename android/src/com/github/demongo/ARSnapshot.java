@@ -2,6 +2,7 @@ package com.github.demongo;
 
 import android.graphics.ImageFormat;
 import android.media.Image;
+import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
@@ -20,6 +21,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
@@ -112,7 +114,20 @@ public class ARSnapshot extends Snapshot {
         getViewProjectionMatrix(frame.getCamera());
     }
 
+    static int i = 0;
     private static Mat matFromFrame(Frame frame) throws NotYetAvailableException {
+        /*i++;
+        if (i == 60) {
+            i = 0;
+            final byte pixelData[] = new byte[Gdx.graphics.getWidth() * Gdx.graphics.getHeight() * 4];
+            // Read the pixels from the current GL frame.
+            ByteBuffer buf = ByteBuffer.wrap(pixelData);
+            buf.position(0);
+            // this line must be on the GLThread
+            GLES20.glReadPixels(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf);
+            return new Mat(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), CvType.CV_8UC4, buf);
+        }*/
+
         Image image = frame.acquireCameraImage();
         Mat mat = convertYuv420888ToMat(image, false);
         image.close();

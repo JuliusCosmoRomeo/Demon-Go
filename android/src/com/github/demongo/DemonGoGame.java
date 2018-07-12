@@ -2,6 +2,7 @@ package com.github.demongo;
 
 import android.content.Context;
 import android.media.Image;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
@@ -42,6 +43,7 @@ import org.opencv.core.Mat;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.Collection;
 import java.util.List;
 
@@ -93,7 +95,7 @@ public class DemonGoGame extends ARCoreScene {
 		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
 			@Override
 			public void onPvPStarted() {
-				pvp = new PvP(context, hud);
+				pvp = new PvP(context);
 			}
 		});
 
@@ -135,6 +137,8 @@ public class DemonGoGame extends ARCoreScene {
             demon.setTarget(lastSnapshot.projectPoint(Gdx.input.getX(), Gdx.input.getY()));
         }
     }
+
+    int i = 0;
 
 	@Override
 	public void render(Frame frame, ModelBatch modelBatch) {
