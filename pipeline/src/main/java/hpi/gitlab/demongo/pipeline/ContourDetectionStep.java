@@ -19,10 +19,10 @@ import java.util.List;
 
 public class ContourDetectionStep extends Step {
     private static final String TAG = ContourDetectionStep.class.getName();
-    private static final double MIN_CONTOUR_SIZE = 700;
-    private static final double MAX_CONTOUR_EDGES = 20;
+    private static final double MIN_CONTOUR_SIZE = 500;
+    private static final double CONTOUR_EDGES = 4;
 
-    private static final boolean USE_BILATERAL = false;
+    private static final boolean USE_BILATERAL = true;
 
     private static Mat transform(Mat src) {
         Imgproc.cvtColor(src, src, Imgproc.COLOR_BGRA2BGR);
@@ -65,7 +65,7 @@ public class ContourDetectionStep extends Step {
                 approxContour2f.convertTo(approxContour, CvType.CV_32S);
 
 
-                if (MAX_CONTOUR_EDGES == 0 || (approxContour.size().height > 2 && approxContour.size().height < MAX_CONTOUR_EDGES)) {
+                if (approxContour.size().height == CONTOUR_EDGES) {
 
                     Rect rect = Imgproc.boundingRect(approxContour);
                     final List<MatOfPoint> approx = new ArrayList<>();
