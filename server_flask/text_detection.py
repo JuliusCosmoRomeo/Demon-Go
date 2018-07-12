@@ -19,6 +19,18 @@ class TextDetection:
     CHECKPOINT_PATH = 'east_icdar2015_resnet_v1_50_rbox'
     QUEUE_TIMEOUT = 0.05
 
+    RECTANGLE_EXPANSION_SIZE = 5
+    RECTANGLE_EXPANSION = {
+        'x0': -1,
+        'y0': -1,
+        'x1': +1,
+        'y1': -1,
+        'x2': +1,
+        'y2': +1,
+        'x3': -1,
+        'y3': +1,
+    }
+
     def __init__(self, in_queue=None, out_queue=None, split=False):
         self.in_queue = in_queue or Queue()
         self.out_queue = out_queue or Queue()
@@ -32,18 +44,12 @@ class TextDetection:
         cv2.imwrite(filename, img)
         return filename
 
-    @staticmethod
-    def expand_text_box(rst):
+    @classmethod
+    def expand_text_box(cls, rst):
         # I'd love to hear feedback which improves this code ;)
         for t in rst:
-            t['x0'] -= 5
-            t['y0'] -= 5
-            t['x1'] += 5
-            t['y1'] -= 5
-            t['x2'] += 5
-            t['y2'] += 5
-            t['x3'] -= 5
-            t['y3'] += 5
+            for key, value in cls.RECTANGLE_EXPANSION.items():
+                t[key] += value * cls.RECTANGLE_EXPANSION_SIZE
         return rst
 
     def draw_text_boxes(self, img, rst):
