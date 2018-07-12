@@ -11,18 +11,20 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 
 import static java.lang.System.nanoTime;
 
+
 public abstract class Step implements Runnable {
     private ArrayList<Step> nextSteps;
     private CircularFifoQueue<Snapshot> nextFrames;
+    private long executionStart;
+    private long executionCounter;
+    private double executionTime;
 
-    public void setMeasureTime(boolean measureTime) {
-        this.measureTime = measureTime;
-    }
+    private static final boolean MEASURE_TIME = false;
 
-    private boolean measureTime;
     public Step(){
         nextSteps = new ArrayList<Step>();
-        measureTime = false;
+        executionCounter = 0;
+        executionTime = 0;
     }
 
     public void setNextFrames(CircularFifoQueue<Snapshot> nextFrames) {
@@ -34,6 +36,13 @@ public abstract class Step implements Runnable {
         return next;
     }
 
+    public void start(Snapshot last) {
+        if (MEASURE_TIME) {
+            executionStart = System.nanoTime();
+            executionCounter += 1;
+        }
+        process(last);
+    }
 
     public void run(){
 
@@ -41,13 +50,7 @@ public abstract class Step implements Runnable {
             try {
                 Snapshot snapshot = nextFrames.poll();
                 if (snapshot != null) {
-                    if (measureTime){
-                        long start = System.nanoTime();
-                        process(snapshot);
-                        Log.i("demon-go-step", "Execution time for last frame in s " + (float)(System.nanoTime() - start) / 1e9);
-                    } else {
-                        process(snapshot);
-                    }
+                    start(snapshot);
                 }
             } catch(NoSuchElementException e){
                 Log.e("demon-go-step", "queue is empty");
@@ -59,8 +62,13 @@ public abstract class Step implements Runnable {
     abstract public void process(Snapshot last);
 
     protected void output(Snapshot snap){
+        if (MEASURE_TIME) {
+            String className = this.getClass().getName();
+            executionTime += (System.nanoTime() - executionStart) / 1e9;
+            Log.i("demon-go-step", className + " Average Execution: " + executionTime/executionCounter);
+        }
         for (Step next : nextSteps){
-            next.process(snap);
+            next.start(snap);
         }
     }
 
