@@ -30,6 +30,8 @@ def get_image():
     )
 
     filename = TextDetection.save_image(img)
+
+    # Wohin fliegen denn diese emits? Fängt die irgendwer? (Gleiche Frage für den emit weiter unten)
     socketio.emit(
         'new image',
         {'path': filename}
