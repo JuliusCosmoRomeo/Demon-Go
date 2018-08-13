@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
+import android.os.ParcelUuid;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
@@ -16,8 +17,19 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.mapbox.mapboxsdk.geometry.LatLng;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
 
 public class DemonGallery extends Activity {
 
@@ -29,17 +41,19 @@ public class DemonGallery extends Activity {
         Deposit
     }
 
+    private final ParcelUuid nullStashId = new ParcelUuid(UUID.fromString("00000000-0000-0000-0000-000000000000"));
     private Action action;
     private CustomPagerAdapter mCustomPagerAdapter;
     private ViewPager mViewPager;
     private final List<Demon> demons = new ArrayList<Demon>(){{
-        add(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp));
-        add(new Demon("flupsi",110,50,400, R.drawable.notification_icon,Demon.Type.Foliot));
-        add(new Demon("schnucksi",150,60,780, R.drawable.notification_icon,Demon.Type.Djinn));
-        add(new Demon("blubsi",220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit));
-        add(new Demon("superstubsi",350,150,5200, R.drawable.notification_icon,Demon.Type.Marid));
+        add(new Demon("luschi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        add(new Demon("flupsi",110,11,50,400, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        add(new Demon("schnucksi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        add(new Demon("superstubsi",350,350,150,5200, R.drawable.notification_icon,Demon.Type.Marid, nullStashId, new ParcelUuid(UUID.randomUUID())));
     }};
 
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,9 +61,28 @@ public class DemonGallery extends Activity {
         setContentView(R.layout.activity_demon_gallery);
         mCustomPagerAdapter = new CustomPagerAdapter(this);
 
+        this.action = (Action) getIntent().getExtras().get("action");
+        db.collection("stashes").document(nullStashId.toString()).collection("demons").addSnapshotListener(
+            new EventListener<QuerySnapshot>() {
+                @Override
+                public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException e) {
+                    if (e != null || snapshot == null) {
+                        Log.w(TAG, "Listen failed.", e);
+                        return;
+                    }
+                    for (QueryDocumentSnapshot demonDoc : snapshot) {
+                        Log.i(TAG, "demon id " + demonDoc.getId());
+                        Demon demon = new Demon(demonDoc.getData());
+                        demons.add(demon);
+                    }
+                }
+            }
+        );
+
+        //TODO: continue here, get the demons from the stash and add them to the demons list
+
         mViewPager = findViewById(R.id.pager);
         mViewPager.setAdapter(mCustomPagerAdapter);
-        this.action = (Action) getIntent().getExtras().get("action");
         //getActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
@@ -79,7 +112,7 @@ public class DemonGallery extends Activity {
 
             ImageView imageView = itemView.findViewById(R.id.image_view);
             final Demon demon = demons.get(position);
-            imageView.setImageResource(demon.getResource());
+            imageView.setImageResource((int)demon.getResource());
             TextView demonName = itemView.findViewById(R.id.demon_name);
             demonName.setText(demon.getName());
             TextView demonType = itemView.findViewById(R.id.demon_type);

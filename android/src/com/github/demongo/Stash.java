@@ -19,7 +19,8 @@ public class Stash implements Parcelable {
     private final String STASH_ID = "stash_id";
 
     private final ParcelUuid id;
-    private final ParcelUuid playerID;
+
+    private ParcelUuid playerID;
     private final ParcelableGeoPoint location;
     private long radius;
     private final long capacity;
@@ -55,7 +56,6 @@ public class Stash implements Parcelable {
         this.radius = map.get(RADIUS) != null ? (long) map.get(RADIUS) : -1;
     }
 
-
     protected Stash(Parcel in) {
         //does the order of values make a difference?
         capacity = in.readLong();
@@ -90,6 +90,9 @@ public class Stash implements Parcelable {
         return playerID;
     }
 
+    public void setPlayerID(ParcelUuid playerID) {
+        this.playerID = playerID;
+    }
     public GeoPoint getLocation() {
         return location.getGeoPoint();
     }
@@ -101,7 +104,6 @@ public class Stash implements Parcelable {
     public long getCapacity() {
         return capacity;
     }
-
 
     public long getFilled() {
         return filled;
@@ -119,7 +121,7 @@ public class Stash implements Parcelable {
 
     public String toString(){
         return "Stash: player " + getPlayerID() + " position(" + this.getLocation().getLatitude() + "," + this.getLocation().getLongitude() + "), radius " +
-                getRadius() + " capacity " + getFilled() + "/" + getCapacity();
+                getRadius() + " capacity " + getFilled() + "/" + getCapacity() + " Stash id " + getId();
     }
 
     @Override
