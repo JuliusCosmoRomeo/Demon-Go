@@ -138,7 +138,7 @@ public class Demon implements Parcelable {
         return hp;
     }
 
-    public void setHp(int hp) {
+    public void setHp(long hp) {
         this.hp = hp;
     }
 

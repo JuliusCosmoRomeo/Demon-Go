@@ -22,8 +22,10 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -48,11 +50,17 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
@@ -174,9 +182,19 @@ public class MapActivity extends AppCompatActivity {
                 } else {
                     ImageButton attackBtn = new ImageButton(MapActivity.this);
                     attackBtn.setImageResource(R.drawable.icons8_schwert);
+                    attackBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
+                            demonGallery.putExtra("action", DemonGallery.Action.Attack);
+                            currentStash = stash;
+                            marker.hideInfoWindow();
+                            startActivityForResult(demonGallery,GALLERY_REQUEST);
+                        }
+                    });
                     buttonContainer.addView(attackBtn);
                 }
-                
+
                 return container;
             }
         });
@@ -191,19 +209,20 @@ public class MapActivity extends AppCompatActivity {
                 Log.w(TAG, "Listen failed.", e);
                 return;
             }
-            //int count = 0;
+            int count = 0;
             for (QueryDocumentSnapshot doc : snapshot) {
                 Log.i(TAG, "stash id " + doc.getId());
 
                 final Stash stash = new Stash(doc.getData());
                 //generate stashes for a random opponent
-                /*if (count%2==0){
+                if (count%2==1){
                     Log.i(TAG, " old stash " + stash.toString());
                     ParcelUuid opponentId = new ParcelUuid(UUID.randomUUID());
                     stash.setPlayerID(opponentId);
                     db.collection("stashes").document(doc.getId().toString())
                             .set(stash.getMap());
-                }*/
+                }
+                count++;
                 GeoPoint position = stash.getLocation();
                 if (position != null)  {
                     Log.i(TAG, "Radius " + stash.getRadius());
@@ -220,7 +239,7 @@ public class MapActivity extends AppCompatActivity {
                         fetchDemonsForStash(doc, position);
                     }
                 }
-                //count++;
+
             }
             }
         });
@@ -267,7 +286,6 @@ public class MapActivity extends AppCompatActivity {
 
         return polygon;
     }
-
 
     private void addMarker(Stash stash, boolean isCurrentPlayer) {
         LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
@@ -331,6 +349,82 @@ public class MapActivity extends AppCompatActivity {
             return false;
         }
         return uuid.getUuid() == this.playerId;
+    }
+
+    //returns the amount of stolen ep from the stash
+    private long attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
+
+        //order in which the defenders attack the attacking demon
+        List<Integer> attackOrderList = IntStream.rangeClosed(0, defenders.size()-1)
+                .boxed().collect(Collectors.toList());
+        Collections.shuffle(attackOrderList);
+        Queue<Integer> attackOrder = new LinkedList<Integer>(attackOrderList);
+        Log.i(TAG, "attack order " + Arrays.toString(attackOrderList.toArray()));
+        //order in which the attacker attacks the defenders
+        List<Integer> defendOrderList = IntStream.rangeClosed(0, defenders.size()-1)
+                .boxed().collect(Collectors.toList());
+        Collections.shuffle(defendOrderList);
+        Queue<Integer> defendOrder = new LinkedList<Integer>(defendOrderList);
+        Log.i(TAG, "defend order " + Arrays.toString(attackOrderList.toArray()));
+
+        //for every round
+        while(true){
+            //attacker begins and attacks one defender (in the defendOrder)
+            Log.i(TAG, "attacker attacks");
+            Integer defenderId = defendOrder.poll();
+            if (defenderId!=null){
+                Demon defender = defenders.get(defenderId);
+                long newDefenderHP = attackDemon(attacker.getAttackPoints(),defender.getHp());
+                defender.setHp(newDefenderHP);
+                if (newDefenderHP>0){
+                    defendOrder.offer(defenderId);
+                } else {
+                    Log.i(TAG, "defeated demon " + defender.toString());
+                    if(defendOrder.size()==0){
+                        Log.i(TAG, "defeated every defender");
+                        return stash.getFilled();
+                    }
+                }
+            } else {
+                Log.i(TAG, "defeated every defender");
+                //attacker won and killed all defenders
+                //update firestore -> remove all demons from stash
+                //update firestore -> take eps from stash
+                //update firestore -> update attacker hp from null stash
+                return stash.getFilled();
+            }
+
+
+            //now all defenders attack the attacker
+            for (int i=0;i<defenders.size();i++){
+                Log.i(TAG, "defender attacks");
+                defenderId = attackOrder.poll();
+                Demon defender = defenders.get(defenderId);
+                if(defender.getHp()>0){
+                    long newAttackerHP = attackDemon(defender.getAttackPoints(),attacker.getHp());
+                    attacker.setHp(newAttackerHP);
+                    if (newAttackerHP>0){
+                        attackOrder.offer(defenderId);
+                    } else {
+                        Log.i(TAG, "lost fight :( ");
+                        //attacker is dead, defenders won
+                        //update firestore -> remove all demons from stash and update the hp of the surviving
+                        //update firestore -> remove attacker from null stash
+                        return 0;
+                    }
+                }
+            }
+        }
+    }
+
+
+    //returns the new hp of the attacked demon
+    private long attackDemon(long attackPts, long defenderHP){
+        long newDefenderHP = defenderHP - ThreadLocalRandom.current().nextLong(attackPts/2, attackPts + 1);
+        if (newDefenderHP<0){
+            return 0;
+        }
+        return newDefenderHP;
     }
 
     public void showDepositPopup(final Stash stash, final Marker marker){
@@ -453,14 +547,41 @@ public class MapActivity extends AppCompatActivity {
             // Make sure the request was successful
             if (resultCode == RESULT_OK) {
                 Demon demon = data.getParcelableExtra("demon");
+                DemonGallery.Action action = (DemonGallery.Action) data.getExtras().get("action");
                 Log.i(TAG,demon.toString());
                 // The user picked a demon.
-                addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
-                //TODO: remove demon from null stash demons
-                Log.i(TAG, "current stash " + currentStash.toString());
-                Log.i(TAG, "demon " + demon.toString());
+                switch(action){
+                    case Attack:
+                        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
+                                new OnCompleteListener<QuerySnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                        ArrayList<Demon> defenders = new ArrayList<>();
+                                        if (task.isSuccessful()) {
+                                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                                Demon defender = new Demon(document.getData());
+                                                defenders.add(defender);
+                                                Log.i(TAG, "defending demon " + defender.toString());
+                                            }
+                                            attackStash(demon,defenders,currentStash);
+                                        } else {
+                                            Log.d(TAG, "Error getting documents: ", task.getException());
+                                        }
+                                    }
+                                }
+                        );
 
-                db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
+                        break;
+                    case Defend:
+                        addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
+                        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
+                        //TODO: remove demon from null stash demons
+                        break;
+                    default:
+                        break;
+                }
+
+
             }
         }
     }

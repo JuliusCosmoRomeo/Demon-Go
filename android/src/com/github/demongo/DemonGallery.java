@@ -79,7 +79,7 @@ public class DemonGallery extends Activity {
             }
         );
 
-        //TODO: continue here, get the demons from the stash and add them to the demons list
+        //TODO: get the demons from the stash and add them to the demons list
 
         mViewPager = findViewById(R.id.pager);
         mViewPager.setAdapter(mCustomPagerAdapter);
@@ -160,6 +160,7 @@ public class DemonGallery extends Activity {
                     Intent data = new Intent();
                     //---set the data to pass back---
                     data.putExtra("demon", demon);
+                    data.putExtra("action", action);
                     setResult(RESULT_OK, data);
                     finish();
                 }
