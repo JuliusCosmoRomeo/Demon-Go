@@ -78,7 +78,7 @@ public class MapActivity extends AppCompatActivity {
     private static final String MARKER_IMAGE = "custom-marker";
     static final int GALLERY_REQUEST = 1;  // The request code
 
-    private HashMap<ParcelUuid, StashMarkerOptions> stashMarkerMap;
+    private HashMap<ParcelUuid, Marker> stashMarkerMap;
     private HashMap<ParcelUuid, String> demonMarkerMap;
     private MapView mapView;
     private MapboxMap mapboxMap;
@@ -117,8 +117,8 @@ public class MapActivity extends AppCompatActivity {
                                 0,
                                 1000,
                                 0);
-
-                        addNewStashMarker(stash);
+                        db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+                        //addNewStashMarker(stash);
                         //addDemonMarker(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
                     }
                 });
@@ -269,8 +269,9 @@ public class MapActivity extends AppCompatActivity {
                         case REMOVED:
                             Log.i(TAG, "Removed stash: " + dc.getDocument().getData());
                             stash = new Stash(dc.getDocument().getData());
-                            Log.i(TAG, "marker to remove " + stashMarkerMap.get(stash.getId()).getMarker().getTitle());
-                            mapboxMap.removeMarker(stashMarkerMap.get(stash.getId()).getMarker());
+                            Log.i(TAG, "marker to remove " + stashMarkerMap.get(stash.getId()));
+                            mapboxMap.removeMarker(stashMarkerMap.get(stash.getId()));
+
                             stashMarkerMap.remove(stash.getId());
                             db.collection("stashes").document(stash.getId().toString()).collection("demons").get().addOnCompleteListener(
                                 new OnCompleteListener<QuerySnapshot>() {
@@ -329,10 +330,10 @@ public class MapActivity extends AppCompatActivity {
 
     private void addStashMarker(Stash stash, boolean isCurrentPlayer) {
         LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
-        StashMarkerOptions marker = new StashMarkerOptions(stash);
-        marker.setPosition(pos);
+        StashMarkerOptions markerOptions = new StashMarkerOptions(stash);
+        markerOptions.setPosition(pos);
+        Marker marker = mapboxMap.addMarker(markerOptions);
         stashMarkerMap.put(stash.getId(),marker);
-        mapboxMap.addMarker(marker);
 
 
         List<LatLng> polygon = MapUtils.getStashPerimeter(pos,stash.getRadius());
@@ -528,7 +529,7 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void onDefend(Demon demon){
-        addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
+        //addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
             new OnCompleteListener<QuerySnapshot>() {

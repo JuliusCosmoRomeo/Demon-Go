@@ -13,7 +13,6 @@ import com.mapbox.mapboxsdk.geometry.LatLng;
 class StashMarkerOptions extends BaseMarkerOptions<StashMarker, StashMarkerOptions> {
 
     private Stash stash;
-
     public StashMarkerOptions stash(Stash stash) {
         this.stash = stash;
         return getThis();
@@ -31,7 +30,9 @@ class StashMarkerOptions extends BaseMarkerOptions<StashMarker, StashMarkerOptio
         Bitmap iconBitmap = in.readParcelable(Bitmap.class.getClassLoader());
         Icon icon = IconFactory.recreate(iconId, iconBitmap);
         icon(icon);
-        stash((Stash)in.readParcelable(Stash.class.getClassLoader()));
+        Stash stash = (Stash)in.readParcelable(Stash.class.getClassLoader());
+        stash(stash);
+
     }
 
     @Override
