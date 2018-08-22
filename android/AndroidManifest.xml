@@ -33,7 +33,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MapActivity"
+            android:name=".Map.MapActivity"
             android:theme="@style/AppTheme">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -42,18 +42,18 @@
         <activity
             android:name=".StashActivity"
             android:label="@string/title_activity_stash"
-            android:parentActivityName=".MapActivity">
+            android:parentActivityName=".Map.MapActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.github.demongo.MapActivity" />
+                android:value="com.github.demongo.Map.MapActivity" />
         </activity>
         <activity
             android:name=".DemonGallery"
             android:label="@string/title_activity_demon_gallery"
-            android:parentActivityName=".MapActivity">
+            android:parentActivityName=".Map.MapActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.github.demongo.MapActivity" />
+                android:value="com.github.demongo.Map.MapActivity" />
         </activity>
     </application>
 

@@ -1,4 +1,4 @@
-package com.github.demongo;
+package com.github.demongo.Map;
 
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -6,9 +6,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.os.ParcelUuid;
-import android.os.Parcelable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
@@ -22,6 +20,12 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.github.demongo.Demon;
+import com.github.demongo.DemonBattle;
+import com.github.demongo.DemonGallery;
+import com.github.demongo.ParcelableGeoPoint;
+import com.github.demongo.R;
+import com.github.demongo.Stash;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -36,9 +40,6 @@ import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.BaseMarkerOptions;
-import com.mapbox.mapboxsdk.annotations.Icon;
-import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
@@ -50,17 +51,11 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
@@ -119,21 +114,10 @@ public class MapActivity extends AppCompatActivity {
                                 1000,
                                 0);
 
-                        addNewMarker(stash);
+                        addNewStashMarker(stash);
                         //addDemonMarker(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
                     }
                 });
-                /*mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
-                    @Override
-                    public boolean onMarkerClick(@NonNull Marker marker) {
-                        StashMarker stashMarker = (StashMarker) marker;
-                        Intent stashIntent = new Intent(MapActivity.this,StashActivity.class);
-                        stashIntent.setExtrasClassLoader(ParcelableGeoPoint.class.getClassLoader());
-                        stashIntent.putExtra("stash", stashMarker.getStash());
-                        startActivity(stashIntent);
-                        return true;
-                    }
-                });*/
 
                 addCustomInfoWindowAdapter();
             }
@@ -205,42 +189,41 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshot,
                                 @Nullable FirebaseFirestoreException e) {
-            if (e != null || snapshot == null) {
-                Log.w(TAG, "Listen failed.", e);
-                return;
-            }
-            int count = 0;
-            for (QueryDocumentSnapshot doc : snapshot) {
-                Log.i(TAG, "stash id " + doc.getId());
-
-                final Stash stash = new Stash(doc.getData());
-                //generate stashes for a random opponent
-                if (count%2==1){
-                    Log.i(TAG, " old stash " + stash.toString());
-                    ParcelUuid opponentId = new ParcelUuid(UUID.randomUUID());
-                    stash.setPlayerID(opponentId);
-                    db.collection("stashes").document(doc.getId().toString())
-                            .set(stash.getMap());
+                if (e != null || snapshot == null) {
+                    Log.w(TAG, "Listen failed.", e);
+                    return;
                 }
-                count++;
-                GeoPoint position = stash.getLocation();
-                if (position != null)  {
-                    Log.i(TAG, "Radius " + stash.getRadius());
-                    Log.i(TAG, "Filled " + stash.getFilled());
+                int count = 0;
+                for (QueryDocumentSnapshot doc : snapshot) {
+                    Log.i(TAG, "stash id " + doc.getId());
 
-                    boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
-                    if (stash.getRadius()==-1){
-                        stash.setRadius(1);
+                    final Stash stash = new Stash(doc.getData());
+                    //generate stashes for a random opponent
+                    if (count%2==1){
+                        Log.i(TAG, " old stash " + stash.toString());
+                        ParcelUuid opponentId = new ParcelUuid(UUID.randomUUID());
+                        stash.setPlayerID(opponentId);
+                        db.collection("stashes").document(doc.getId().toString())
+                                .set(stash.getMap());
                     }
-                    addMarker(stash, isCurrentPlayer);
+                    count++;
+                    GeoPoint position = stash.getLocation();
+                    if (position != null)  {
+                        Log.i(TAG, "Radius " + stash.getRadius());
+                        Log.i(TAG, "Filled " + stash.getFilled());
 
-                    //the current player can only see his own stashes
-                    if(isCurrentPlayer){
-                        fetchDemonsForStash(doc, position);
+                        boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
+                        if (stash.getRadius()==-1){
+                            stash.setRadius(1);
+                        }
+                        addStashMarker(stash, isCurrentPlayer);
+
+                        //the current player can only see his own stashes
+                        if(isCurrentPlayer){
+                            fetchDemonsForStash(doc, position);
+                        }
                     }
                 }
-
-            }
             }
         });
     }
@@ -265,42 +248,21 @@ public class MapActivity extends AppCompatActivity {
         );
     }
 
-    private List<LatLng> getStashPerimeter(LatLng position, double radiusInKm) {
 
-        final int numberOfSides = 64;
-        // these are conversion constants
-        final double distanceX = radiusInKm / (111.319 * Math.cos(position.getLatitude() * Math.PI / 180));
-        final double distanceY = radiusInKm / 110.574;
-
-        double slice = (2 * Math.PI) / numberOfSides;
-
-
-        double theta, x,y;
-        List<LatLng> polygon = new ArrayList<>();
-        for (int i=0;i<numberOfSides;i++) {
-            theta = i * slice;
-            x = distanceX * Math.cos(theta);
-            y = distanceY * Math.sin(theta);
-            polygon.add(new LatLng(position.getLatitude() + y, position.getLongitude() + x));
-        }
-
-        return polygon;
-    }
-
-    private void addMarker(Stash stash, boolean isCurrentPlayer) {
+    private void addStashMarker(Stash stash, boolean isCurrentPlayer) {
         LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
         StashMarkerOptions marker = new StashMarkerOptions(stash);
         marker.setPosition(pos);
         mapboxMap.addMarker(marker);
 
 
-        List<LatLng> polygon = getStashPerimeter(pos,stash.getRadius());
+        List<LatLng> polygon = MapUtils.getStashPerimeter(pos,stash.getRadius());
         String colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
         mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString)));
     }
 
-    private void addNewMarker(Stash stash) {
-        addMarker(stash, true);
+    private void addNewStashMarker(Stash stash) {
+        addStashMarker(stash, true);
         db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
     }
 
@@ -349,82 +311,6 @@ public class MapActivity extends AppCompatActivity {
             return false;
         }
         return uuid.getUuid() == this.playerId;
-    }
-
-    //returns the amount of stolen ep from the stash
-    private long attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
-
-        //order in which the defenders attack the attacking demon
-        List<Integer> attackOrderList = IntStream.rangeClosed(0, defenders.size()-1)
-                .boxed().collect(Collectors.toList());
-        Collections.shuffle(attackOrderList);
-        Queue<Integer> attackOrder = new LinkedList<Integer>(attackOrderList);
-        Log.i(TAG, "attack order " + Arrays.toString(attackOrderList.toArray()));
-        //order in which the attacker attacks the defenders
-        List<Integer> defendOrderList = IntStream.rangeClosed(0, defenders.size()-1)
-                .boxed().collect(Collectors.toList());
-        Collections.shuffle(defendOrderList);
-        Queue<Integer> defendOrder = new LinkedList<Integer>(defendOrderList);
-        Log.i(TAG, "defend order " + Arrays.toString(attackOrderList.toArray()));
-
-        //for every round
-        while(true){
-            //attacker begins and attacks one defender (in the defendOrder)
-            Log.i(TAG, "attacker attacks");
-            Integer defenderId = defendOrder.poll();
-            if (defenderId!=null){
-                Demon defender = defenders.get(defenderId);
-                long newDefenderHP = attackDemon(attacker.getAttackPoints(),defender.getHp());
-                defender.setHp(newDefenderHP);
-                if (newDefenderHP>0){
-                    defendOrder.offer(defenderId);
-                } else {
-                    Log.i(TAG, "defeated demon " + defender.toString());
-                    if(defendOrder.size()==0){
-                        Log.i(TAG, "defeated every defender");
-                        return stash.getFilled();
-                    }
-                }
-            } else {
-                Log.i(TAG, "defeated every defender");
-                //attacker won and killed all defenders
-                //update firestore -> remove all demons from stash
-                //update firestore -> take eps from stash
-                //update firestore -> update attacker hp from null stash
-                return stash.getFilled();
-            }
-
-
-            //now all defenders attack the attacker
-            for (int i=0;i<defenders.size();i++){
-                Log.i(TAG, "defender attacks");
-                defenderId = attackOrder.poll();
-                Demon defender = defenders.get(defenderId);
-                if(defender.getHp()>0){
-                    long newAttackerHP = attackDemon(defender.getAttackPoints(),attacker.getHp());
-                    attacker.setHp(newAttackerHP);
-                    if (newAttackerHP>0){
-                        attackOrder.offer(defenderId);
-                    } else {
-                        Log.i(TAG, "lost fight :( ");
-                        //attacker is dead, defenders won
-                        //update firestore -> remove all demons from stash and update the hp of the surviving
-                        //update firestore -> remove attacker from null stash
-                        return 0;
-                    }
-                }
-            }
-        }
-    }
-
-
-    //returns the new hp of the attacked demon
-    private long attackDemon(long attackPts, long defenderHP){
-        long newDefenderHP = defenderHP - ThreadLocalRandom.current().nextLong(attackPts/2, attackPts + 1);
-        if (newDefenderHP<0){
-            return 0;
-        }
-        return newDefenderHP;
     }
 
     public void showDepositPopup(final Stash stash, final Marker marker){
@@ -563,7 +449,7 @@ public class MapActivity extends AppCompatActivity {
                                                 defenders.add(defender);
                                                 Log.i(TAG, "defending demon " + defender.toString());
                                             }
-                                            attackStash(demon,defenders,currentStash);
+                                            DemonBattle.attackStash(demon,defenders,currentStash);
                                         } else {
                                             Log.d(TAG, "Error getting documents: ", task.getException());
                                         }
@@ -580,83 +466,8 @@ public class MapActivity extends AppCompatActivity {
                     default:
                         break;
                 }
-
-
             }
         }
     }
 
-    public class StashMarker extends Marker {
-
-        private Stash stash;
-
-        public StashMarker(BaseMarkerOptions baseMarkerOptions, Stash stash) {
-            super(baseMarkerOptions);
-            this.stash = stash;
-        }
-
-        public Stash getStash() {
-            return stash;
-        }
-    }
-
-    class StashMarkerOptions extends BaseMarkerOptions<StashMarker, StashMarkerOptions> {
-
-        private Stash stash;
-
-        public StashMarkerOptions stash(Stash stash) {
-            this.stash = stash;
-            return getThis();
-        }
-
-        public StashMarkerOptions(Stash stash) {
-            super();
-            this.stash = stash;
-        }
-
-        private StashMarkerOptions(Parcel in) {
-            position((LatLng) in.readParcelable(LatLng.class.getClassLoader()));
-            snippet(in.readString());
-            String iconId = in.readString();
-            Bitmap iconBitmap = in.readParcelable(Bitmap.class.getClassLoader());
-            Icon icon = IconFactory.recreate(iconId, iconBitmap);
-            icon(icon);
-            stash((Stash)in.readParcelable(Stash.class.getClassLoader()));
-        }
-
-        @Override
-        public StashMarkerOptions getThis() {
-            return this;
-        }
-
-        @Override
-        public StashMarker getMarker() {
-            return new StashMarker(this, stash);
-        }
-
-        public final Parcelable.Creator<StashMarkerOptions> CREATOR
-                = new Parcelable.Creator<StashMarkerOptions>() {
-            public StashMarkerOptions createFromParcel(Parcel in) {
-                return new StashMarkerOptions(in);
-            }
-
-            public StashMarkerOptions[] newArray(int size) {
-                return new StashMarkerOptions[size];
-            }
-        };
-
-        @Override
-        public int describeContents() {
-            return 0;
-        }
-
-        @Override
-        public void writeToParcel(Parcel out, int flags) {
-            out.writeParcelable(position, flags);
-            out.writeString(snippet);
-            out.writeString(icon.getId());
-            out.writeParcelable(icon.getBitmap(), flags);
-            out.writeParcelable(stash,flags);
-        }
-    }
 }

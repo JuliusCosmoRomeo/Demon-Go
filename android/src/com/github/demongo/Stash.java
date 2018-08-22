@@ -4,6 +4,7 @@ import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
 
+import com.github.demongo.Map.MapActivity;
 import com.google.firebase.firestore.GeoPoint;
 
 import java.util.HashMap;
