@@ -43,7 +43,6 @@ import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.Marker;
-import com.mapbox.mapboxsdk.annotations.Polygon;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -82,7 +81,7 @@ public class MapActivity extends AppCompatActivity {
 
     //here we store the markers for stashes and demons to remove them easily later
     private HashMap<ParcelUuid, Marker> stashMarkerMap;
-    private HashMap<ParcelUuid, String> demonMarkerMap;
+    private HashMap<String, String> demonMarkerMap;
     private HashMap<ParcelUuid, PolygonOptions> stashPerimeterMap;
 
     private MapView mapView;
@@ -125,7 +124,7 @@ public class MapActivity extends AppCompatActivity {
                                 0);
                         db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
                         //addNewStashMarker(stash);
-                        //addDemonMarker(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
+                        //addDemonMarkers(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
                     }
                 });
 
@@ -315,7 +314,7 @@ public class MapActivity extends AppCompatActivity {
 
 
     private void fetchDemonsForStash(QueryDocumentSnapshot doc, final GeoPoint position){
-        db.collection("stashes").document(doc.getId().toString()).collection("demons").addSnapshotListener(
+        db.collection("stashes").document(doc.getId()).collection("demons").addSnapshotListener(
             new EventListener<QuerySnapshot>() {
                 @Override
                 public void onEvent(@Nullable QuerySnapshot snapshot,
@@ -328,18 +327,26 @@ public class MapActivity extends AppCompatActivity {
                         Demon demon;
                         QueryDocumentSnapshot document = dc.getDocument();
                         switch (dc.getType()) {
+                            case REMOVED:
+                                //added and removed are same for demon marker updates
                             case ADDED:
                                 Log.i(TAG, "adding demon " + document.getId() + " to stash " + doc.getId().toString());
-                                demon = new Demon(document.getData());
-                                addDemonMarker(demon,new LatLng(position.getLatitude(), position.getLongitude()));
+                                ArrayList<Demon> demons = new ArrayList<>();
+                                db.collection("stashes").document(doc.getId().toString()).collection("demons").get().addOnCompleteListener(
+                                    new OnCompleteListener<QuerySnapshot>() {
+                                        @Override
+                                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                                Demon defender = new Demon(document.getData());
+                                                demons.add(defender);
+                                                addDemonMarkers(demons,new LatLng(position.getLatitude(), position.getLongitude()), doc.getId());
+                                            }
+                                        }
+                                    }
+                                );
+
                                 break;
                             case MODIFIED:
-                                break;
-                            case REMOVED:
-                                demon = new Demon(document.getData());
-                                Log.i(TAG, "demon to remove " +demon.toString());
-                                mapboxMap.removeLayer(demonMarkerMap.get(demon.getId()));
-                                demonMarkerMap.remove(demon.getId());
                                 break;
                         }
                     }
@@ -372,10 +379,51 @@ public class MapActivity extends AppCompatActivity {
         stashPerimeterMap.remove(uuid);
     }
 
-    private void addDemonMarker(Demon demon, LatLng target) {
+    private void addDemonMarkers(ArrayList<Demon> demons, LatLng target, String stashId) {
+        if (demonMarkerMap.get(stashId)!=null) {
+            mapboxMap.removeLayer(demonMarkerMap.get(stashId));
+        }
+        if(demons.size()==0){
+            return;
+        }
         List<Feature> features = new ArrayList<>();
+
         /* Source: A data source specifies the geographic coordinate where the image marker gets placed. */
-        features.add(Feature.fromGeometry(Point.fromLngLat(target.getLongitude(),target.getLatitude())));
+        if (demons.size()==1){
+            LatLng point = MapUtils.move(target,-50,0);
+            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+        } else if (demons.size()==2){
+            LatLng point = MapUtils.move(target,-50,0);
+            LatLng point2 = MapUtils.move(target,50,0);
+            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
+        } else if (demons.size()==3){
+            LatLng point = MapUtils.move(target,-40,0);
+            LatLng point2 = MapUtils.move(target,33.54,-33.54);
+            LatLng point3 = MapUtils.move(target,33.54,33.54);
+            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(),point3.getLatitude())));
+        } else if (demons.size()==4){
+            LatLng point = MapUtils.move(target,-33,-33);
+            LatLng point2 = MapUtils.move(target,33,-33);
+            LatLng point3 = MapUtils.move(target,33,33);
+            LatLng point4 = MapUtils.move(target,-33,33);
+            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(),point3.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point4.getLongitude(),point4.getLatitude())));
+        } else if (demons.size()>4) {
+            LatLng point = MapUtils.move(target, -33, -33);
+            LatLng point2 = MapUtils.move(target, 33, -33);
+            LatLng point3 = MapUtils.move(target, 33, 33);
+            LatLng point4 = MapUtils.move(target, -33, 33);
+            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(), point.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(), point2.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(), point3.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(point4.getLongitude(), point4.getLatitude())));
+            features.add(Feature.fromGeometry(Point.fromLngLat(target.getLongitude(), target.getLatitude())));
+        }
         FeatureCollection featureCollection = FeatureCollection.fromFeatures(features);
         GeoJsonSource source = new GeoJsonSource(MARKER_SOURCE + demonCount, featureCollection);
 
@@ -388,7 +436,7 @@ public class MapActivity extends AppCompatActivity {
                         PropertyFactory.iconImage(MARKER_IMAGE)
                 );
         mapboxMap.addLayer(markerStyleLayer);
-        demonMarkerMap.put(demon.getId(),markerStyleLayer.getId());
+        demonMarkerMap.put(stashId,markerStyleLayer.getId());
         demonCount++;
     }
 
@@ -549,7 +597,7 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void onDefend(Demon demon){
-        //addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
+        //addDemonMarkers(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
             new OnCompleteListener<QuerySnapshot>() {
