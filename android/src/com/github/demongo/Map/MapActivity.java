@@ -24,6 +24,7 @@ import com.github.demongo.Demon;
 import com.github.demongo.DemonBattle;
 import com.github.demongo.DemonGallery;
 import com.github.demongo.ParcelableGeoPoint;
+import com.github.demongo.PlayerUtil;
 import com.github.demongo.R;
 import com.github.demongo.Stash;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -42,6 +43,7 @@ import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.annotations.Polygon;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -78,8 +80,11 @@ public class MapActivity extends AppCompatActivity {
     private static final String MARKER_IMAGE = "custom-marker";
     static final int GALLERY_REQUEST = 1;  // The request code
 
+    //here we store the markers for stashes and demons to remove them easily later
     private HashMap<ParcelUuid, Marker> stashMarkerMap;
     private HashMap<ParcelUuid, String> demonMarkerMap;
+    private HashMap<ParcelUuid, PolygonOptions> stashPerimeterMap;
+
     private MapView mapView;
     private MapboxMap mapboxMap;
 
@@ -98,6 +103,7 @@ public class MapActivity extends AppCompatActivity {
         //clearAllStashes();
         stashMarkerMap = new HashMap();
         demonMarkerMap = new HashMap();
+        stashPerimeterMap = new HashMap();
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
@@ -108,7 +114,7 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addImage(MARKER_IMAGE, icon);
 
                 setupBuildings();
-                fetchMarkers();
+                fetchStashes();
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(@NonNull LatLng point) {
@@ -163,7 +169,7 @@ public class MapActivity extends AppCompatActivity {
                 TextView capacity = container.findViewById(R.id.capacity);
                 capacity.setText(stash.getFilled() +"/" +stash.getCapacity() + " EP");
                 LinearLayout buttonContainer = container.findViewById(R.id.buttonContainer);
-                if (isCurrentPlayer(stash.getPlayerID())){
+                if (PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId)){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
                     defendBtn.setImageResource(R.drawable.icons8_schild);
                     defendBtn.setOnClickListener(new View.OnClickListener() {
@@ -228,9 +234,8 @@ public class MapActivity extends AppCompatActivity {
         });
     }
 
-    void fetchMarkers() {
+    void fetchStashes() {
         db.collection("stashes").addSnapshotListener(new EventListener<QuerySnapshot>() {
-
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshot,
                                 @Nullable FirebaseFirestoreException e) {
@@ -239,60 +244,75 @@ public class MapActivity extends AppCompatActivity {
                     return;
                 }
                 Stash stash;
+                QueryDocumentSnapshot doc;
                 for (DocumentChange dc : snapshot.getDocumentChanges()) {
                     switch (dc.getType()) {
                         case ADDED:
                             Log.i(TAG, "New stash: " + dc.getDocument().getData());
-                            QueryDocumentSnapshot doc = dc.getDocument();
-                            Log.i(TAG, "stash id " + doc.getId());
-
+                            doc = dc.getDocument();
                             stash = new Stash(doc.getData());
-
-                            GeoPoint position = stash.getLocation();
-                            if (position != null)  {
-                                boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
-                                if (stash.getRadius()==-1){
-                                    stash.setRadius(1);
-                                }
-                                addStashMarker(stash, isCurrentPlayer);
-
-
-                                //the current player can only see his own stashes
-                                if(isCurrentPlayer){
-                                    fetchDemonsForStash(doc, position);
-                                }
-                            }
+                            addStashMarkerWithDemons(stash, doc);
                             break;
                         case MODIFIED:
                             Log.i(TAG, "Modified stash: " + dc.getDocument().getData());
+                            stash = new Stash(dc.getDocument().getData());
+                            updateStashMarker(stash);
                             break;
                         case REMOVED:
                             Log.i(TAG, "Removed stash: " + dc.getDocument().getData());
                             stash = new Stash(dc.getDocument().getData());
-                            Log.i(TAG, "marker to remove " + stashMarkerMap.get(stash.getId()));
-                            mapboxMap.removeMarker(stashMarkerMap.get(stash.getId()));
-
-                            stashMarkerMap.remove(stash.getId());
-                            db.collection("stashes").document(stash.getId().toString()).collection("demons").get().addOnCompleteListener(
-                                new OnCompleteListener<QuerySnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                        if (task.isSuccessful()) {
-                                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                                document.getReference().delete();
-                                            }
-                                        } else {
-                                            Log.d(TAG, "Error getting documents: ", task.getException());
-                                        }
-                                    }
-                                });
-
+                            removeStashMarkerWithDemons(stash);
                             break;
                     }
                 }
             }
         });
     }
+
+    private void addStashMarkerWithDemons(Stash stash, QueryDocumentSnapshot doc) {
+        GeoPoint position = stash.getLocation();
+        if (position != null)  {
+            boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+            if (stash.getRadius()==-1){
+                stash.setRadius(1);
+            }
+            addStashMarker(stash, isCurrentPlayer);
+
+            //the current player can only see his own stashes
+            if(isCurrentPlayer){
+                fetchDemonsForStash(doc, position);
+            }
+        }
+    }
+
+    private void updateStashMarker(Stash stash){
+        removeStashMarker(stash.getId());
+        boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+        if (stash.getRadius()==-1){
+            stash.setRadius(1);
+        }
+        addStashMarker(stash, isCurrentPlayer);
+    }
+
+    private void removeStashMarkerWithDemons(Stash stash){
+        removeStashMarker(stash.getId());
+
+        db.collection("stashes").document(stash.getId().toString()).collection("demons").get().addOnCompleteListener(
+            new OnCompleteListener<QuerySnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            document.getReference().delete();
+                        }
+                    } else {
+                        Log.d(TAG, "Error getting documents: ", task.getException());
+                    }
+                }
+            }
+        );
+    }
+
 
     private void fetchDemonsForStash(QueryDocumentSnapshot doc, final GeoPoint position){
         db.collection("stashes").document(doc.getId().toString()).collection("demons").addSnapshotListener(
@@ -317,6 +337,7 @@ public class MapActivity extends AppCompatActivity {
                                 break;
                             case REMOVED:
                                 demon = new Demon(document.getData());
+                                Log.i(TAG, "demon to remove " +demon.toString());
                                 mapboxMap.removeLayer(demonMarkerMap.get(demon.getId()));
                                 demonMarkerMap.remove(demon.getId());
                                 break;
@@ -338,12 +359,17 @@ public class MapActivity extends AppCompatActivity {
 
         List<LatLng> polygon = MapUtils.getStashPerimeter(pos,stash.getRadius());
         String colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
-        mapboxMap.addPolygon(new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString)));
+        PolygonOptions polygonOpts = new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString));
+        stashPerimeterMap.put(stash.getId(),polygonOpts);
+        mapboxMap.addPolygon(polygonOpts);
     }
 
-    private void addNewStashMarker(Stash stash) {
-        addStashMarker(stash, true);
-        db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+    private void removeStashMarker(ParcelUuid uuid){
+        mapboxMap.removeMarker(stashMarkerMap.get(uuid));
+        mapboxMap.removePolygon(stashPerimeterMap.get(uuid).getPolygon());
+
+        stashMarkerMap.remove(uuid);
+        stashPerimeterMap.remove(uuid);
     }
 
     private void addDemonMarker(Demon demon, LatLng target) {
@@ -387,12 +413,6 @@ public class MapActivity extends AppCompatActivity {
         mapboxMap.addLayer(fillExtrusionLayer);
     }
 
-    private boolean isCurrentPlayer(ParcelUuid uuid){
-        if (uuid==null){
-            return false;
-        }
-        return uuid.getUuid() == this.playerId;
-    }
 
     public void showDepositPopup(final Stash stash, final Marker marker){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -541,7 +561,10 @@ public class MapActivity extends AppCompatActivity {
                             Demon defender = new Demon(document.getData());
                             totalDefenderHP += defender.getHp();
                         }
-                        currentStash.setRadius(totalDefenderHP/1000);
+                        double radius = (double)totalDefenderHP/1000;
+
+                        currentStash.setRadius(radius);
+                        Log.i(TAG, "stash before update " + currentStash.toString());
                         db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
                     } else {
                         Log.d(TAG, "Error getting documents: ", task.getException());

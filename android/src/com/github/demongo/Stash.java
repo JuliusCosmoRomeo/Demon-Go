@@ -59,11 +59,11 @@ public class Stash implements Parcelable {
 
     protected Stash(Parcel in) {
         //does the order of values make a difference?
-        capacity = in.readLong();
         radius = in.readDouble();
+        capacity = in.readLong();
+        filled = in.readLong();
         playerID = in.readParcelable(ParcelUuid.class.getClassLoader());
         id = in.readParcelable(ParcelUuid.class.getClassLoader());
-        filled = in.readLong();
         location = in.readParcelable(ParcelableGeoPoint.class.getClassLoader());
     }
 
