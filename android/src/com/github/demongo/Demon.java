@@ -140,6 +140,7 @@ public class Demon implements Parcelable {
 
     public void setHp(long hp) {
         this.hp = hp;
+        this.map.put(HP,hp);
     }
 
     public long getMaxHp() {

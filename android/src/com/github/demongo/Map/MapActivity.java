@@ -30,6 +30,7 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -51,8 +52,8 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +78,8 @@ public class MapActivity extends AppCompatActivity {
     private static final String MARKER_IMAGE = "custom-marker";
     static final int GALLERY_REQUEST = 1;  // The request code
 
-
+    private HashMap<ParcelUuid, StashMarkerOptions> stashMarkerMap;
+    private HashMap<ParcelUuid, String> demonMarkerMap;
     private MapView mapView;
     private MapboxMap mapboxMap;
 
@@ -93,7 +95,9 @@ public class MapActivity extends AppCompatActivity {
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.setStyleUrl("mapbox://styles/tom95/cji612zco1t3b2spbn7leib2q");
-
+        //clearAllStashes();
+        stashMarkerMap = new HashMap();
+        demonMarkerMap = new HashMap();
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
@@ -110,7 +114,7 @@ public class MapActivity extends AppCompatActivity {
                     public void onMapLongClick(@NonNull LatLng point) {
                         Stash stash = new Stash(new ParcelUuid(UUID.randomUUID()), new ParcelUuid(playerId),
                                 new ParcelableGeoPoint(new GeoPoint(point.getLatitude(), point.getLongitude())),
-                                ThreadLocalRandom.current().nextInt(1, 5 + 1),
+                                0,
                                 1000,
                                 0);
 
@@ -120,6 +124,25 @@ public class MapActivity extends AppCompatActivity {
                 });
 
                 addCustomInfoWindowAdapter();
+            }
+        });
+    }
+
+    private void clearAllStashes(){
+        db.collection("stashes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                for (QueryDocumentSnapshot document : task.getResult()) {
+                    document.getReference().collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                            for (QueryDocumentSnapshot demon : task.getResult()) {
+                                demon.getReference().delete();
+                            }
+                        }
+                    });
+                    document.getReference().delete();
+                }
             }
         });
     }
@@ -178,6 +201,27 @@ public class MapActivity extends AppCompatActivity {
                     });
                     buttonContainer.addView(attackBtn);
                 }
+                ImageButton deleteBtn = new ImageButton(MapActivity.this);
+                deleteBtn.setImageResource(R.drawable.delete_icon);
+                deleteBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        currentStash = stash;
+                        Log.i(TAG, "deleting stash " +stash.getId().toString());
+                        db.collection("stashes").document(stash.getId().toString()).delete();
+                        db.collection(currentStash.getId().toString()).get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    Stash st = new Stash(document.getData());
+                                    Log.i(TAG, "stash still exists " + st.toString());
+                                }
+                            }
+                        });
+                        marker.hideInfoWindow();
+                    }
+                });
+                buttonContainer.addView(deleteBtn);
 
                 return container;
             }
@@ -186,6 +230,7 @@ public class MapActivity extends AppCompatActivity {
 
     void fetchMarkers() {
         db.collection("stashes").addSnapshotListener(new EventListener<QuerySnapshot>() {
+
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshot,
                                 @Nullable FirebaseFirestoreException e) {
@@ -193,35 +238,55 @@ public class MapActivity extends AppCompatActivity {
                     Log.w(TAG, "Listen failed.", e);
                     return;
                 }
-                int count = 0;
-                for (QueryDocumentSnapshot doc : snapshot) {
-                    Log.i(TAG, "stash id " + doc.getId());
+                Stash stash;
+                for (DocumentChange dc : snapshot.getDocumentChanges()) {
+                    switch (dc.getType()) {
+                        case ADDED:
+                            Log.i(TAG, "New stash: " + dc.getDocument().getData());
+                            QueryDocumentSnapshot doc = dc.getDocument();
+                            Log.i(TAG, "stash id " + doc.getId());
 
-                    final Stash stash = new Stash(doc.getData());
-                    //generate stashes for a random opponent
-                    if (count%2==1){
-                        Log.i(TAG, " old stash " + stash.toString());
-                        ParcelUuid opponentId = new ParcelUuid(UUID.randomUUID());
-                        stash.setPlayerID(opponentId);
-                        db.collection("stashes").document(doc.getId().toString())
-                                .set(stash.getMap());
-                    }
-                    count++;
-                    GeoPoint position = stash.getLocation();
-                    if (position != null)  {
-                        Log.i(TAG, "Radius " + stash.getRadius());
-                        Log.i(TAG, "Filled " + stash.getFilled());
+                            stash = new Stash(doc.getData());
 
-                        boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
-                        if (stash.getRadius()==-1){
-                            stash.setRadius(1);
-                        }
-                        addStashMarker(stash, isCurrentPlayer);
+                            GeoPoint position = stash.getLocation();
+                            if (position != null)  {
+                                boolean isCurrentPlayer = isCurrentPlayer(stash.getPlayerID());
+                                if (stash.getRadius()==-1){
+                                    stash.setRadius(1);
+                                }
+                                addStashMarker(stash, isCurrentPlayer);
 
-                        //the current player can only see his own stashes
-                        if(isCurrentPlayer){
-                            fetchDemonsForStash(doc, position);
-                        }
+
+                                //the current player can only see his own stashes
+                                if(isCurrentPlayer){
+                                    fetchDemonsForStash(doc, position);
+                                }
+                            }
+                            break;
+                        case MODIFIED:
+                            Log.i(TAG, "Modified stash: " + dc.getDocument().getData());
+                            break;
+                        case REMOVED:
+                            Log.i(TAG, "Removed stash: " + dc.getDocument().getData());
+                            stash = new Stash(dc.getDocument().getData());
+                            Log.i(TAG, "marker to remove " + stashMarkerMap.get(stash.getId()).getMarker().getTitle());
+                            mapboxMap.removeMarker(stashMarkerMap.get(stash.getId()).getMarker());
+                            stashMarkerMap.remove(stash.getId());
+                            db.collection("stashes").document(stash.getId().toString()).collection("demons").get().addOnCompleteListener(
+                                new OnCompleteListener<QuerySnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                        if (task.isSuccessful()) {
+                                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                                document.getReference().delete();
+                                            }
+                                        } else {
+                                            Log.d(TAG, "Error getting documents: ", task.getException());
+                                        }
+                                    }
+                                });
+
+                            break;
                     }
                 }
             }
@@ -238,10 +303,23 @@ public class MapActivity extends AppCompatActivity {
                         Log.w(TAG, "Listen failed.", e);
                         return;
                     }
-                    for (QueryDocumentSnapshot demonDoc : snapshot) {
-                        Log.i(TAG, "demon id " + demonDoc.getId());
-                        Demon demon = new Demon(demonDoc.getData());
-                        addDemonMarker(demon,new LatLng(position.getLatitude(), position.getLongitude()));
+                    for (DocumentChange dc : snapshot.getDocumentChanges()) {
+                        Demon demon;
+                        QueryDocumentSnapshot document = dc.getDocument();
+                        switch (dc.getType()) {
+                            case ADDED:
+                                Log.i(TAG, "adding demon " + document.getId() + " to stash " + doc.getId().toString());
+                                demon = new Demon(document.getData());
+                                addDemonMarker(demon,new LatLng(position.getLatitude(), position.getLongitude()));
+                                break;
+                            case MODIFIED:
+                                break;
+                            case REMOVED:
+                                demon = new Demon(document.getData());
+                                mapboxMap.removeLayer(demonMarkerMap.get(demon.getId()));
+                                demonMarkerMap.remove(demon.getId());
+                                break;
+                        }
                     }
                 }
             }
@@ -253,6 +331,7 @@ public class MapActivity extends AppCompatActivity {
         LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
         StashMarkerOptions marker = new StashMarkerOptions(stash);
         marker.setPosition(pos);
+        stashMarkerMap.put(stash.getId(),marker);
         mapboxMap.addMarker(marker);
 
 
@@ -282,6 +361,7 @@ public class MapActivity extends AppCompatActivity {
                         PropertyFactory.iconImage(MARKER_IMAGE)
                 );
         mapboxMap.addLayer(markerStyleLayer);
+        demonMarkerMap.put(demon.getId(),markerStyleLayer.getId());
         demonCount++;
     }
 
@@ -426,6 +506,50 @@ public class MapActivity extends AppCompatActivity {
         mapView.onSaveInstanceState(outState);
     }
 
+    private void onAttack(Demon demon){
+        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
+            new OnCompleteListener<QuerySnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    ArrayList<Demon> defenders = new ArrayList<>();
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Demon defender = new Demon(document.getData());
+                            defenders.add(defender);
+                            Log.i(TAG, "defending demon " + defender.toString());
+                        }
+                        DemonBattle.attackStash(demon,defenders,currentStash);
+                    } else {
+                        Log.d(TAG, "Error getting documents: ", task.getException());
+                    }
+                }
+            }
+        );
+    }
+
+    private void onDefend(Demon demon){
+        addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
+        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
+        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
+            new OnCompleteListener<QuerySnapshot>() {
+                @Override
+                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                    long totalDefenderHP = 0;
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Demon defender = new Demon(document.getData());
+                            totalDefenderHP += defender.getHp();
+                        }
+                        currentStash.setRadius(totalDefenderHP/1000);
+                        db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
+                    } else {
+                        Log.d(TAG, "Error getting documents: ", task.getException());
+                    }
+                }
+            }
+        );
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         // Check which request we're responding to
@@ -438,30 +562,10 @@ public class MapActivity extends AppCompatActivity {
                 // The user picked a demon.
                 switch(action){
                     case Attack:
-                        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
-                                new OnCompleteListener<QuerySnapshot>() {
-                                    @Override
-                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                        ArrayList<Demon> defenders = new ArrayList<>();
-                                        if (task.isSuccessful()) {
-                                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                                Demon defender = new Demon(document.getData());
-                                                defenders.add(defender);
-                                                Log.i(TAG, "defending demon " + defender.toString());
-                                            }
-                                            DemonBattle.attackStash(demon,defenders,currentStash);
-                                        } else {
-                                            Log.d(TAG, "Error getting documents: ", task.getException());
-                                        }
-                                    }
-                                }
-                        );
-
+                        onAttack(demon);
                         break;
                     case Defend:
-                        addDemonMarker(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
-                        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
-                        //TODO: remove demon from null stash demons
+                        onDefend(demon);
                         break;
                     default:
                         break;
@@ -469,5 +573,4 @@ public class MapActivity extends AppCompatActivity {
             }
         }
     }
-
 }

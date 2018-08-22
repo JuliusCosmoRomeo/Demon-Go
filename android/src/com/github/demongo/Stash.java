@@ -23,7 +23,7 @@ public class Stash implements Parcelable {
 
     private ParcelUuid playerID;
     private final ParcelableGeoPoint location;
-    private long radius;
+    private double radius;
     private final long capacity;
 
     private long filled;
@@ -31,7 +31,7 @@ public class Stash implements Parcelable {
     //in the map Geopoints are saved instead of ParcelableGeoPoints
     private Map<String,Object> map;
 
-    public Stash(ParcelUuid id, ParcelUuid playerID, ParcelableGeoPoint location, long radius, long capacity, long filled) {
+    public Stash(ParcelUuid id, ParcelUuid playerID, ParcelableGeoPoint location, double radius, long capacity, long filled) {
         this.id = id;
         this.playerID = playerID;
         this.location = location;
@@ -54,13 +54,13 @@ public class Stash implements Parcelable {
         this.location = new ParcelableGeoPoint((GeoPoint) map.get(POSITION));
         this.capacity = map.get(CAPACITY) != null ? (long) map.get(CAPACITY) : -1;
         this.filled = map.get(FILLED) != null ? (long) map.get(FILLED) : -1;
-        this.radius = map.get(RADIUS) != null ? (long) map.get(RADIUS) : -1;
+        this.radius = map.get(RADIUS) != null ? (double) map.get(RADIUS) : -1;
     }
 
     protected Stash(Parcel in) {
         //does the order of values make a difference?
         capacity = in.readLong();
-        radius = in.readLong();
+        radius = in.readDouble();
         playerID = in.readParcelable(ParcelUuid.class.getClassLoader());
         id = in.readParcelable(ParcelUuid.class.getClassLoader());
         filled = in.readLong();
@@ -98,7 +98,7 @@ public class Stash implements Parcelable {
         return location.getGeoPoint();
     }
 
-    public long getRadius() {
+    public double getRadius() {
         return radius;
     }
 
@@ -110,7 +110,7 @@ public class Stash implements Parcelable {
         return filled;
     }
 
-    public void setRadius(long radius) {
+    public void setRadius(double radius) {
         this.radius = radius;
         this.map.put(RADIUS,this.radius);
     }
@@ -132,7 +132,7 @@ public class Stash implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel out, int flags) {
-        out.writeLong(radius);
+        out.writeDouble(radius);
         out.writeLong(capacity);
         out.writeLong(filled);
         out.writeParcelable(playerID,flags);
