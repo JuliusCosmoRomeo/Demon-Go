@@ -330,7 +330,7 @@ public class MapActivity extends AppCompatActivity {
                             case REMOVED:
                                 //added and removed are same for demon marker updates
                             case ADDED:
-                                Log.i(TAG, "adding demon " + document.getId() + " to stash " + doc.getId().toString());
+                                Log.i(TAG, "updating demons");
                                 ArrayList<Demon> demons = new ArrayList<>();
                                 db.collection("stashes").document(doc.getId().toString()).collection("demons").get().addOnCompleteListener(
                                     new OnCompleteListener<QuerySnapshot>() {
@@ -339,8 +339,8 @@ public class MapActivity extends AppCompatActivity {
                                             for (QueryDocumentSnapshot document : task.getResult()) {
                                                 Demon defender = new Demon(document.getData());
                                                 demons.add(defender);
-                                                addDemonMarkers(demons,new LatLng(position.getLatitude(), position.getLongitude()), doc.getId());
                                             }
+                                            addDemonMarkers(demons,new LatLng(position.getLatitude(), position.getLongitude()), doc.getId());
                                         }
                                     }
                                 );
@@ -381,7 +381,9 @@ public class MapActivity extends AppCompatActivity {
 
     private void addDemonMarkers(ArrayList<Demon> demons, LatLng target, String stashId) {
         if (demonMarkerMap.get(stashId)!=null) {
+            Log.i(TAG, "removing layer");
             mapboxMap.removeLayer(demonMarkerMap.get(stashId));
+
         }
         if(demons.size()==0){
             return;
