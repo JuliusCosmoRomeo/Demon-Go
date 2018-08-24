@@ -23,6 +23,8 @@ import com.badlogic.gdx.utils.viewport.ScalingViewport;
 public class Hud {
     interface TriggerListener {
         void onPvPStarted();
+
+        void onSpellCompleted();
     }
 
     private Stage hud;
@@ -30,6 +32,8 @@ public class Hud {
     private Actor loading;
 
     private TriggerListener listener;
+
+    private boolean showSpellCanvas = false;
 
     Hud(final Context context, float scalingFactor, TriggerListener _listener) {
         listener = _listener;
@@ -73,8 +77,31 @@ public class Hud {
         loading.setVisible(_loading);
     }
 
+    public void showSpell() {
+        showSpellCanvas = true;
+        spellCanvas.newSpell();
+    }
+
+    private SpellCanvas spellCanvas = new SpellCanvas(Gdx.graphics.getWidth(),
+            Gdx.graphics.getHeight(),
+            new SpellCanvas.CompletionListener() {
+                @Override
+                public void completed() {
+                    listener.onSpellCompleted();
+                    showSpellCanvas = true;
+                }
+            });
+
     public void draw() {
         hud.act(Gdx.graphics.getDeltaTime());
         hud.draw();
+
+        if (showSpellCanvas) {
+            spellCanvas.render();
+
+            if (Gdx.input.isTouched()) {
+                spellCanvas.checkProgress();
+            }
+        }
     }
 }
