@@ -90,6 +90,9 @@ public class ARSnapshot extends Snapshot {
     private float[] viewProjectionMatrix = new float[16];
     private float[] points;
 
+    Vector3 max = new Vector3();
+    Vector3 min = new Vector3();
+
     private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix, Mat debugMat) {
         super(mat, score, debugMat);
         this.points = points;
@@ -100,34 +103,31 @@ public class ARSnapshot extends Snapshot {
         super(matFromFrame(frame), score);
 
         PointCloud c = frame.acquirePointCloud();
-        FloatBuffer cloud = c.getPoints();
-        int num = 0;
-        points = new float[cloud.limit() - cloud.limit() / 4];
-        while (cloud.hasRemaining()) {
-            points[num++] = cloud.get();
-            points[num++] = cloud.get();
-            points[num++] = cloud.get();
-            float confidence = cloud.get();
-        }
-        c.release();
+        getPointCloudCopy(c);
 
         getViewProjectionMatrix(frame.getCamera());
     }
 
-    static int i = 0;
-    private static Mat matFromFrame(Frame frame) throws NotYetAvailableException {
-        /*i++;
-        if (i == 60) {
-            i = 0;
-            final byte pixelData[] = new byte[Gdx.graphics.getWidth() * Gdx.graphics.getHeight() * 4];
-            // Read the pixels from the current GL frame.
-            ByteBuffer buf = ByteBuffer.wrap(pixelData);
-            buf.position(0);
-            // this line must be on the GLThread
-            GLES20.glReadPixels(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buf);
-            return new Mat(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), CvType.CV_8UC4, buf);
-        }*/
+    private void getPointCloudCopy(PointCloud c) {
+        FloatBuffer cloud = c.getPoints();
+        int num = 0;
+        points = new float[cloud.limit() - cloud.limit() / 4];
+        while (cloud.hasRemaining()) {
+            float x = cloud.get();
+            float y = cloud.get();
+            float z = cloud.get();
+            if (x < min.x) min.x = x; else if (x > max.x) max.x = x;
+            if (y < min.y) min.y = y; else if (y > max.y) max.y = y;
+            if (z < min.z) min.z = z; else if (z > max.z) max.z = z;
+            points[num++] = x;
+            points[num++] = y;
+            points[num++] = z;
+            cloud.get(); // confidence
+        }
+        c.release();
+    }
 
+    private static Mat matFromFrame(Frame frame) throws NotYetAvailableException {
         Image image = frame.acquireCameraImage();
         Mat mat = convertYuv420888ToMat(image, false);
         image.close();

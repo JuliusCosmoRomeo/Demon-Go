@@ -19,8 +19,12 @@ import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
+
+import java.util.ArrayList;
 
 public class Demon {
 
@@ -29,6 +33,13 @@ public class Demon {
         CAPTURING
     }
 
+    enum MovementMode {
+        IN_ROOM,
+        FIXED_BOX
+    }
+
+    private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
+
     private Vector3 target = new Vector3();
 
     private static final float SPEED = 30;
@@ -36,24 +47,29 @@ public class Demon {
     private static final String MODEL_PATH = "demon01.g3db";
 
     private ModelInstance instance;
-    private ParticleSystem particleSystem;
+    private Model demonModel;
     private Vector3 velocity = new Vector3();
     private Vector3 position = new Vector3();
+
+    private ArrayList<Shot> shots = new ArrayList<>();
+
+    private DemonParticles particles;
 
     private Phase phase = Phase.SCANNING;
 
     Demon(Camera camera, AssetManager assetManager) {
         assetManager.load(MODEL_PATH, Model.class);
         assetManager.finishLoading();
-        instance = new ModelInstance(assetManager.get(MODEL_PATH, Model.class));
+
+        particles = new DemonParticles(camera);
 
         ModelBuilder modelBuilder = new ModelBuilder();
         Model sphereModel = modelBuilder.createSphere(SPHERE_SIZE, SPHERE_SIZE, SPHERE_SIZE, 10,10,
                 new Material(ColorAttribute.createDiffuse(Color.RED)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
-        instance = new ModelInstance(sphereModel);
+        demonModel = assetManager.get(MODEL_PATH, Model.class);
 
-        particleSystem = createParticleSystem(assetManager, camera);
+        instance = new ModelInstance(sphereModel);
     }
 
 
@@ -61,31 +77,63 @@ public class Demon {
         return t<.5 ? 2*t*t : -1+(4-2*t)*t;
     }
 
-    private static final float X_Z_METERS = 4.0f;
-    private static final float Y_TO_TOP_METERS = 1.5f;
-    private static final float Y_TO_BOTTOM_METERS = 1.0f;
     private Vector3 randomLastPosition = new Vector3();
     private Vector3 randomTargetPosition = new Vector3();
     private Vector3 randomCurrentPosition = new Vector3();
     private float interpTime = 0.0f;
-    public void move() {
+
+    private static float MIN_ROOM_SIZE = 2.0f;
+    private static float MAX_ROOM_SIZE = 10.0f;
+    private Vector3 roomMin = new Vector3(-MIN_ROOM_SIZE, 0, -MIN_ROOM_SIZE);
+    private Vector3 roomMax = new Vector3(MIN_ROOM_SIZE, MIN_ROOM_SIZE, MIN_ROOM_SIZE);
+
+    private static float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
+
+    Vector3[] targets = {
+        new Vector3(5, 1, -2),
+        new Vector3(10, 5, -2),
+    };
+    int currentTarget = 0;
+
+    public void move(Vector3 currentRoomMin, Vector3 currentRoomMax) {
+        if (currentRoomMin != null && currentRoomMax != null) {
+            roomMin.set(Math.min(roomMin.x, currentRoomMin.x), Math.min(roomMin.y, currentRoomMin.y), Math.min(roomMin.z, currentRoomMin.z));
+            roomMax.set(Math.max(roomMax.x, currentRoomMax.x), Math.max(roomMax.y, currentRoomMax.y), Math.max(roomMax.z, currentRoomMax.z));
+            roomMin.clamp(-MIN_ROOM_SIZE, -MAX_ROOM_SIZE);
+            roomMax.clamp(MIN_ROOM_SIZE, MAX_ROOM_SIZE);
+        }
+
         if (phase == Phase.SCANNING) {
             interpTime += Gdx.graphics.getDeltaTime() * 0.3;
             if (interpTime >= 1.0f) {
                 interpTime = 0.0f;
                 randomLastPosition.set(randomTargetPosition);
-                randomTargetPosition.set(
-                        ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
-                        ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
-                        ((float) Math.random()) * (Y_TO_BOTTOM_METERS + Y_TO_TOP_METERS) - Y_TO_BOTTOM_METERS);
+
+                if (MOVEMENT_MODE == MovementMode.FIXED_BOX) {
+                    final float X_Z_METERS = 4.0f;
+                    final float Y_TO_TOP_METERS = 1.5f;
+                    final float Y_TO_BOTTOM_METERS = 1.0f;
+                    randomTargetPosition.set(
+                            ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
+                            ((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
+                            ((float) Math.random()) * (Y_TO_BOTTOM_METERS + Y_TO_TOP_METERS) - Y_TO_BOTTOM_METERS);
+                } else {
+                    randomTargetPosition.set(
+                            lerp(roomMin.x, roomMax.x, (float) Math.random()),
+                            lerp(roomMin.y, roomMax.y, (float) Math.random()),
+                            lerp(roomMin.z, roomMax.z, (float) Math.random())
+                    );
+                }
             }
             randomCurrentPosition.set(randomLastPosition);
             randomCurrentPosition.lerp(randomTargetPosition, easeInOutQuad(interpTime));
             instance.transform.setTranslation(randomCurrentPosition);
             return;
         }
+        // Phase.CAPTURING:
 
-        instance.transform.getTranslation(position);
         position.add(velocity.scl(Gdx.graphics.getDeltaTime()));
 
         // instance.transform.setToTranslation(position);
@@ -125,35 +173,38 @@ public class Demon {
     }
 
     public void render(ModelBatch modelBatch, Environment environment) {
-        particleSystem.updateAndDraw();
-
+        particles.setPositionFrom(instance.transform);
+        particles.draw(modelBatch);
         modelBatch.render(instance, environment);
-        modelBatch.render(particleSystem, environment);
+
+        for (Shot shot : shots) {
+            shot.draw(modelBatch, environment);
+        }
     }
 
-    private ParticleSystem createParticleSystem(AssetManager assetManager, Camera camera) {
-        ParticleSystem particleSystem = new ParticleSystem();
+    public void shoot(Ray ray) {
+        shots.add(new Shot(ray.cpy()));
 
-        PointSpriteParticleBatch batch = new PointSpriteParticleBatch();
-        batch.setCamera(camera);
-        particleSystem.add(batch);
-
-        assetManager.load("test.pfx",
-                ParticleEffect.class,
-                new ParticleEffectLoader.ParticleEffectLoadParameter(particleSystem.getBatches()));
-        assetManager.finishLoading();
-
-        /*ParticleEffect effect = ((ParticleEffect) assetManager.get("test.pfx")).copy();
-        effect.init();
-        effect.start();
-        particleSystem.add(effect);*/
-
-        return particleSystem;
+        if (hitByRay(ray)) {
+            Log.e("demon-go-capturing", "hit!");
+            enterCapturingPhase();
+        } else Log.e("demon-go-capturing", "miss...");
     }
 
-    private ModelInstance createModelInstane(AssetManager assetManager) {
-        assetManager.load("demon01.g3db", Model.class);
-        assetManager.finishLoading();
-        return new ModelInstance(assetManager.get("demon01.g3db", Model.class));
+    private boolean hitByRay(Ray ray) {
+        Vector3 intersection = new Vector3();
+        return Intersector.intersectRaySphere(ray, randomCurrentPosition, SPHERE_SIZE / 2, intersection);
+    }
+
+    private void enterCapturingPhase() {
+        if (phase == Phase.CAPTURING) {
+            return;
+        }
+
+        Log.e("demon-go-capturing", "GOT YA");
+        phase = Phase.CAPTURING;
+        ModelInstance newInstance = new ModelInstance(demonModel);
+        position = randomCurrentPosition;
+        instance = newInstance;
     }
 }

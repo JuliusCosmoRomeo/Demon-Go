@@ -21,12 +21,15 @@ import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Anchor;
+import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
@@ -34,6 +37,7 @@ import com.google.ar.core.Plane;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 import com.google.ar.core.PointCloud;
 
@@ -64,9 +68,6 @@ public class DemonGoGame extends ARCoreScene {
 
 	private Pipeline pipeline;
 	private AngleChangeStep angleChangeStep;
-
-
-	private ARSnapshot lastSnapshot = null;
 
 	private Context context;
 
@@ -99,9 +100,23 @@ public class DemonGoGame extends ARCoreScene {
 			}
 		});
 
-		Config config = new Config(getSession());
+		final Session session = getSession();
+
+		for (CameraConfig c : session.getSupportedCameraConfigs()) {
+			Log.e("demon-go-camera", "Config: " + c.getImageSize().toString() +  " " + c.getTextureSize().toString());
+		}
+
+		session.pause();
+		Config config = new Config(session);
+		config.setFocusMode(Config.FocusMode.AUTO);
 		config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
-		getSession().configure(config);
+		session.setCameraConfig(session.getSupportedCameraConfigs().get(2));
+		session.configure(config);
+		try {
+            session.resume();
+		} catch (CameraNotAvailableException e) {
+			Log.e("demon-go-camera", "camera not available");
+		}
 	}
 
 	private void assetsLoaded() {
@@ -131,14 +146,12 @@ public class DemonGoGame extends ARCoreScene {
         }
     }
 
-	private void input(Frame frame) {
-	    // temporary solution for guiding the demon, to be replaced by pipeline's movement direction
-	    if (Gdx.input.justTouched() && lastSnapshot != null) {
-            demon.setTarget(lastSnapshot.projectPoint(Gdx.input.getX(), Gdx.input.getY()));
-        }
+	private void input() {
+		if (Gdx.input.justTouched()) {
+			Ray pickRay = getCamera().getPickRay(Gdx.input.getX(), Gdx.input.getY());
+			demon.shoot(pickRay);
+		}
     }
-
-    int i = 0;
 
 	@Override
 	public void render(Frame frame, ModelBatch modelBatch) {
@@ -153,21 +166,20 @@ public class DemonGoGame extends ARCoreScene {
         if (angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy())) {
         	overlay.signalNewAngle();
 		}
-		input(frame);
+		input();
 
-		if (demon != null) {
-			demon.move();
-        }
-
+		ARSnapshot lastSnapshot = null;
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
-			pipeline.add(lastSnapshot);
+			// pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
-			lastSnapshot = null;
 			Log.e("demon-go", "no image yet");
 		}
 
-		demon.render(modelBatch, environment);
+		if (demon != null) {
+            demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null);
+            demon.render(modelBatch, environment);
+		}
 
 		arDebug.update(frame);
 		arDebug.draw(modelBatch, environment);

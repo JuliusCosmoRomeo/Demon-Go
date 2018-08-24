@@ -58,7 +58,7 @@ public class Pipeline {
         nextFrames = new CircularFifoQueue<>(10);
 
         firstStep = blurEstimationStep;
-        firstStep.setMeasureTime(true);
+        // firstStep.setMeasureTime(true);
         firstStep.setNextFrames(nextFrames);
         Thread pipelineThread = new Thread(firstStep);
         pipelineThread.start();
