@@ -65,7 +65,8 @@ public class Hud {
             }
         });
         startPvP.setPosition(hudWidth - startPvP.getWidth(), 0);
-        hud.addActor(startPvP);
+        // pvp is disabled atm
+        // hud.addActor(startPvP);
 
         loading = new Label("Gathering Energy ...", skin);
 
@@ -101,6 +102,8 @@ public class Hud {
 
             if (Gdx.input.isTouched()) {
                 spellCanvas.checkProgress();
+            } else {
+                spellCanvas.resetProgress();
             }
         }
     }

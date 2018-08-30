@@ -24,8 +24,15 @@ import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
+import com.google.ar.core.Anchor;
+import com.google.ar.core.Frame;
+import com.google.ar.core.Point;
+import com.google.ar.core.Pose;
+import com.google.ar.core.Session;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Vector;
 
 public class Demon {
 
@@ -35,7 +42,8 @@ public class Demon {
 
     enum Phase {
         SCANNING,
-        CAPTURING
+        CAPTURING,
+        CAPTURED
     }
 
     enum MovementMode {
@@ -99,10 +107,7 @@ public class Demon {
     private Vector3 roomMin = new Vector3(-MIN_ROOM_SIZE, 0, -MIN_ROOM_SIZE);
     private Vector3 roomMax = new Vector3(MIN_ROOM_SIZE, MIN_ROOM_SIZE, MIN_ROOM_SIZE);
 
-    private Vector3[] targets = {
-        new Vector3(2, 1, 1),
-        new Vector3(3, 2, -1),
-    };
+    private Anchor[] anchors;
     private int currentTarget = 0;
 
     private void setPositionTowards(Vector3 position, Vector3 target) {
@@ -114,6 +119,11 @@ public class Demon {
 
         instance.transform.set(currentRotation.slerp(desiredRotation, Gdx.graphics.getDeltaTime()));
         instance.transform.setTranslation(position);
+    }
+
+    private static Vector3 anchorToTranslation(Anchor a) {
+        Pose p = a.getPose();
+        return new Vector3(p.tx(), p.ty(), p.tz());
     }
 
     private Vector3 randomPointInRoom(float maxHeight) {
@@ -131,7 +141,7 @@ public class Demon {
         }
     }
 
-    public void move(Vector3 currentRoomMin, Vector3 currentRoomMax) {
+    public void move(Vector3 currentRoomMin, Vector3 currentRoomMax, Vector3 cameraPosition) {
         if (currentRoomMin != null && currentRoomMax != null) {
             roomMin.set(Math.min(roomMin.x, currentRoomMin.x), Math.min(roomMin.y, currentRoomMin.y), Math.min(roomMin.z, currentRoomMin.z));
             roomMax.set(Math.max(roomMax.x, currentRoomMax.x), Math.max(roomMax.y, currentRoomMax.y), Math.max(roomMax.z, currentRoomMax.z));
@@ -151,15 +161,17 @@ public class Demon {
             instance.transform.setTranslation(position);
         } else if (phase == Phase.CAPTURING) {
             if (!waitingAtTarget) {
-                Vector3 delta = targets[currentTarget].cpy().sub(position);
+                Vector3 delta = anchorToTranslation(anchors[currentTarget]).sub(position);
                 float distance = delta.len();
                 position.add(delta.nor().scl(Gdx.graphics.getDeltaTime() * SPEED * Math.min(1, distance)));
-                setPositionTowards(position, targets[currentTarget]);
+                setPositionTowards(position, anchorToTranslation(anchors[currentTarget]));
 
                 if (distance < 0.05) {
                     waitingAtTarget = true;
                     // TODO start animation
                 }
+            } else {
+                setPositionTowards(anchorToTranslation(anchors[currentTarget]), cameraPosition);
             }
         }
     }
@@ -167,7 +179,7 @@ public class Demon {
     public boolean moveToNextTarget() {
         waitingAtTarget = false;
         currentTarget++;
-        return currentTarget < targets.length;
+        return currentTarget < anchors.length;
     }
 
     /**
@@ -175,19 +187,29 @@ public class Demon {
      * at most MAX_TARGETS
      * @param t list of target vector positions
      */
-    public void setTargets(Vector3[] t) {
-        targets = new Vector3[Math.min(Math.max(t.length, MIN_TARGETS), MAX_TARGETS)];
+    public void setTargets(Vector3[] t, Session session) {
+        Vector3[] targets = new Vector3[Math.min(Math.max(t.length, MIN_TARGETS), MAX_TARGETS)];
         if (t.length < MIN_TARGETS) {
             System.arraycopy(t, 0, targets, 0, t.length);
             for (int i = t.length; i < MIN_TARGETS; i++) {
-                targets[i] = randomPointInRoom(1.5f);
+                Vector3 point = randomPointInRoom(1.5f);
+                targets[i] = point;
             }
         } else if (t.length > MAX_TARGETS) {
             System.arraycopy(t, 0, targets, 0, MAX_TARGETS);
         }
+
+        anchors = new Anchor[targets.length];
+        for (int i = 0; i < targets.length; i++) {
+            Vector3 point = targets[i];
+            anchors[i] = session.createAnchor(Pose.makeTranslation(point.x, point.y, point.z));
+        }
     }
 
     public void render(ModelBatch modelBatch, Environment environment) {
+        if (phase == Phase.CAPTURED)
+            return;
+
         particles.setPositionFrom(instance.transform);
         particles.draw(modelBatch);
         modelBatch.render(instance, environment);
@@ -202,7 +224,7 @@ public class Demon {
     }
 
     public Vector3 getCurrentTarget() {
-        return targets[currentTarget];
+        return anchorToTranslation(anchors[currentTarget]);
     }
 
     public void shoot(Ray ray) {
@@ -229,5 +251,9 @@ public class Demon {
         phase = Phase.CAPTURING;
         instance = new ModelInstance(demonModel);
         phaseChangedListener.changed(this, getPhase());
+    }
+
+    public void setCaptured() {
+        phase = Phase.CAPTURED;
     }
 }

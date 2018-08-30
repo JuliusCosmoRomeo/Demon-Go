@@ -34,6 +34,7 @@ import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Point;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
@@ -94,7 +95,7 @@ public class DemonGoGame extends ARCoreScene {
 			    for (int i = 0; i < targets.length; i++) {
 			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
 				}
-				demon.setTargets(targets);
+				demon.setTargets(targets, getSession());
 			}
 		});
 
@@ -115,6 +116,7 @@ public class DemonGoGame extends ARCoreScene {
 				if (!demon.moveToNextTarget()) {
 					// TODO move to "you caught the demon" screen
 					Log.e("demon-go", "A winner is you!");
+					demon.setCaptured();
 				}
 				waitingForSpellCompletion = false;
 			}
@@ -161,21 +163,17 @@ public class DemonGoGame extends ARCoreScene {
         }
     }
 
-	private void input() {
+    public void update(Frame frame) {
+		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
+			hud.setLoading(false);
+		}
+
 		if (Gdx.input.justTouched()) {
 			Ray pickRay = getCamera().getPickRay(Gdx.input.getX(), Gdx.input.getY());
 			demon.shoot(pickRay);
 		}
-    }
 
-	@Override
-	public void render(Frame frame, ModelBatch modelBatch) {
-		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
-		    hud.setLoading(false);
-		}
-
-        angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
-		input();
+		angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
 
 		ARSnapshot lastSnapshot = null;
 		try {
@@ -185,21 +183,28 @@ public class DemonGoGame extends ARCoreScene {
 			Log.e("demon-go", "no image yet");
 		}
 
-        demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null);
-        demon.render(modelBatch, environment);
+		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);
+		Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());
+		getCamera().view.getTranslation(cameraPosition);
+		if (!waitingForSpellCompletion && demon.getPhase() == Demon.Phase.CAPTURING)
+			Log.e("demon-go-capturing", Float.toString(demon.getCurrentTarget().dst(cameraPosition)) + " " + demon.getCurrentTarget().toString() + " " + cameraPosition.toString());
 
-        Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());
-        getCamera().view.getTranslation(cameraPosition);
-        if (!waitingForSpellCompletion && demon.getPhase() == Demon.Phase.CAPTURING)
-			Log.e("demon-go-capturing", Float.toString(demon.getCurrentTarget().dst(cameraPosition)) + " " + demon.getCurrentTarget().toString());
-
-		if (!waitingForSpellCompletion && demon.getCurrentTarget().dst(cameraPosition) < 1 && demon.getPhase() == Demon.Phase.CAPTURING) {
+		if (!waitingForSpellCompletion && demon.getPhase() == Demon.Phase.CAPTURING && demon.getCurrentTarget().dst(cameraPosition) < 20) {
 			hud.showSpell();
 			waitingForSpellCompletion = true;
 		}
 
 		arDebug.update(frame);
+	}
+
+	@Override
+	public void render(Frame frame, ModelBatch modelBatch) {
+		update(frame);
+
+		modelBatch.begin(getCamera());
+        demon.render(modelBatch, environment);
 		arDebug.draw(modelBatch, environment);
+		modelBatch.end();
 	}
 
 	@Override
@@ -210,8 +215,7 @@ public class DemonGoGame extends ARCoreScene {
 
 	@Override
 	protected void postRender(Frame frame) {
-	    overlay.render(frame.getCamera().getPose());
-
+	    // overlay.render(frame.getCamera().getPose());
 	    hud.draw();
 	}
 }

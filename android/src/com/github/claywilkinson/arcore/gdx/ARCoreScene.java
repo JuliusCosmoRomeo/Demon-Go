@@ -134,9 +134,7 @@ public abstract class ARCoreScene implements ApplicationListener {
     Matrix4.inv(camera.invProjectionView.val);
 
     // Here is the rendering batch.
-    modelBatch.begin(camera);
     render(frame, modelBatch);
-    modelBatch.end();
 
     postRender(frame);
   }

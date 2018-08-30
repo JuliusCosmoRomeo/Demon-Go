@@ -21,6 +21,8 @@ public class SpellCanvas {
     private ShapeRenderer renderer = new ShapeRenderer();
     private CompletionListener completionListener;
 
+    private float mistakeFlashDuration = 0;
+
     SpellCanvas(float width, float height, CompletionListener listener) {
         completionListener = listener;
 
@@ -49,9 +51,18 @@ public class SpellCanvas {
         return t;
     }
 
-    static final float MAX_DISTANCE = 120;
+    private static final float MAX_DISTANCE = 120;
     private int progress = 0;
     private float subProgress = 0;
+
+    void resetProgress() {
+        progress = 0;
+        subProgress = 0;
+    }
+
+    private void flashMistake() {
+        mistakeFlashDuration = 0.3f;
+    }
 
     void checkProgress() {
         if (progress >= points.length - 1)
@@ -62,39 +73,47 @@ public class SpellCanvas {
         float t = closestPointOnSegment(mouse, points[progress], points[progress + 1], onLine);
 
         if (mouse.dst(onLine) > MAX_DISTANCE) {
-            subProgress = 0;
-            progress = 0;
+            resetProgress();
+            flashMistake();
             return;
         }
 
         subProgress = Math.min(Math.max(t, 0), 1);
         if (mouse.dst(points[progress + 1]) < MAX_DISTANCE / 2) {
             progress++;
+            Log.e("demon-go-spell", "progress " + Integer.toString(progress) + " / " + Integer.toString(points.length));
             subProgress = 0;
-            if (progress >= points.length) {
+            if (progress >= points.length - 1) {
+                Log.e("demon-go-spell", "completed");
                 completionListener.completed();
+                resetProgress();
             }
         }
     }
 
     void render() {
+        boolean flashing = mistakeFlashDuration > 0;
+        if (flashing) {
+            mistakeFlashDuration -= Gdx.graphics.getDeltaTime();
+        }
+
         // start point
-        renderer.setColor(progress > 0 || subProgress > 0 ? Color.RED : Color.WHITE);
         renderer.begin(ShapeRenderer.ShapeType.Filled);
+        renderer.setColor(flashing ? Color.RED : progress > 0 || subProgress > 0 ? Color.GREEN : Color.WHITE);
         renderer.circle(points[0].x, points[0].y, WIDTH * 2);
         renderer.end();
 
         // draw uncompleted part
-        renderer.setColor(Color.WHITE);
         renderer.begin(ShapeRenderer.ShapeType.Filled);
+        renderer.setColor(flashing ? Color.RED : Color.WHITE);
         for (int i = progress; i < points.length - 1; i++) {
             renderer.rectLine(points[i], points[i + 1], WIDTH);
         }
         renderer.end();
 
         // draw completed part
-        renderer.setColor(Color.RED);
         renderer.begin(ShapeRenderer.ShapeType.Filled);
+        renderer.setColor(flashing ? Color.RED : Color.GREEN);
         for (int i = 0; i < progress; i++) {
             renderer.rectLine(points[i], points[i + 1], WIDTH);
         }
