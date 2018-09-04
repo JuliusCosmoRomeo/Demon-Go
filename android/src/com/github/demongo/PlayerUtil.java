@@ -9,6 +9,6 @@ public class PlayerUtil {
         if (uuid==null){
             return false;
         }
-        return uuid.getUuid() == playerId;
+        return uuid.getUuid().toString().equals(playerId.toString());
     }
 }

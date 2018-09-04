@@ -3,6 +3,7 @@ package com.github.demongo;
 import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
+import android.util.Log;
 
 import com.github.demongo.Map.MapActivity;
 import com.google.firebase.firestore.GeoPoint;
@@ -50,7 +51,8 @@ public class Stash implements Parcelable {
     public Stash(Map<String, Object> map){
         this.map = map;
         this.id = map.get(STASH_ID) != null ? ParcelUuid.fromString((String) map.get(STASH_ID)) : new ParcelUuid(UUID.randomUUID());
-        this.playerID = new ParcelUuid(MapActivity.playerId); // map.get(PLAYER_ID) != null ? ParcelUuid.fromString(map.get(PLAYER_ID) + "") :
+        this.playerID = map.get(PLAYER_ID) != null ? ParcelUuid.fromString((String)map.get(PLAYER_ID)) : new ParcelUuid(MapActivity.playerId);
+        Log.i("demon-go-stash", "Player id " + map.get(PLAYER_ID) + " " + ParcelUuid.fromString((String)map.get(PLAYER_ID)));
         this.location = new ParcelableGeoPoint((GeoPoint) map.get(POSITION));
         this.capacity = map.get(CAPACITY) != null ? (long) map.get(CAPACITY) : -1;
         this.filled = map.get(FILLED) != null ? (long) map.get(FILLED) : -1;
@@ -93,6 +95,7 @@ public class Stash implements Parcelable {
 
     public void setPlayerID(ParcelUuid playerID) {
         this.playerID = playerID;
+        this.map.put(PLAYER_ID,this.playerID.toString());
     }
     public GeoPoint getLocation() {
         return location.getGeoPoint();

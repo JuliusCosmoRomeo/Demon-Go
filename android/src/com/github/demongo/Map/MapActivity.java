@@ -53,6 +53,7 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -71,17 +72,24 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionCol
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionHeight;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionOpacity;
 
+import com.github.demongo.Demon.Type;
+
 public class MapActivity extends AppCompatActivity {
     private static final String TAG = "demon-go-map";
     public static final UUID playerId = UUID.fromString("1b9624f8-4683-41c6-823e-89932573aa67");
+    public static final UUID opponentId = UUID.fromString("1b9624f8-0000-41c6-823e-89932573aa67");
     private static final String MARKER_SOURCE = "markers-source";
     private static final String MARKER_STYLE_LAYER = "markers-style-layer";
-    private static final String MARKER_IMAGE = "custom-marker";
+    private static final String MARKER_IMAGE_IMP = "marker_imp";
+    private static final String MARKER_IMAGE_FOLIOT = "marker_foliot";
+    private static final String MARKER_IMAGE_DJINN = "marker_djinn";
+    private static final String MARKER_IMAGE_AFRIT = "marker_afrit";
+    private static final String MARKER_IMAGE_MARID = "marker_marid";
     static final int GALLERY_REQUEST = 1;  // The request code
 
     //here we store the markers for stashes and demons to remove them easily later
     private HashMap<ParcelUuid, Marker> stashMarkerMap;
-    private HashMap<String, String> demonMarkerMap;
+    private HashMap<String, ArrayList<String>> demonMarkerMap;
     private HashMap<ParcelUuid, PolygonOptions> stashPerimeterMap;
 
     private MapView mapView;
@@ -90,7 +98,7 @@ public class MapActivity extends AppCompatActivity {
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private Stash currentStash;
-    private int demonCount = 0;
+    private int demonLayerCount = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,10 +115,26 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
                 mapboxMap = map;
-                //add the demon icon as resource to the map
-                Bitmap icon = BitmapFactory.decodeResource(
-                        MapActivity.this.getResources(), R.drawable.demon);
-                mapboxMap.addImage(MARKER_IMAGE, icon);
+
+                //add the demon icons as resources to the map
+                for (String demonName : Arrays.asList(MARKER_IMAGE_IMP,MARKER_IMAGE_FOLIOT,MARKER_IMAGE_DJINN,MARKER_IMAGE_AFRIT,MARKER_IMAGE_MARID)){
+                    int drawable = -1;
+                    if (demonName == MARKER_IMAGE_IMP){
+                        drawable = R.drawable.imp;
+                    } else if (demonName == MARKER_IMAGE_FOLIOT){
+                        drawable = R.drawable.imp;
+                    } else if (demonName == MARKER_IMAGE_DJINN){
+                        drawable = R.drawable.djinn;
+                    } else if (demonName == MARKER_IMAGE_AFRIT){
+                        drawable = R.drawable.djinn;
+                    } else if (demonName == MARKER_IMAGE_MARID){
+                        drawable = R.drawable.djinn;
+                    }
+                    Bitmap icon = BitmapFactory.decodeResource(
+                            MapActivity.this.getResources(), drawable);
+                    mapboxMap.addImage(demonName, icon);
+                }
+
 
                 setupBuildings();
                 fetchStashes();
@@ -162,11 +186,18 @@ public class MapActivity extends AppCompatActivity {
                 final Stash stash = stashMarker.getStash();
                 View container = getLayoutInflater().inflate(R.layout.map_info_window, null);
                 TextView playerName = container.findViewById(R.id.playerName);
-                playerName.setText("Player 1");
+
+                boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+                String player = isCurrentPlayer ? "Demon-Hunter" : "Gegner";
+                playerName.setText("Besitzer: " + player);
+
                 TextView radius = container.findViewById(R.id.radius);
                 radius.setText("Radius:" + stash.getRadius()+ " km");
+
                 TextView capacity = container.findViewById(R.id.capacity);
-                capacity.setText(stash.getFilled() +"/" +stash.getCapacity() + " EP");
+                String fillStatus = isCurrentPlayer ? stash.getFilled() +"/" +stash.getCapacity() + " EP" : stash.getFilled() + " EP";
+                capacity.setText(fillStatus);
+
                 LinearLayout buttonContainer = container.findViewById(R.id.buttonContainer);
                 if (PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId)){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
@@ -206,6 +237,7 @@ public class MapActivity extends AppCompatActivity {
                     });
                     buttonContainer.addView(attackBtn);
                 }
+
                 ImageButton deleteBtn = new ImageButton(MapActivity.this);
                 deleteBtn.setImageResource(R.drawable.delete_icon);
                 deleteBtn.setOnClickListener(new View.OnClickListener() {
@@ -227,6 +259,22 @@ public class MapActivity extends AppCompatActivity {
                     }
                 });
                 buttonContainer.addView(deleteBtn);
+
+                ImageButton changePlayerBtn = new ImageButton(MapActivity.this);
+                changePlayerBtn.setImageResource(R.drawable.icons8_schild);
+                changePlayerBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        currentStash = stash;
+                        if (isCurrentPlayer){
+                            currentStash.setPlayerID(new ParcelUuid(opponentId));
+                        } else {
+                            currentStash.setPlayerID(new ParcelUuid(playerId));
+                        }
+                        db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
+                    }
+                });
+                buttonContainer.addView(changePlayerBtn);
 
                 return container;
             }
@@ -287,6 +335,8 @@ public class MapActivity extends AppCompatActivity {
     private void updateStashMarker(Stash stash){
         removeStashMarker(stash.getId());
         boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+        Log.i(TAG, "stash player id " + stash.getPlayerID().toString());
+        Log.i(TAG, "is current player " + isCurrentPlayer);
         if (stash.getRadius()==-1){
             stash.setRadius(1);
         }
@@ -382,64 +432,128 @@ public class MapActivity extends AppCompatActivity {
     private void addDemonMarkers(ArrayList<Demon> demons, LatLng target, String stashId) {
         if (demonMarkerMap.get(stashId)!=null) {
             Log.i(TAG, "removing layer");
-            mapboxMap.removeLayer(demonMarkerMap.get(stashId));
+            ArrayList<String> demonMarkers = demonMarkerMap.get(stashId);
+            for (String marker : demonMarkers){
+                mapboxMap.removeLayer(marker);
+            }
 
         }
         if(demons.size()==0){
             return;
         }
-        List<Feature> features = new ArrayList<>();
+        List<Feature> impFeatures = new ArrayList<>();
+        List<Feature> foliotFeatures = new ArrayList<>();
+        List<Feature> djinnFeatures = new ArrayList<>();
+        List<Feature> afritFeatures = new ArrayList<>();
+        List<Feature> maridFeatures = new ArrayList<>();
 
+        List<LatLng> points = new ArrayList<>();
         /* Source: A data source specifies the geographic coordinate where the image marker gets placed. */
         if (demons.size()==1){
             LatLng point = MapUtils.move(target,-50,0);
-            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+            points.add(point);
         } else if (demons.size()==2){
             LatLng point = MapUtils.move(target,-50,0);
             LatLng point2 = MapUtils.move(target,50,0);
-            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
+            points.add(point);
+            points.add(point2);
         } else if (demons.size()==3){
             LatLng point = MapUtils.move(target,-40,0);
             LatLng point2 = MapUtils.move(target,33.54,-33.54);
             LatLng point3 = MapUtils.move(target,33.54,33.54);
-            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(),point3.getLatitude())));
+            points.add(point);
+            points.add(point2);
+            points.add(point3);
         } else if (demons.size()==4){
             LatLng point = MapUtils.move(target,-33,-33);
             LatLng point2 = MapUtils.move(target,33,-33);
             LatLng point3 = MapUtils.move(target,33,33);
             LatLng point4 = MapUtils.move(target,-33,33);
-            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(),point2.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(),point3.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point4.getLongitude(),point4.getLatitude())));
+            points.add(point);
+            points.add(point2);
+            points.add(point3);
+            points.add(point4);
         } else if (demons.size()>4) {
             LatLng point = MapUtils.move(target, -33, -33);
             LatLng point2 = MapUtils.move(target, 33, -33);
             LatLng point3 = MapUtils.move(target, 33, 33);
             LatLng point4 = MapUtils.move(target, -33, 33);
-            features.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(), point.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point2.getLongitude(), point2.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point3.getLongitude(), point3.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(point4.getLongitude(), point4.getLatitude())));
-            features.add(Feature.fromGeometry(Point.fromLngLat(target.getLongitude(), target.getLatitude())));
+            points.add(point);
+            points.add(point2);
+            points.add(point3);
+            points.add(point4);
+            points.add(target);
         }
-        FeatureCollection featureCollection = FeatureCollection.fromFeatures(features);
-        GeoJsonSource source = new GeoJsonSource(MARKER_SOURCE + demonCount, featureCollection);
 
-        mapboxMap.addSource(source);
+        //for every demon type add a different icon
+        for (int demon = 0; demon < demons.size(); demon++){
+            if (demon < 5){
+                Demon d = demons.get(demon);
+                LatLng point = points.get(demon);
+                switch(d.getType()){
+                    case Imp:
+                        impFeatures.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+                        break;
+                    case Foliot:
+                        foliotFeatures.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+                        break;
+                    case Djinn:
+                        djinnFeatures.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+                        break;
+                    case Afrit:
+                        afritFeatures.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+                        break;
+                    case Marid:
+                        maridFeatures.add(Feature.fromGeometry(Point.fromLngLat(point.getLongitude(),point.getLatitude())));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 
-        /* Style layer: A style layer ties together the source and image and specifies how they are displayed on the map. */
-        SymbolLayer markerStyleLayer = new SymbolLayer(MARKER_STYLE_LAYER + demonCount, MARKER_SOURCE + demonCount)
-                .withProperties(
-                        PropertyFactory.iconAllowOverlap(true),
-                        PropertyFactory.iconImage(MARKER_IMAGE)
-                );
-        mapboxMap.addLayer(markerStyleLayer);
-        demonMarkerMap.put(stashId,markerStyleLayer.getId());
-        demonCount++;
+        ArrayList<String> layerIds = new ArrayList<>();
+        for (Type demonType : Arrays.asList(Type.Imp, Type.Foliot, Type.Djinn, Type.Afrit, Type.Marid)){
+            FeatureCollection featureCollection = null;
+            String markerImage = "";
+            switch(demonType){
+                case Imp:
+                    featureCollection = FeatureCollection.fromFeatures(impFeatures);
+                    markerImage = MARKER_IMAGE_IMP;
+                    break;
+                case Foliot:
+                    featureCollection = FeatureCollection.fromFeatures(foliotFeatures);
+                    markerImage = MARKER_IMAGE_FOLIOT;
+                    break;
+                case Djinn:
+                    featureCollection = FeatureCollection.fromFeatures(djinnFeatures);
+                    markerImage = MARKER_IMAGE_DJINN;
+                    break;
+                case Afrit:
+                    featureCollection = FeatureCollection.fromFeatures(afritFeatures);
+                    markerImage = MARKER_IMAGE_AFRIT;
+                    break;
+                case Marid:
+                    featureCollection = FeatureCollection.fromFeatures(maridFeatures);
+                    markerImage = MARKER_IMAGE_MARID;
+                    break;
+                default:
+                    break;
+            }
+            GeoJsonSource source = new GeoJsonSource(MARKER_SOURCE + demonLayerCount, featureCollection);
+            mapboxMap.addSource(source);
+
+            /* Style layer: A style layer ties together the source and image and specifies how they are displayed on the map. */
+            SymbolLayer markerStyleLayer = new SymbolLayer(MARKER_STYLE_LAYER + demonLayerCount, MARKER_SOURCE + demonLayerCount)
+                    .withProperties(
+                            PropertyFactory.iconAllowOverlap(true),
+                            PropertyFactory.iconImage(markerImage)
+                    );
+            mapboxMap.addLayer(markerStyleLayer);
+            layerIds.add(markerStyleLayer.getId());
+            demonLayerCount++;
+        }
+        demonMarkerMap.put(stashId,layerIds);
     }
 
     private void setupBuildings() {
