@@ -5,9 +5,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.app.Activity;
 import android.os.ParcelUuid;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
+
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +20,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -31,7 +36,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-public class DemonGallery extends Activity {
+public class DemonGallery extends AppCompatActivity {
 
     private static final String TAG = "demon-go-gallery";
 
@@ -41,13 +46,13 @@ public class DemonGallery extends Activity {
         Deposit
     }
 
-    private final ParcelUuid nullStashId = new ParcelUuid(UUID.fromString("00000000-0000-0000-0000-000000000000"));
+    public static final ParcelUuid nullStashId = new ParcelUuid(UUID.fromString("00000000-0000-0000-0000-000000000000"));
     private Action action;
     private CustomPagerAdapter mCustomPagerAdapter;
     private ViewPager mViewPager;
     private final List<Demon> demons = new ArrayList<Demon>(){{
         add(new Demon("luschi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        add(new Demon("flupsi",110,11,50,400, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        add(new Demon("flupsi",110,110,50,400, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
         add(new Demon("schnucksi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
         add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
         add(new Demon("superstubsi",350,350,150,5200, R.drawable.notification_icon,Demon.Type.Marid, nullStashId, new ParcelUuid(UUID.randomUUID())));
@@ -59,31 +64,24 @@ public class DemonGallery extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demon_gallery);
-        mCustomPagerAdapter = new CustomPagerAdapter(this);
+
 
         this.action = (Action) getIntent().getExtras().get("action");
-        db.collection("stashes").document(nullStashId.toString()).collection("demons").addSnapshotListener(
-            new EventListener<QuerySnapshot>() {
-                @Override
-                public void onEvent(@Nullable QuerySnapshot snapshot, @Nullable FirebaseFirestoreException e) {
-                    if (e != null || snapshot == null) {
-                        Log.w(TAG, "Listen failed.", e);
-                        return;
-                    }
-                    for (QueryDocumentSnapshot demonDoc : snapshot) {
-                        Log.i(TAG, "demon id " + demonDoc.getId());
-                        Demon demon = new Demon(demonDoc.getData());
-                        demons.add(demon);
-                    }
+        db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                for (QueryDocumentSnapshot demonDoc : task.getResult()) {
+                    Log.i(TAG, "demon id " + demonDoc.getId());
+                    Demon demon = new Demon(demonDoc.getData());
+                    demons.add(demon);
                 }
+                mCustomPagerAdapter = new CustomPagerAdapter(DemonGallery.this);
+                mViewPager = findViewById(R.id.pager);
+                mViewPager.setAdapter(mCustomPagerAdapter);
             }
-        );
+        });
 
-        //TODO: get the demons from the stash and add them to the demons list
-
-        mViewPager = findViewById(R.id.pager);
-        mViewPager.setAdapter(mCustomPagerAdapter);
-        //getActionBar().setDisplayHomeAsUpEnabled(true);
+        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
     class CustomPagerAdapter extends PagerAdapter {

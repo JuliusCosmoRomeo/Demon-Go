@@ -19,6 +19,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.demongo.Demon;
 import com.github.demongo.DemonBattle;
@@ -87,6 +88,8 @@ public class MapActivity extends AppCompatActivity {
     private static final String MARKER_IMAGE_MARID = "marker_marid";
     static final int GALLERY_REQUEST = 1;  // The request code
 
+    private DemonBattle battle;
+
     //here we store the markers for stashes and demons to remove them easily later
     private HashMap<ParcelUuid, Marker> stashMarkerMap;
     private HashMap<String, ArrayList<String>> demonMarkerMap;
@@ -108,6 +111,9 @@ public class MapActivity extends AppCompatActivity {
         mapView.onCreate(savedInstanceState);
         mapView.setStyleUrl("mapbox://styles/tom95/cji612zco1t3b2spbn7leib2q");
         //clearAllStashes();
+
+        battle = new DemonBattle(this,db);
+
         stashMarkerMap = new HashMap();
         demonMarkerMap = new HashMap();
         stashPerimeterMap = new HashMap();
@@ -703,7 +709,7 @@ public class MapActivity extends AppCompatActivity {
                             defenders.add(defender);
                             Log.i(TAG, "defending demon " + defender.toString());
                         }
-                        DemonBattle.attackStash(demon,defenders,currentStash);
+                        long stolenEP = battle.attackStash(demon,defenders,currentStash);
                     } else {
                         Log.d(TAG, "Error getting documents: ", task.getException());
                     }

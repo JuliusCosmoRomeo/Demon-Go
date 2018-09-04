@@ -51,6 +51,7 @@
             android:name=".DemonGallery"
             android:label="@string/title_activity_demon_gallery"
             android:parentActivityName=".Map.MapActivity">
+
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.github.demongo.Map.MapActivity" />

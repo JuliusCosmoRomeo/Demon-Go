@@ -1,6 +1,11 @@
 package com.github.demongo;
 
+import android.content.Context;
 import android.util.Log;
+import android.widget.Toast;
+
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,11 +18,19 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class DemonBattle {
+    final String TAG = "demon-go-battle";
+    final Context context;
+    final FirebaseFirestore db;
+    public DemonBattle(Context context, FirebaseFirestore db){
+        this.context = context;
+        this.db = db;
+    }
 
     //returns the amount of stolen ep from the stash
-    public static long attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
+    public long attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
+        String winText = attacker.getName() + " hat alle " + defenders.size() + " Verteidiger besiegt und " + stash.getFilled() + " EP gestohlen";
+        String loseText = "Leider ist " + attacker.getName() + " beim Angriff gestorben.";
 
-        final String TAG = "demon-go-battle";
         //order in which the defenders attack the attacking demon
         List<Integer> attackOrderList = IntStream.rangeClosed(0, defenders.size()-1)
                 .boxed().collect(Collectors.toList());
@@ -46,6 +59,8 @@ public class DemonBattle {
                     Log.i(TAG, "defeated demon " + defender.toString());
                     if(defendOrder.size()==0){
                         Log.i(TAG, "defeated every defender");
+                        updateFirestore(attacker,defenders,stash);
+                        Toast.makeText(context, winText, Toast.LENGTH_LONG).show();
                         return stash.getFilled();
                     }
                 }
@@ -55,6 +70,8 @@ public class DemonBattle {
                 //update firestore -> remove all demons from stash
                 //update firestore -> take eps from stash
                 //update firestore -> update attacker hp from null stash
+                updateFirestore(attacker,defenders,stash);
+                Toast.makeText(context, winText, Toast.LENGTH_LONG).show();
                 return stash.getFilled();
             }
 
@@ -74,6 +91,8 @@ public class DemonBattle {
                         //attacker is dead, defenders won
                         //update firestore -> remove all demons from stash and update the hp of the surviving
                         //update firestore -> remove attacker from null stash
+                        updateFirestore(attacker,defenders,stash);
+                        Toast.makeText(context, loseText, Toast.LENGTH_LONG).show();
                         return 0;
                     }
                 }
@@ -88,5 +107,30 @@ public class DemonBattle {
             return 0;
         }
         return newDefenderHP;
+    }
+
+    private void updateFirestore(Demon attacker, ArrayList<Demon> defenders, Stash stash){
+        String stashId = stash.getId().toString();
+        DocumentReference attRef = db.collection("stashes").document(DemonGallery.nullStashId.toString()).collection("demons").document(attacker.getId().toString());
+        if (attacker.getHp()>0){
+            attRef.set(attacker.getMap());
+            db.collection("stashes").document(stashId).delete();
+        } else {
+            attRef.delete();
+        }
+
+        double totalDefenderHP = 0;
+        for (Demon defender : defenders){
+            totalDefenderHP += defender.getHp();
+            DocumentReference defRef = db.collection("stashes").document(stashId).collection("demons").document(defender.getId().toString());
+            if (defender.getHp()>0){
+                defRef.set(defender.getMap());
+            } else {
+                defRef.delete();
+            }
+        }
+        double radius = totalDefenderHP/1000;
+        stash.setRadius(radius);
+        db.collection("stashes").document(stashId).set(stash.getMap());
     }
 }
