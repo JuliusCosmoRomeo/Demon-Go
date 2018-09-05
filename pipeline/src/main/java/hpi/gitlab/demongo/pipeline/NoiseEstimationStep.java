@@ -13,6 +13,7 @@ import org.opencv.imgproc.Imgproc;
 
 public class NoiseEstimationStep extends Step {
     private static final String TAG = "demon-go-noise-step";
+    private static final float THRESHOLD = 1.0f;
 
     private final Mat kernel = new Mat(3, 3, CvType.CV_32F) {
         {
@@ -51,7 +52,27 @@ public class NoiseEstimationStep extends Step {
     @Override
     public void process(Snapshot last) {
         double noisiness = this.estimateNoise(last.mat);
-        if (noisiness>1.5) {// TODO: Never fulfilled if calculated on full frame
+        if (last.isDebug()) {
+            Scalar color;
+            Point offset = new Point();
+            Size wholesize = new Size();
+            last.mat.locateROI(wholesize,offset);
+            if (noisiness > THRESHOLD) {
+                color = new Scalar(0, 255, 0);
+            } else {
+                color = new Scalar(255, 0, 0);
+            }
+            Imgproc.putText (
+                    last.getDebugMat(),                          // Matrix obj of the image
+                    Double.toString(noisiness),          // Text to be added
+                    offset,               // point
+                    Core.FONT_HERSHEY_SIMPLEX ,      // front face
+                    1,                               // front scale
+                    color,
+                    4                                // Thickness
+            );
+        }
+        if (noisiness > THRESHOLD) {
             Snapshot newSnap;
             if (last.score > 0) {
                 newSnap = last.copyWithNewScore(noisiness * last.score); //TODO: evaluate metric
@@ -59,20 +80,6 @@ public class NoiseEstimationStep extends Step {
                 newSnap = last.copyWithNewScore(noisiness * last.score);
             }
 
-            if (last.isDebug()) {
-                Point offset = new Point();
-                Size wholesize = new Size();
-                last.mat.locateROI(wholesize,offset);
-                Imgproc.putText (
-                        last.getDebugMat(),                          // Matrix obj of the image
-                        Double.toString(noisiness),          // Text to be added
-                        offset,               // point
-                        Core.FONT_HERSHEY_SIMPLEX ,      // front face
-                        1,                               // front scale
-                        new Scalar(0, 255, 0),             // Scalar object for color
-                        4                                // Thickness
-                );
-            }
             Log.i(TAG, "noisiness: " + noisiness);
             this.output(newSnap);
         }

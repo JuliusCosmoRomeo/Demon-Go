@@ -38,6 +38,6 @@ dependencies {
     implementation 'com.android.volley:volley:1.1.0'
     implementation project(path: ':pipeline')
 
-    implementation 'com.google.firebase:firebase-core:16.0.0'
-    implementation 'com.google.firebase:firebase-messaging:17.0.0'
+    implementation 'com.google.firebase:firebase-core:16.0.1'
+    implementation 'com.google.firebase:firebase-messaging:17.1.0'
 }

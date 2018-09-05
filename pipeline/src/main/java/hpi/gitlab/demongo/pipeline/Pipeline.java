@@ -51,7 +51,7 @@ public class Pipeline {
         nextFrames = new CircularFifoQueue<>(10);
 
         firstStep = blurEstimationStep;
-        firstStep.setMeasureTime(true);
+        // firstStep.setMeasureTime(true);
         firstStep.setNextFrames(nextFrames);
         Thread pipelineThread = new Thread(firstStep);
         pipelineThread.start();
@@ -66,9 +66,14 @@ public class Pipeline {
         nextFrames.add(snapshot);
     }
 
+    // return {x0, y0, z0, x1, y1, z1, ...}
+    public float[] requestTargets() {
+        return new float[] {};
+    }
+
     public Mat debugAdd(Snapshot snapshot) {
         Mat debug = snapshot.createDebugMat();
-        firstStep.process(snapshot);
+        firstStep.start(snapshot);
         return debug;
     }
 }
