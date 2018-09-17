@@ -19,6 +19,7 @@ public class Stash implements Parcelable {
     private final String RADIUS = "radius";
     private final String PLAYER_ID = "player_id";
     private final String STASH_ID = "stash_id";
+    private final String HAS_DEFENDERS = "has_defenders";
 
     private final ParcelUuid id;
 
@@ -28,17 +29,18 @@ public class Stash implements Parcelable {
     private final long capacity;
 
     private long filled;
-
+    private boolean hasDefenders;
     //in the map Geopoints are saved instead of ParcelableGeoPoints
     private Map<String,Object> map;
 
-    public Stash(ParcelUuid id, ParcelUuid playerID, ParcelableGeoPoint location, double radius, long capacity, long filled) {
+    public Stash(ParcelUuid id, ParcelUuid playerID, ParcelableGeoPoint location, double radius, long capacity, long filled, boolean hasDefenders) {
         this.id = id;
         this.playerID = playerID;
         this.location = location;
         this.radius = radius;
         this.capacity = capacity;
         this.filled = filled;
+        this.hasDefenders = hasDefenders;
         this.map = new HashMap<String, Object>();
         this.map.put(PLAYER_ID,playerID.toString());
         this.map.put(STASH_ID,id.toString());
@@ -46,6 +48,7 @@ public class Stash implements Parcelable {
         this.map.put(RADIUS,radius);
         this.map.put(CAPACITY,capacity);
         this.map.put(FILLED,filled);
+        this.map.put(HAS_DEFENDERS,hasDefenders);
     }
 
     public Stash(Map<String, Object> map){
@@ -57,6 +60,7 @@ public class Stash implements Parcelable {
         this.capacity = map.get(CAPACITY) != null ? (long) map.get(CAPACITY) : -1;
         this.filled = map.get(FILLED) != null ? (long) map.get(FILLED) : -1;
         this.radius = map.get(RADIUS) != null ? (double) map.get(RADIUS) : -1;
+        this.hasDefenders = map.get(HAS_DEFENDERS) != null ? (boolean) map.get(HAS_DEFENDERS) : false;
     }
 
     protected Stash(Parcel in) {
@@ -67,6 +71,7 @@ public class Stash implements Parcelable {
         playerID = in.readParcelable(ParcelUuid.class.getClassLoader());
         id = in.readParcelable(ParcelUuid.class.getClassLoader());
         location = in.readParcelable(ParcelableGeoPoint.class.getClassLoader());
+        hasDefenders = in.readByte()!= 0;
     }
 
     public static final Creator<Stash> CREATOR = new Creator<Stash>() {
@@ -123,6 +128,14 @@ public class Stash implements Parcelable {
         this.map.put(FILLED,this.filled);
     }
 
+    public boolean hasDefenders(){
+        return this.hasDefenders;
+    }
+
+    public void setHasDefenders(boolean hasDefenders){
+        this.hasDefenders = hasDefenders;
+    }
+
     public String toString(){
         return "Stash: player " + getPlayerID() + " position(" + this.getLocation().getLatitude() + "," + this.getLocation().getLongitude() + "), radius " +
                 getRadius() + " capacity " + getFilled() + "/" + getCapacity() + " Stash id " + getId();
@@ -141,6 +154,7 @@ public class Stash implements Parcelable {
         out.writeParcelable(playerID,flags);
         out.writeParcelable(id,flags);
         out.writeParcelable(location,flags);
+        out.writeByte((byte) (hasDefenders ? 1 : 0));
     }
 
 }

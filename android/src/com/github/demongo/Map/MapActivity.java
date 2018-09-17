@@ -151,7 +151,8 @@ public class MapActivity extends AppCompatActivity {
                                 new ParcelableGeoPoint(new GeoPoint(point.getLatitude(), point.getLongitude())),
                                 0,
                                 1000,
-                                0);
+                                0,
+                                false);
                         db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
                         //addNewStashMarker(stash);
                         //addDemonMarkers(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
@@ -292,14 +293,14 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onEvent(@Nullable QuerySnapshot snapshot,
                                 @Nullable FirebaseFirestoreException e) {
-                if (e != null || snapshot == null) {
+                if (e != null || snapshot == null){
                     Log.w(TAG, "Listen failed.", e);
                     return;
                 }
                 Stash stash;
                 QueryDocumentSnapshot doc;
                 for (DocumentChange dc : snapshot.getDocumentChanges()) {
-                    switch (dc.getType()) {
+                    switch (dc.getType()){
                         case ADDED:
                             Log.i(TAG, "New stash: " + dc.getDocument().getData());
                             doc = dc.getDocument();
@@ -380,13 +381,10 @@ public class MapActivity extends AppCompatActivity {
                         return;
                     }
                     for (DocumentChange dc : snapshot.getDocumentChanges()) {
-                        Demon demon;
-                        QueryDocumentSnapshot document = dc.getDocument();
                         switch (dc.getType()) {
                             case REMOVED:
                                 //added and removed are same for demon marker updates
                             case ADDED:
-                                Log.i(TAG, "updating demons");
                                 ArrayList<Demon> demons = new ArrayList<>();
                                 db.collection("stashes").document(doc.getId().toString()).collection("demons").get().addOnCompleteListener(
                                     new OnCompleteListener<QuerySnapshot>() {
@@ -412,24 +410,40 @@ public class MapActivity extends AppCompatActivity {
     }
 
 
-    private void addStashMarker(Stash stash, boolean isCurrentPlayer) {
-        LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
-        StashMarkerOptions markerOptions = new StashMarkerOptions(stash);
-        markerOptions.setPosition(pos);
-        Marker marker = mapboxMap.addMarker(markerOptions);
-        stashMarkerMap.put(stash.getId(),marker);
+    private void addStashMarker(Stash stash, boolean isCurrentPlayer){
 
+        //we don't want to display empty (new) stashes with no defenders to other players
+        if (stash.getFilled()!=0 || stash.hasDefenders() || isCurrentPlayer){
+            LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
+            StashMarkerOptions markerOptions = new StashMarkerOptions(stash);
+            markerOptions.setPosition(pos);
+            Marker marker = mapboxMap.addMarker(markerOptions);
+            stashMarkerMap.put(stash.getId(),marker);
 
-        List<LatLng> polygon = MapUtils.getStashPerimeter(pos,stash.getRadius());
-        String colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
-        PolygonOptions polygonOpts = new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString));
-        stashPerimeterMap.put(stash.getId(),polygonOpts);
-        mapboxMap.addPolygon(polygonOpts);
+            String colorString;
+            double radius;
+            if (!stash.hasDefenders()){
+                //there are still EP lying in the stash that can be collected by everyone
+                colorString = "#990000ff";
+                radius = 0.1;
+            } else {
+                colorString = isCurrentPlayer ?  "#00ff3300" : "#33ff0000";
+                radius = stash.getRadius();
+            }
+            if (stash.getFilled()!=0 || stash.hasDefenders()){
+                List<LatLng> polygon = MapUtils.getStashPerimeter(pos,radius);
+                PolygonOptions polygonOpts = new PolygonOptions().addAll(polygon).fillColor(Color.parseColor(colorString));
+                stashPerimeterMap.put(stash.getId(),polygonOpts);
+                mapboxMap.addPolygon(polygonOpts);
+            }
+        }
     }
 
     private void removeStashMarker(ParcelUuid uuid){
         mapboxMap.removeMarker(stashMarkerMap.get(uuid));
-        mapboxMap.removePolygon(stashPerimeterMap.get(uuid).getPolygon());
+        if (stashPerimeterMap.containsKey(uuid)){
+            mapboxMap.removePolygon(stashPerimeterMap.get(uuid).getPolygon());
+        }
 
         stashMarkerMap.remove(uuid);
         stashPerimeterMap.remove(uuid);

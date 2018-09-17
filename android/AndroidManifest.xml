@@ -40,14 +40,6 @@
                 android:value="com.github.demongo.AndroidLauncher" />
         </activity>
         <activity
-            android:name=".StashActivity"
-            android:label="@string/title_activity_stash"
-            android:parentActivityName=".Map.MapActivity">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.github.demongo.Map.MapActivity" />
-        </activity>
-        <activity
             android:name=".DemonGallery"
             android:label="@string/title_activity_demon_gallery"
             android:parentActivityName=".Map.MapActivity">
