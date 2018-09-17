@@ -211,6 +211,7 @@ public class MapActivity extends AppCompatActivity {
                 if (PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId)){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
                     defendBtn.setImageResource(R.drawable.icons8_schild);
+                    defendBtn.setBackground(null);
                     defendBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -225,6 +226,7 @@ public class MapActivity extends AppCompatActivity {
 
                     ImageButton depositBtn = new ImageButton(MapActivity.this);
                     depositBtn.setImageResource(R.drawable.icons8_gelddose);
+                    depositBtn.setBackground(null);
                     depositBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -236,6 +238,7 @@ public class MapActivity extends AppCompatActivity {
                     if (!stash.hasDefenders() && stash.getFilled()!=0){
                         ImageButton stealBtn = new ImageButton(MapActivity.this);
                         stealBtn.setImageResource(R.drawable.icons8_muenzen);
+                        stealBtn.setBackground(null);
                         stealBtn.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -251,6 +254,7 @@ public class MapActivity extends AppCompatActivity {
                     if (!stash.hasDefenders() && stash.getFilled()!=0){
                         ImageButton stealBtn = new ImageButton(MapActivity.this);
                         stealBtn.setImageResource(R.drawable.icons8_muenzen);
+                        stealBtn.setBackground(null);
                         stealBtn.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -264,6 +268,7 @@ public class MapActivity extends AppCompatActivity {
                     } else {
                         ImageButton attackBtn = new ImageButton(MapActivity.this);
                         attackBtn.setImageResource(R.drawable.icons8_schwert);
+                        attackBtn.setBackground(null);
                         attackBtn.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
@@ -280,6 +285,7 @@ public class MapActivity extends AppCompatActivity {
 
                 ImageButton deleteBtn = new ImageButton(MapActivity.this);
                 deleteBtn.setImageResource(R.drawable.delete_icon);
+                deleteBtn.setBackground(null);
                 deleteBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -301,7 +307,8 @@ public class MapActivity extends AppCompatActivity {
                 buttonContainer.addView(deleteBtn);
 
                 ImageButton changePlayerBtn = new ImageButton(MapActivity.this);
-                changePlayerBtn.setImageResource(R.drawable.icons8_schild);
+                changePlayerBtn.setImageResource(R.drawable.icons8_wechsel);
+                changePlayerBtn.setBackground(null);
                 changePlayerBtn.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -656,7 +663,7 @@ public class MapActivity extends AppCompatActivity {
 
             }
         });
-        builder.setMessage("Wie viel EP möchtest du im Versteck ablegen?")
+        builder.setMessage("Wie viel EP möchtest du ablegen?")
                 .setTitle("Put into stash")
                 .setView(dialogView)
                 .setPositiveButton("Deposit", new DialogInterface.OnClickListener() {
