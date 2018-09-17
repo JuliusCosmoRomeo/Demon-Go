@@ -61,6 +61,7 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.mapbox.mapboxsdk.style.expressions.Expression.bool;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
@@ -454,6 +455,7 @@ public class MapActivity extends AppCompatActivity {
 
             String colorString;
             double radius;
+
             if (!stash.hasDefenders()){
                 //there are still EP lying in the stash that can be collected by everyone
                 colorString = "#990000ff";
@@ -749,13 +751,13 @@ public class MapActivity extends AppCompatActivity {
                 @Override
                 public void onComplete(@NonNull Task<QuerySnapshot> task) {
                     ArrayList<Demon> defenders = new ArrayList<>();
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
+                    if (task.isSuccessful()){
+                        for (QueryDocumentSnapshot document : task.getResult()){
                             Demon defender = new Demon(document.getData());
                             defenders.add(defender);
                             Log.i(TAG, "defending demon " + defender.toString());
                         }
-                        long stolenEP = battle.attackStash(demon,defenders,currentStash);
+                        battle.attackStash(demon,defenders,currentStash);
                     } else {
                         Log.d(TAG, "Error getting documents: ", task.getException());
                     }
@@ -780,6 +782,7 @@ public class MapActivity extends AppCompatActivity {
                         double radius = (double)totalDefenderHP/1000;
 
                         currentStash.setRadius(radius);
+                        currentStash.setHasDefenders(true);
                         Log.i(TAG, "stash before update " + currentStash.toString());
                         db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
                     } else {

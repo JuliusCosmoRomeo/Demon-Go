@@ -27,7 +27,7 @@ public class DemonBattle {
     }
 
     //returns the amount of stolen ep from the stash
-    public long attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
+    public boolean attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
         String winText = attacker.getName() + " hat alle " + defenders.size() + " Verteidiger besiegt und " + stash.getFilled() + " EP gestohlen";
         String loseText = "Leider ist " + attacker.getName() + " beim Angriff gestorben.";
 
@@ -61,7 +61,7 @@ public class DemonBattle {
                         Log.i(TAG, "defeated every defender");
                         updateFirestore(attacker,defenders,stash);
                         Toast.makeText(context, winText, Toast.LENGTH_LONG).show();
-                        return stash.getFilled();
+                        return true;
                     }
                 }
             } else {
@@ -72,7 +72,7 @@ public class DemonBattle {
                 //update firestore -> update attacker hp from null stash
                 updateFirestore(attacker,defenders,stash);
                 Toast.makeText(context, winText, Toast.LENGTH_LONG).show();
-                return stash.getFilled();
+                return true;
             }
 
 
@@ -93,7 +93,7 @@ public class DemonBattle {
                         //update firestore -> remove attacker from null stash
                         updateFirestore(attacker,defenders,stash);
                         Toast.makeText(context, loseText, Toast.LENGTH_LONG).show();
-                        return 0;
+                        return false;
                     }
                 }
             }
@@ -114,7 +114,8 @@ public class DemonBattle {
         DocumentReference attRef = db.collection("stashes").document(DemonGallery.nullStashId.toString()).collection("demons").document(attacker.getId().toString());
         if (attacker.getHp()>0){
             attRef.set(attacker.getMap());
-            db.collection("stashes").document(stashId).delete();
+            stash.setHasDefenders(false);
+            db.collection("stashes").document(stashId).set(stash.getMap());
         } else {
             attRef.delete();
         }

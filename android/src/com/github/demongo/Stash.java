@@ -134,11 +134,12 @@ public class Stash implements Parcelable {
 
     public void setHasDefenders(boolean hasDefenders){
         this.hasDefenders = hasDefenders;
+        this.map.put(HAS_DEFENDERS,this.hasDefenders);
     }
 
     public String toString(){
         return "Stash: player " + getPlayerID() + " position(" + this.getLocation().getLatitude() + "," + this.getLocation().getLongitude() + "), radius " +
-                getRadius() + " capacity " + getFilled() + "/" + getCapacity() + " Stash id " + getId();
+                getRadius() + " capacity " + getFilled() + "/" + getCapacity() + " Stash id " + getId() + " has defenders " + hasDefenders();
     }
 
     @Override
