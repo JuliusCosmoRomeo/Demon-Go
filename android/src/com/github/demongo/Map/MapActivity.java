@@ -199,13 +199,14 @@ public class MapActivity extends AppCompatActivity {
                 playerName.setText("Besitzer: " + player);
 
                 TextView radius = container.findViewById(R.id.radius);
-                radius.setText("Radius:" + stash.getRadius()+ " km");
+                radius.setText("Radius:" + stash.getRadius() + " km");
 
                 TextView capacity = container.findViewById(R.id.capacity);
                 String fillStatus = isCurrentPlayer ? stash.getFilled() +"/" +stash.getCapacity() + " EP" : stash.getFilled() + " EP";
                 capacity.setText(fillStatus);
 
                 LinearLayout buttonContainer = container.findViewById(R.id.buttonContainer);
+
                 if (PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId)){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
                     defendBtn.setImageResource(R.drawable.icons8_schild);
@@ -220,6 +221,7 @@ public class MapActivity extends AppCompatActivity {
                         }
                     });
                     buttonContainer.addView(defendBtn);
+
                     ImageButton depositBtn = new ImageButton(MapActivity.this);
                     depositBtn.setImageResource(R.drawable.icons8_gelddose);
                     depositBtn.setOnClickListener(new View.OnClickListener() {
@@ -229,20 +231,50 @@ public class MapActivity extends AppCompatActivity {
                         }
                     });
                     buttonContainer.addView(depositBtn);
+
+                    if (!stash.hasDefenders() && stash.getFilled()!=0){
+                        ImageButton stealBtn = new ImageButton(MapActivity.this);
+                        stealBtn.setImageResource(R.drawable.icons8_muenzen);
+                        stealBtn.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                //player.setEP(+=stash.getFilled);
+                                stash.setFilled(0);
+                                db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+                                marker.hideInfoWindow();
+                            }
+                        });
+                        buttonContainer.addView(stealBtn);
+                    }
                 } else {
-                    ImageButton attackBtn = new ImageButton(MapActivity.this);
-                    attackBtn.setImageResource(R.drawable.icons8_schwert);
-                    attackBtn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
-                            demonGallery.putExtra("action", DemonGallery.Action.Attack);
-                            currentStash = stash;
-                            marker.hideInfoWindow();
-                            startActivityForResult(demonGallery,GALLERY_REQUEST);
-                        }
-                    });
-                    buttonContainer.addView(attackBtn);
+                    if (!stash.hasDefenders() && stash.getFilled()!=0){
+                        ImageButton stealBtn = new ImageButton(MapActivity.this);
+                        stealBtn.setImageResource(R.drawable.icons8_muenzen);
+                        stealBtn.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                //player.setEP(+=stash.getFilled);
+                                stash.setFilled(0);
+                                db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+                                marker.hideInfoWindow();
+                            }
+                        });
+                        buttonContainer.addView(stealBtn);
+                    } else {
+                        ImageButton attackBtn = new ImageButton(MapActivity.this);
+                        attackBtn.setImageResource(R.drawable.icons8_schwert);
+                        attackBtn.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
+                                demonGallery.putExtra("action", DemonGallery.Action.Attack);
+                                currentStash = stash;
+                                marker.hideInfoWindow();
+                                startActivityForResult(demonGallery,GALLERY_REQUEST);
+                            }
+                        });
+                        buttonContainer.addView(attackBtn);
+                    }
                 }
 
                 ImageButton deleteBtn = new ImageButton(MapActivity.this);
