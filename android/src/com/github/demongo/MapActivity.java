@@ -1,5 +1,9 @@
 package com.github.demongo;
 
+import android.content.Context;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -20,6 +24,9 @@ import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.Icon;
+import com.mapbox.mapboxsdk.annotations.IconFactory;
+import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.annotations.Polygon;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
@@ -30,7 +37,10 @@ import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.style.layers.CircleLayer;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
@@ -46,10 +56,20 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionHei
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionOpacity;
 
 public class MapActivity extends AppCompatActivity {
+
     private MapView mapView;
     private MapboxMap mapboxMap;
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+    private Icon playerIcon;
+    private Icon myPlayerIcon;
+
+    private HashMap<String,Marker> playerMarkers = new HashMap<>();
+
+    private PvP pvp;
+
+    private boolean loadedOnce = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +80,21 @@ public class MapActivity extends AppCompatActivity {
         mapView.onCreate(savedInstanceState);
         mapView.setStyleUrl("mapbox://styles/tom95/cji612zco1t3b2spbn7leib2q");
 
+        playerIcon = IconFactory.getInstance(this).fromAsset("player_location.png");
+        myPlayerIcon = IconFactory.getInstance(this).fromAsset("player_location.png");
+
+        pvp = new PvP(this);
+        pvp.setUpdatePositionCallback(new PvP.UpdatePositionCallback() {
+            @Override
+            public void updated(String id, GeoPoint point) {
+                updatePlayerMarker(id, point);
+                if (id.equals(pvp.getMyId()) && !loadedOnce) {
+                    loadedOnce = true;
+                    pvp.loadInArea(point, 1000);
+                }
+            }
+        });
+
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
@@ -69,7 +104,7 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(@NonNull LatLng point) {
-                        addNewMarker(point.getLatitude(), point.getLongitude());
+                        addStashMarker(point.getLatitude(), point.getLongitude());
                     }
                 });
             }
@@ -89,16 +124,37 @@ public class MapActivity extends AppCompatActivity {
                 for (QueryDocumentSnapshot doc : snapshot) {
                     GeoPoint position = (GeoPoint) doc.get("position");
                     if (position != null)  {
-                        addMarker(position.getLatitude(), position.getLongitude());
+                        addStashMarker(position.getLatitude(), position.getLongitude());
                     }
                 }
             }
         });
     }
 
-    private void addMarker(double lat, double lng) {
+    private void updatePlayerMarker(String id, GeoPoint point) {
+        if (playerMarkers.containsKey(id)) {
+            Marker marker = playerMarkers.get(id);
+            marker.setPosition(new LatLng(point.getLatitude(), point.getLongitude()));
+            mapboxMap.updateMarker(marker);
+            return;
+        }
+
+        Marker marker = addPlayerMarker(point.getLatitude(), point.getLongitude(), id.equals(pvp.getMyId()));
+        playerMarkers.put(id, marker);
+    }
+
+    private Marker addPlayerMarker(double lat, double lng, boolean isMyPlayer) {
         LatLng pos = new LatLng(lat, lng);
         MarkerOptions marker = new MarkerOptions();
+        marker.setIcon(isMyPlayer ? myPlayerIcon : playerIcon);
+        marker.setPosition(pos);
+        return mapboxMap.addMarker(marker);
+    }
+
+    private void addStashMarker(double lat, double lng) {
+        LatLng pos = new LatLng(lat, lng);
+        MarkerOptions marker = new MarkerOptions();
+        marker.setIcon(IconFactory.getInstance(this).defaultMarker());
         marker.setPosition(pos);
         mapboxMap.addMarker(marker);
 
@@ -112,7 +168,7 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void addNewMarker(double lat, double lng) {
-        addMarker(lat, lng);
+        addStashMarker(lat, lng);
 
         Stash stash = new Stash(0,new GeoPoint(lat, lng),1000,0);
 

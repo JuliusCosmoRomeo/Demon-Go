@@ -2,6 +2,7 @@ package com.github.demongo;
 
 import android.graphics.ImageFormat;
 import android.media.Image;
+import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
@@ -20,6 +21,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
@@ -88,6 +90,9 @@ public class ARSnapshot extends Snapshot {
     private float[] viewProjectionMatrix = new float[16];
     private float[] points;
 
+    Vector3 max = new Vector3();
+    Vector3 min = new Vector3();
+
     private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix, Mat debugMat) {
         super(mat, score, debugMat);
         this.points = points;
@@ -98,18 +103,28 @@ public class ARSnapshot extends Snapshot {
         super(matFromFrame(frame), score);
 
         PointCloud c = frame.acquirePointCloud();
+        getPointCloudCopy(c);
+
+        getViewProjectionMatrix(frame.getCamera());
+    }
+
+    private void getPointCloudCopy(PointCloud c) {
         FloatBuffer cloud = c.getPoints();
         int num = 0;
         points = new float[cloud.limit() - cloud.limit() / 4];
         while (cloud.hasRemaining()) {
-            points[num++] = cloud.get();
-            points[num++] = cloud.get();
-            points[num++] = cloud.get();
-            float confidence = cloud.get();
+            float x = cloud.get();
+            float y = cloud.get();
+            float z = cloud.get();
+            if (x < min.x) min.x = x; else if (x > max.x) max.x = x;
+            if (y < min.y) min.y = y; else if (y > max.y) max.y = y;
+            if (z < min.z) min.z = z; else if (z > max.z) max.z = z;
+            points[num++] = x;
+            points[num++] = y;
+            points[num++] = z;
+            cloud.get(); // confidence
         }
         c.release();
-
-        getViewProjectionMatrix(frame.getCamera());
     }
 
     private static Mat matFromFrame(Frame frame) throws NotYetAvailableException {

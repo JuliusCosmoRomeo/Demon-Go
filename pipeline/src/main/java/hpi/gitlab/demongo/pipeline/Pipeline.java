@@ -18,6 +18,7 @@ public class Pipeline {
     private NoiseEstimationStep noiseEstimationStep;
     private BlurEstimationStep blurEstimationStep;
     private ContourDetectionStep contourDetectionStep;
+    private DirectSendStep directSendStep;
     private Step firstStep;
     SendingStep sendingStep;
     private RequestQueue requestQueue;
@@ -38,11 +39,14 @@ public class Pipeline {
         noiseEstimationStep = new NoiseEstimationStep();
         blurEstimationStep = new BlurEstimationStep();
         contourDetectionStep = new ContourDetectionStep();
+        directSendStep = new DirectSendStep();
         sendingStep = new SendingStep(requestQueue);
 
         blurEstimationStep
                 .next(angleChangeStep);
-
+        angleChangeStep
+                .next(directSendStep)
+                .next(sendingStep);
         angleChangeStep
                 .next(contourDetectionStep)
                 .next(noiseEstimationStep)
@@ -66,6 +70,11 @@ public class Pipeline {
 
     public void add(Snapshot snapshot) {
         nextFrames.add(snapshot);
+    }
+
+    // return {x0, y0, z0, x1, y1, z1, ...}
+    public float[] requestTargets() {
+        return new float[] {};
     }
 
     public Mat debugAdd(Snapshot snapshot) {

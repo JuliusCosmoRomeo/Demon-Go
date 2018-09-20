@@ -2,6 +2,7 @@ package com.github.demongo;
 
 import android.content.Context;
 import android.media.Image;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
@@ -20,19 +21,24 @@ import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Anchor;
+import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Point;
 import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 import com.google.ar.core.TrackingState;
+import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 import com.google.ar.core.PointCloud;
 
@@ -42,6 +48,7 @@ import org.opencv.core.Mat;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.Collection;
 import java.util.List;
 
@@ -52,19 +59,16 @@ public class DemonGoGame extends ARCoreScene {
 	private AssetManager assetManager;
 	private Environment environment;
 
-	private boolean loading = true;
 	private Overlay overlay;
 	private Hud hud;
 	private PvP pvp = null;
 	private ARDebug arDebug;
+	private boolean waitingForSpellCompletion = false;
 
 	private Demon demon;
 
 	private Pipeline pipeline;
 	private AngleChangeStep angleChangeStep;
-
-
-	private ARSnapshot lastSnapshot = null;
 
 	private Context context;
 
@@ -83,6 +87,17 @@ public class DemonGoGame extends ARCoreScene {
 		pipeline = new Pipeline(context, new NullStep());
 
 		assetManager = new AssetManager();
+		demon = new Demon(getCamera(), assetManager, new Demon.PhaseChangedListener() {
+			@Override
+			public void changed(Demon demon, Demon.Phase phase) {
+			    float[] points = pipeline.requestTargets();
+			    Vector3[] targets = new Vector3[points.length / 3];
+			    for (int i = 0; i < targets.length; i++) {
+			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+				}
+				demon.setTargets(targets, getSession());
+			}
+		});
 
 		environment = new Environment();
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
@@ -93,18 +108,37 @@ public class DemonGoGame extends ARCoreScene {
 		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
 			@Override
 			public void onPvPStarted() {
-				pvp = new PvP(context, hud);
+				pvp = new PvP(context);
+			}
+
+			@Override
+			public void onSpellCompleted() {
+				if (!demon.moveToNextTarget()) {
+					// TODO move to "you caught the demon" screen
+					Log.e("demon-go", "A winner is you!");
+					demon.setCaptured();
+				}
+				waitingForSpellCompletion = false;
 			}
 		});
 
-		Config config = new Config(getSession());
-		config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
-		getSession().configure(config);
-	}
+		final Session session = getSession();
 
-	private void assetsLoaded() {
-	    demon = new Demon(getCamera(), assetManager);
-		loading = false;
+		for (CameraConfig c : session.getSupportedCameraConfigs()) {
+			Log.e("demon-go-camera", "Config: " + c.getImageSize().toString() +  " " + c.getTextureSize().toString());
+		}
+
+		session.pause();
+		Config config = new Config(session);
+		config.setFocusMode(Config.FocusMode.AUTO);
+		// config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
+		session.setCameraConfig(session.getSupportedCameraConfigs().get(2));
+		session.configure(config);
+		try {
+            session.resume();
+		} catch (CameraNotAvailableException e) {
+			Log.e("demon-go-camera", "camera not available");
+		}
 	}
 
 	private Anchor cloudAnchor;
@@ -129,44 +163,48 @@ public class DemonGoGame extends ARCoreScene {
         }
     }
 
-	private void input(Frame frame) {
-	    // temporary solution for guiding the demon, to be replaced by pipeline's movement direction
-	    if (Gdx.input.justTouched() && lastSnapshot != null) {
-            demon.setTarget(lastSnapshot.projectPoint(Gdx.input.getX(), Gdx.input.getY()));
-        }
-    }
-
-	@Override
-	public void render(Frame frame, ModelBatch modelBatch) {
-		if (loading && assetManager.update()) {
-			assetsLoaded();
-		}
-
+    public void update(Frame frame) {
 		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
-		    hud.setLoading(false);
+			hud.setLoading(false);
 		}
 
-        if (angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy())) {
-        	overlay.signalNewAngle();
+		if (Gdx.input.justTouched()) {
+			Ray pickRay = getCamera().getPickRay(Gdx.input.getX(), Gdx.input.getY());
+			demon.shoot(pickRay);
 		}
-		input(frame);
 
-		if (demon != null) {
-			demon.move();
-        }
+		angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
 
+		ARSnapshot lastSnapshot = null;
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
-			pipeline.add(lastSnapshot);
+			// pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
-			lastSnapshot = null;
 			Log.e("demon-go", "no image yet");
 		}
 
-		demon.render(modelBatch, environment);
+		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);
+		Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());
+		getCamera().view.getTranslation(cameraPosition);
+		if (!waitingForSpellCompletion && demon.getPhase() == Demon.Phase.CAPTURING)
+			Log.e("demon-go-capturing", Float.toString(demon.getCurrentTarget().dst(cameraPosition)) + " " + demon.getCurrentTarget().toString() + " " + cameraPosition.toString());
+
+		if (!waitingForSpellCompletion && demon.getPhase() == Demon.Phase.CAPTURING && demon.getCurrentTarget().dst(cameraPosition) < 20) {
+			hud.showSpell();
+			waitingForSpellCompletion = true;
+		}
 
 		arDebug.update(frame);
+	}
+
+	@Override
+	public void render(Frame frame, ModelBatch modelBatch) {
+		update(frame);
+
+		modelBatch.begin(getCamera());
+        demon.render(modelBatch, environment);
 		arDebug.draw(modelBatch, environment);
+		modelBatch.end();
 	}
 
 	@Override
@@ -177,8 +215,7 @@ public class DemonGoGame extends ARCoreScene {
 
 	@Override
 	protected void postRender(Frame frame) {
-	    overlay.render(frame.getCamera().getPose());
-
+	    // overlay.render(frame.getCamera().getPose());
 	    hud.draw();
 	}
 }
