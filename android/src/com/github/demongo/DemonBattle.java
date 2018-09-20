@@ -1,12 +1,17 @@
 package com.github.demongo;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.github.demongo.Map.StashUtils;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,7 +34,7 @@ public class DemonBattle {
 
     //returns the amount of stolen ep from the stash
     public boolean attackStash(Demon attacker, ArrayList<Demon> defenders, Stash stash){
-        String winText = attacker.getName() + " hat alle " + defenders.size() + " Verteidiger besiegt und " + stash.getFilled() + " EP gestohlen";
+        String winText = attacker.getName() + " hat alle " + defenders.size() + " Verteidiger besiegt!";
         String loseText = "Leider ist " + attacker.getName() + " beim Angriff gestorben.";
 
         //order in which the defenders attack the attacking demon
@@ -112,15 +117,31 @@ public class DemonBattle {
 
     private void updateFirestore(Demon attacker, ArrayList<Demon> defenders, Stash stash){
         String stashId = stash.getId().toString();
+
+        for (Demon defender : defenders){
+            DocumentReference defRef = db.collection("stashes").document(stashId).collection("demons").document(defender.getId().toString());
+            if (defender.getHp()>0){
+                defRef.set(defender.getMap());
+            } else {
+                defRef.delete();
+            }
+        }
+
         DocumentReference attRef = db.collection("stashes").document(DemonGallery.nullStashId.toString()).collection("demons").document(attacker.getId().toString());
         if (attacker.getHp()>0){
             attRef.set(attacker.getMap());
             stash.setHasDefenders(false);
-            db.collection("stashes").document(stashId).set(stash.getMap());
+            Log.i(TAG, "defeated stash " +stash.toString());
+            if (stash.getFilled()==0){
+                Log.i(TAG, "deleting defeated stash");
+                db.collection("stashes").document(stashId).delete();
+            } else {
+                StashUtils.updateRadius(db,stash);
+            }
         } else {
             attRef.delete();
-        }
+            StashUtils.updateRadius(db,stash);
 
-        StashUtils.updateRadius(db,stash);
+        }
     }
 }

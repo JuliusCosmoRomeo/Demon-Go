@@ -493,10 +493,14 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void removeStashMarker(ParcelUuid uuid){
+        Log.i(TAG, "removing");
         if (stashMarkerMap.containsKey(uuid)) {
+            Log.i(TAG, "in map");
             mapboxMap.removeMarker(stashMarkerMap.get(uuid));
         }
+        Log.i(TAG, "removing");
         if (stashPerimeterMap.containsKey(uuid)){
+            Log.i(TAG, "in map");
             mapboxMap.removePolygon(stashPerimeterMap.get(uuid).getPolygon());
         }
 
