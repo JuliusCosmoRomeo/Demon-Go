@@ -1,6 +1,15 @@
 package com.github.demongo.Map;
 
+import android.support.annotation.NonNull;
+import android.util.Log;
+
+import com.github.demongo.Stash;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.GeoPoint;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 
 import java.util.ArrayList;
@@ -43,5 +52,73 @@ public class MapUtils {
         }
 
         return polygon;
+    }
+
+    /*checks if the stash would intersect with other stashes
+     - if a newly created stash lies in the radius of another returns -1
+     - otherwise returns the max radius the stash could have
+
+     */
+    public static double getMaxRadius(Stash stash, ArrayList<Stash> stashes){
+        double maxRadius = Double.MAX_VALUE;
+        for (Stash otherStash : stashes){
+            if (!otherStash.getId().toString().equals(stash.getId().toString())){
+
+                double radius = getDistanceBw(stash, otherStash);
+                if (radius==-1){
+                    return -1;
+                }
+                if (radius < maxRadius){
+                    maxRadius = radius;
+                }
+                Log.i("demon-go-map-utils", maxRadius + " = radius ");
+            }
+        }
+
+        return maxRadius;
+
+    }
+
+    //returns dist in km
+    private static double getDistanceBw(Stash stash, Stash otherStash) {
+
+        double lat1 = stash.getLocation().getLatitude();
+        double lon1 = stash.getLocation().getLongitude();
+
+        double lat2 = otherStash.getLocation().getLatitude();
+        double lon2 = otherStash.getLocation().getLongitude();
+
+        double theta = lon1 - lon2;
+        double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+        dist = Math.acos(dist);
+        dist = dist * 60 * 1.1515 * 1.609344;
+        dist = rad2deg(dist);
+        Log.i("demon-go-map-utils", dist + " = dist ");
+        Log.i("demon-go-map-utils", otherStash.getRadius() + "");
+
+        if (dist < otherStash.getRadius()){
+            return -1;
+        } else {
+            //from the distance we need to substract the radius of the other stash
+            dist -= otherStash.getRadius();
+            Log.i("demon-go-map-utils", dist + " = dist2");
+
+            return dist;
+        }
+    }
+
+    //https://www.geodatasource.com/developers/java
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::	This function converts decimal degrees to radians						 :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    /*::	This function converts radians to decimal degrees						 :*/
+    /*:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
+    private static double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
     }
 }
