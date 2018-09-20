@@ -71,7 +71,6 @@ public class MapUtils {
                 if (radius < maxRadius){
                     maxRadius = radius;
                 }
-                Log.i("demon-go-map-utils", maxRadius + " = radius ");
             }
         }
 
@@ -93,15 +92,12 @@ public class MapUtils {
         dist = Math.acos(dist);
         dist = dist * 60 * 1.1515 * 1.609344;
         dist = rad2deg(dist);
-        Log.i("demon-go-map-utils", dist + " = dist ");
-        Log.i("demon-go-map-utils", otherStash.getRadius() + "");
 
         if (dist < otherStash.getRadius()){
             return -1;
         } else {
             //from the distance we need to substract the radius of the other stash
             dist -= otherStash.getRadius();
-            Log.i("demon-go-map-utils", dist + " = dist2");
 
             return dist;
         }

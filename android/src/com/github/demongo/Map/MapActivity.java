@@ -493,7 +493,9 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void removeStashMarker(ParcelUuid uuid){
-        mapboxMap.removeMarker(stashMarkerMap.get(uuid));
+        if (stashMarkerMap.containsKey(uuid)) {
+            mapboxMap.removeMarker(stashMarkerMap.get(uuid));
+        }
         if (stashPerimeterMap.containsKey(uuid)){
             mapboxMap.removePolygon(stashPerimeterMap.get(uuid).getPolygon());
         }
@@ -788,48 +790,7 @@ public class MapActivity extends AppCompatActivity {
     private void onDefend(Demon demon){
         //addDemonMarkers(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
-        db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
-            new OnCompleteListener<QuerySnapshot>() {
-                @Override
-                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                    long totalDefenderHP = 0;
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Demon defender = new Demon(document.getData());
-                            totalDefenderHP += defender.getHp();
-                        }
-                        double radius = (double)totalDefenderHP/1000;
-                        //check if this radius is possible
-                        db.collection("stashes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                            @Override
-                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                ArrayList<Stash> stashes = new ArrayList<>();
-                                for (QueryDocumentSnapshot document : task.getResult()) {
-                                    stashes.add(new Stash(document.getData()));
-                                }
-                                double maxRadius = MapUtils.getMaxRadius(currentStash,stashes);
-
-                                Log.i(TAG, "max Radius " + maxRadius);
-                                if (maxRadius != -1){
-                                    if (radius > maxRadius){
-                                        currentStash.setRadius(maxRadius);
-                                    } else {
-                                        currentStash.setRadius(radius);
-                                    }
-                                    currentStash.setHasDefenders(true);
-                                    Log.i(TAG, "stash before update " + currentStash.toString());
-                                    db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
-                                }
-
-                            }
-                        });
-
-                    } else {
-                        Log.d(TAG, "Error getting documents: ", task.getException());
-                    }
-                }
-            }
-        );
+        StashUtils.updateRadius(db,currentStash);
     }
 
     @Override

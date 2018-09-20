@@ -4,6 +4,7 @@ import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.github.demongo.Map.StashUtils;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -120,18 +121,6 @@ public class DemonBattle {
             attRef.delete();
         }
 
-        double totalDefenderHP = 0;
-        for (Demon defender : defenders){
-            totalDefenderHP += defender.getHp();
-            DocumentReference defRef = db.collection("stashes").document(stashId).collection("demons").document(defender.getId().toString());
-            if (defender.getHp()>0){
-                defRef.set(defender.getMap());
-            } else {
-                defRef.delete();
-            }
-        }
-        double radius = totalDefenderHP/1000;
-        stash.setRadius(radius);
-        db.collection("stashes").document(stashId).set(stash.getMap());
+        StashUtils.updateRadius(db,stash);
     }
 }
