@@ -202,7 +202,7 @@ public class BrandDetectionStep extends Step {
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "demon-go-brand-recognition";
-            int importance = NotificationManager.IMPORTANCE_MAX;
+            int importance = NotificationManager.IMPORTANCE_HIGH;
             NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, name, importance);
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
