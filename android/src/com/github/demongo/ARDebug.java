@@ -55,7 +55,7 @@ public class ARDebug {
 
     public void draw(ModelBatch modelBatch, Environment environment) {
         modelBatch.render(originIndicator, environment);
-        modelBatch.render(pointCubes, environment);
+        // modelBatch.render(pointCubes, environment);
     }
 
     private void createOriginIndicator() {

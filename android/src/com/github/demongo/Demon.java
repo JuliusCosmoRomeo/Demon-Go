@@ -3,8 +3,6 @@ package com.github.demongo;
 import android.os.Parcel;
 import android.os.ParcelUuid;
 import android.os.Parcelable;
-import android.util.Log;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;

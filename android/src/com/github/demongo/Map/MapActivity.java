@@ -61,6 +61,11 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.github.demongo.Demon.Type.Afrit;
+import static com.github.demongo.Demon.Type.Djinn;
+import static com.github.demongo.Demon.Type.Foliot;
+import static com.github.demongo.Demon.Type.Imp;
+import static com.github.demongo.Demon.Type.Marid;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.bool;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
@@ -592,7 +597,7 @@ public class MapActivity extends AppCompatActivity {
         }
 
         ArrayList<String> layerIds = new ArrayList<>();
-        for (Type demonType : Arrays.asList(Type.Imp, Type.Foliot, Type.Djinn, Type.Afrit, Type.Marid)){
+        for (Type demonType : Arrays.asList(Imp, Foliot, Djinn, Afrit, Marid)){
             FeatureCollection featureCollection = null;
             String markerImage = "";
             switch(demonType){
