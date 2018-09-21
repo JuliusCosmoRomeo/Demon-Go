@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.util.Log;
 
-import com.github.demongo.Map.MapUtils;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
@@ -24,19 +23,26 @@ import javax.annotation.Nullable;
 
 public class PvP {
 
-
     private Location location = null;
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private String myId;
-    private Hud hud;
 
-    PvP(Context context, Hud _hud) {
-        hud = _hud;
+    private UpdatePositionCallback callback = null;
+
+    interface UpdatePositionCallback {
+        void updated(String id, GeoPoint point);
+    }
+
+    String getMyId() {
+        return myId;
+    }
+
+    PvP(Context context) {
         loadUserId(context);
 
-        new LocationQuery(context, new LocationQuery.LocationFoundListener() {
+        /*new LocationQuery(context, new LocationQuery.LocationFoundListener() {
             @Override
             public void onError(String msg) {
                 // TODO
@@ -52,7 +58,27 @@ public class PvP {
                 updatePosition(point);
                 loadNearby(point);
             }
+        });*/
+        new LocationStream(context, new LocationStream.LocationFoundListener() {
+            @Override
+            public void onFoundLocation(Location _location) {
+                Log.e("demon-go-pvp", "Accepted location " + _location.getAccuracy());
+                location = _location;
+                GeoPoint point = new GeoPoint(location.getLongitude(), location.getLatitude());
+                updatePosition(point);
+                callback.updated(myId, point);
+            }
+
+            @Override
+            public void onError(String msg) {
+                // TODO
+                Log.e("demon-go-pvp", "Location error: " + msg);
+            }
         });
+    }
+
+    public void setUpdatePositionCallback(UpdatePositionCallback _callback) {
+        callback = _callback;
     }
 
     private void updatePosition(GeoPoint point) {
@@ -83,8 +109,12 @@ public class PvP {
     }
 
     private void loadNearby(GeoPoint myLocation) {
-        final GeoPoint upper = MapUtils.move(myLocation, 200, 200);
-        final GeoPoint lower = MapUtils.move(myLocation, -200, -200);
+        loadInArea(myLocation, 200);
+    }
+
+    public void loadInArea(GeoPoint myLocation, int sideDistance) {
+        final GeoPoint upper = MapUtils.move(myLocation, sideDistance, sideDistance);
+        final GeoPoint lower = MapUtils.move(myLocation, -sideDistance, -sideDistance);
         final long now = Timestamp.now().getSeconds();
 
         Log.e("demon-go-pvp", "Looking for contenders");
@@ -92,18 +122,21 @@ public class PvP {
             .whereGreaterThanOrEqualTo("position", lower)
             .whereLessThan("position", upper)
             .addSnapshotListener(new EventListener<QuerySnapshot>() {
-            @Override
-            public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
-                Log.e("demon-go-pvp", "--- reply received:" + upper.toString() + " " + lower.toString());
-                for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
-                    Timestamp time = ((Timestamp) doc.get("positionTime"));
-                    if (time != null && now - time.getSeconds() < 60 * 5) {
-                        Log.e("demon-go-pvp", "Battling with recently seen " + doc.getId());
+                @Override
+                public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                    Log.e("demon-go-pvp", "--- reply received:" + upper.toString() + " " + lower.toString());
+                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        Timestamp time = ((Timestamp) doc.get("positionTime"));
+                        if (time != null && now - time.getSeconds() < 60 * 5) {
+                            Log.e("demon-go-pvp", "Battling with recently seen " + doc.getId());
+                        }
+                        Log.e("demon-go-pvp", "contender: " + doc.getId() +" " + doc.get("position").toString());
+
+                        if (callback != null)
+                            callback.updated(doc.getId(), (GeoPoint) doc.get("position"));
                     }
-                    Log.e("demon-go-pvp", "contender: " + doc.getId() +" " + doc.get("position").toString());
                 }
-            }
-        });
+            });
     }
 
     public boolean isReady() {

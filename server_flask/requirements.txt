@@ -1,0 +1,10 @@
+imutils
+matplotlib
+numpy
+Pillow
+flask
+flask-socketio
+gevent
+gevent-websocket
+pytesseract
+tensorflow

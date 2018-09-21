@@ -1,109 +1,262 @@
 package com.github.demongo;
 
+import android.opengl.Matrix;
+import android.util.Log;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
+import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
+import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
+import com.github.demongo.DemonParticles;
+import com.github.demongo.Shot;
+import com.google.ar.core.Anchor;
+import com.google.ar.core.Frame;
+import com.google.ar.core.Point;
+import com.google.ar.core.Pose;
+import com.google.ar.core.Session;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Vector;
 
 public class ARDemon {
 
-    private Vector3 target = new Vector3();
+    interface PhaseChangedListener {
+        void changed(ARDemon demon, Phase phase);
+    }
 
-    private static final float SPEED = 30;
+    enum Phase {
+        SCANNING,
+        CAPTURING,
+        CAPTURED
+    }
+
+    enum MovementMode {
+        IN_ROOM,
+        FIXED_BOX
+    }
+
+    private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
+
+    private static final int MIN_TARGETS = 3;
+    private static final int MAX_TARGETS = 5;
+
+    private static final float SPEED = 2;
+    private static final float SPHERE_SIZE = 0.8f;
     private static final String MODEL_PATH = "demon01.g3db";
 
     private ModelInstance instance;
-    private ParticleSystem particleSystem;
-    private Vector3 velocity = new Vector3();
+    private Model demonModel;
     private Vector3 position = new Vector3();
+    private boolean waitingAtTarget = false;
 
-    ARDemon(Camera camera, AssetManager assetManager) {
+    private ArrayList<Shot> shots = new ArrayList<>();
+
+    private DemonParticles particles;
+
+    private Phase phase = Phase.SCANNING;
+
+    private PhaseChangedListener phaseChangedListener;
+
+    ARDemon(Camera camera, AssetManager assetManager, PhaseChangedListener listener) {
+        phaseChangedListener = listener;
+
         assetManager.load(MODEL_PATH, Model.class);
         assetManager.finishLoading();
-        instance = new ModelInstance(assetManager.get(MODEL_PATH, Model.class));
 
-        particleSystem = createParticleSystem(assetManager, camera);
+        particles = new DemonParticles(camera);
+
+        ModelBuilder modelBuilder = new ModelBuilder();
+        Model sphereModel = modelBuilder.createSphere(SPHERE_SIZE, SPHERE_SIZE, SPHERE_SIZE, 10, 10,
+                new Material(ColorAttribute.createDiffuse(Color.RED)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        demonModel = assetManager.get(MODEL_PATH, Model.class);
+
+        instance = new ModelInstance(sphereModel);
     }
 
-    public void move() {
-        instance.transform.getTranslation(position);
-        position.add(velocity.scl(Gdx.graphics.getDeltaTime()));
+    private static float easeInOutQuad(float t) {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    }
 
-        // instance.transform.setToTranslation(position);
-        // instance.transform.setToLookAt(position, target, new Vector3(0, 1, 0));
-        // instance.transform.scale(0.5f, 0.5f, 0.5f);
+    private static float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
 
-        // Quaternion currentRotation = new Quaternion();
-        // instance.transform.getRotation(currentRotation, true);
-        // new Matrix4().setToLookAt(position, target, new Vector3(0, 1, 0)).to;
-        instance.transform.avg(new Matrix4().setToLookAt(position, target, new Vector3(0, 1, 0)), 1 - 2f * Gdx.graphics.getDeltaTime());
+    private Vector3 randomLastPosition = new Vector3();
+    private Vector3 randomTargetPosition = new Vector3();
+    private float interpTime = 0.0f;
+
+    private static float MIN_ROOM_SIZE = 2.0f;
+    private static float MAX_ROOM_SIZE = 10.0f;
+    private Vector3 roomMin = new Vector3(-MIN_ROOM_SIZE, 0, -MIN_ROOM_SIZE);
+    private Vector3 roomMax = new Vector3(MIN_ROOM_SIZE, MIN_ROOM_SIZE, MIN_ROOM_SIZE);
+
+    private Anchor[] anchors;
+    private int currentTarget = 0;
+
+    private void setPositionTowards(Vector3 position, Vector3 target) {
+        Quaternion currentRotation = new Quaternion();
+        Quaternion desiredRotation = new Quaternion();
+
+        instance.transform.getRotation(currentRotation, true);
+        new Matrix4().setToLookAt(position, target, new Vector3(0, 1, 0)).getRotation(desiredRotation, true);
+
+        instance.transform.set(currentRotation.slerp(desiredRotation, Gdx.graphics.getDeltaTime()));
         instance.transform.setTranslation(position);
+    }
 
-        // Vector3 acceleration = new Vector3(target).sub(position).nor().scl(SPEED * Gdx.graphics.getDeltaTime());
-        float[] values = instance.transform.getValues();
-        Vector3 acceleration = new Vector3(values[Matrix4.M00], values[Matrix4.M01], values[Matrix4.M02]).nor().scl(SPEED * Gdx.graphics.getDeltaTime());
-        if (position.dst(target) > 0.2f) {
-            velocity.add(acceleration);
+    private static Vector3 anchorToTranslation(Anchor a) {
+        Pose p = a.getPose();
+        return new Vector3(p.tx(), p.ty(), p.tz());
+    }
+
+    private Vector3 randomPointInRoom(float maxHeight) {
+        if (MOVEMENT_MODE == MovementMode.FIXED_BOX) {
+            final float X_Z_METERS = 4.0f;
+            final float Y_TO_TOP_METERS = 1.5f;
+            final float Y_TO_BOTTOM_METERS = 1.0f;
+            return new Vector3(((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS,
+                    Math.min(((float) Math.random()) * X_Z_METERS * 2 - X_Z_METERS, maxHeight),
+                    ((float) Math.random()) * (Y_TO_BOTTOM_METERS + Y_TO_TOP_METERS) - Y_TO_BOTTOM_METERS);
         } else {
-            velocity.scl(0.9999f);
+            return new Vector3(lerp(roomMin.x, roomMax.x, (float) Math.random()),
+                    Math.min(maxHeight, lerp(roomMin.y, roomMax.y, (float) Math.random())),
+                    lerp(roomMin.z, roomMax.z, (float) Math.random()));
+        }
+    }
+
+    public void move(Vector3 currentRoomMin, Vector3 currentRoomMax, Vector3 cameraPosition) {
+        if (currentRoomMin != null && currentRoomMax != null) {
+            roomMin.set(Math.min(roomMin.x, currentRoomMin.x), Math.min(roomMin.y, currentRoomMin.y), Math.min(roomMin.z, currentRoomMin.z));
+            roomMax.set(Math.max(roomMax.x, currentRoomMax.x), Math.max(roomMax.y, currentRoomMax.y), Math.max(roomMax.z, currentRoomMax.z));
+            roomMin.clamp(-MIN_ROOM_SIZE, -MAX_ROOM_SIZE);
+            roomMax.clamp(MIN_ROOM_SIZE, MAX_ROOM_SIZE);
         }
 
-        Vector3 t = new Vector3();
-        instance.transform.getTranslation(t);
-        t.lerp(target, Gdx.graphics.getDeltaTime() * 10);
-        instance.transform.setToTranslation(t);
+        if (phase == Phase.SCANNING) {
+            interpTime += Gdx.graphics.getDeltaTime() * 0.3;
+            if (interpTime >= 1.0f) {
+                interpTime = 0.0f;
+                randomLastPosition.set(randomTargetPosition);
+                randomTargetPosition.set(randomPointInRoom(3));
+            }
+            position.set(randomLastPosition);
+            position.lerp(randomTargetPosition, easeInOutQuad(interpTime));
+            instance.transform.setTranslation(position);
+        } else if (phase == Phase.CAPTURING) {
+            if (!waitingAtTarget) {
+                Vector3 delta = anchorToTranslation(anchors[currentTarget]).sub(position);
+                float distance = delta.len();
+                position.add(delta.nor().scl(Gdx.graphics.getDeltaTime() * SPEED * Math.min(1, distance)));
+                setPositionTowards(position, anchorToTranslation(anchors[currentTarget]));
 
-        // instance.transform.setToWorld(position, acceleration.nor(), new Vector3(0, 1, 0));
-        // instance.transform.scale(0.3f, 0.3f, 0.3f);
+                if (distance < 0.05) {
+                    waitingAtTarget = true;
+                    // TODO start animation
+                }
+            } else {
+                setPositionTowards(anchorToTranslation(anchors[currentTarget]), cameraPosition);
+            }
+        }
     }
 
-    public void setTarget(Vector3 t) {
-        target.set(t);
+    public boolean moveToNextTarget() {
+        waitingAtTarget = false;
+        currentTarget++;
+        return currentTarget < anchors.length;
     }
 
-    public Vector3 getTarget() {
-        return target;
+    /**
+     * Take the provided targets and make sure we got at least MIN_TARGETS and use
+     * at most MAX_TARGETS
+     *
+     * @param t list of target vector positions
+     */
+    public void setTargets(Vector3[] t, Session session) {
+        Vector3[] targets = new Vector3[Math.min(Math.max(t.length, MIN_TARGETS), MAX_TARGETS)];
+        if (t.length < MIN_TARGETS) {
+            System.arraycopy(t, 0, targets, 0, t.length);
+            for (int i = t.length; i < MIN_TARGETS; i++) {
+                Vector3 point = randomPointInRoom(1.5f);
+                targets[i] = point;
+            }
+        } else if (t.length > MAX_TARGETS) {
+            System.arraycopy(t, 0, targets, 0, MAX_TARGETS);
+        }
+
+        anchors = new Anchor[targets.length];
+        for (int i = 0; i < targets.length; i++) {
+            Vector3 point = targets[i];
+            anchors[i] = session.createAnchor(Pose.makeTranslation(point.x, point.y, point.z));
+        }
     }
 
     public void render(ModelBatch modelBatch, Environment environment) {
-        particleSystem.updateAndDraw();
+        if (phase == Phase.CAPTURED)
+            return;
 
+        particles.setPositionFrom(instance.transform);
+        particles.draw(modelBatch);
         modelBatch.render(instance, environment);
-        modelBatch.render(particleSystem, environment);
+
+        for (Shot shot : shots) {
+            shot.draw(modelBatch, environment);
+        }
     }
 
-    private ParticleSystem createParticleSystem(AssetManager assetManager, Camera camera) {
-        ParticleSystem particleSystem = new ParticleSystem();
-
-        PointSpriteParticleBatch batch = new PointSpriteParticleBatch();
-        batch.setCamera(camera);
-        particleSystem.add(batch);
-
-        assetManager.load("test.pfx",
-                ParticleEffect.class,
-                new ParticleEffectLoader.ParticleEffectLoadParameter(particleSystem.getBatches()));
-        assetManager.finishLoading();
-
-        /*ParticleEffect effect = ((ParticleEffect) assetManager.get("test.pfx")).copy();
-        effect.init();
-        effect.start();
-        particleSystem.add(effect);*/
-
-        return particleSystem;
+    public Phase getPhase() {
+        return phase;
     }
 
-    private ModelInstance createModelInstane(AssetManager assetManager) {
-        assetManager.load("demon01.g3db", Model.class);
-        assetManager.finishLoading();
-        return new ModelInstance(assetManager.get("demon01.g3db", Model.class));
+    public Vector3 getCurrentTarget() {
+        return anchorToTranslation(anchors[currentTarget]);
+    }
+
+    public void shoot(Ray ray) {
+        if (phase != Phase.SCANNING)
+            return;
+
+        shots.add(new Shot(ray.cpy()));
+
+        if (hitByRay(ray)) {
+            enterCapturingPhase();
+        }
+    }
+
+    private boolean hitByRay(Ray ray) {
+        Vector3 intersection = new Vector3();
+        return Intersector.intersectRaySphere(ray, position, SPHERE_SIZE / 2, intersection);
+    }
+
+    private void enterCapturingPhase() {
+        if (phase == Phase.CAPTURING) {
+            return;
+        }
+
+        phase = Phase.CAPTURING;
+        instance = new ModelInstance(demonModel);
+        phaseChangedListener.changed(this, getPhase());
+    }
+
+    public void setCaptured() {
+        phase = Phase.CAPTURED;
     }
 }

@@ -1,3 +1,3 @@
-[submodule "cv-tests/EAST"]
-	path = cv-tests/EAST
-	url = git://github.com/argman/EAST.git
+[submodule "server_flask/EAST"]
+	path = server_flask/EAST
+	url = git@github.com:Philipp-Bode/EAST.git
