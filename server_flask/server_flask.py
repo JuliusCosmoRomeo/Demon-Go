@@ -22,20 +22,20 @@ def index():
 @app.route('/post', methods=['GET', 'POST'])
 def get_image():
     image_data = base64.b64decode(request.form['image'])
-    # print("POST-Request", request.form['score'])
+    print("POST-Request", request.form['user_id'])
 
     img = cv2.imdecode(
         np.fromstring(image_data, dtype=np.uint8),
         cv2.IMREAD_COLOR
     )
 
-    path = TextDetection.save_image(img)
+    filename = TextDetection.save_image(img)
     socketio.emit(
         'new image',
-        {'path': path}
+        {'path': filename}
     )
 
-    td.in_queue.put_nowait(img.copy())
+    td.in_queue.put_nowait((img.copy(), request.form['user_id']))
 
     for filename in td.out_queue.get():
         socketio.emit(
@@ -50,6 +50,7 @@ def get_image():
 def test():
     filename = 'examples/fsr.jpg'
     print(filename)
+    user_id = '1337'
 
     img = cv2.imread(filename, cv2.IMREAD_COLOR)
     socketio.emit(
@@ -57,7 +58,7 @@ def test():
         {'path': filename}
     )
 
-    td.in_queue.put_nowait(img.copy())
+    td.in_queue.put_nowait((img.copy(), user_id))
 
     for filename in td.out_queue.get():
         socketio.emit(
