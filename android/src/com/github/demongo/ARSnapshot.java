@@ -1,8 +1,6 @@
 package com.github.demongo;
 
-import android.graphics.ImageFormat;
 import android.media.Image;
-import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
@@ -21,7 +19,7 @@ import org.opencv.imgproc.Imgproc;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
+import java.util.ArrayList;
 
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
@@ -249,5 +247,17 @@ public class ARSnapshot extends Snapshot {
 
     public ARSnapshot copyWithNewScore(double newScore) {
         return new ARSnapshot(mat, newScore, points, viewProjectionMatrix, getDebugMat());
+    }
+
+    @Override
+    public ArrayList<Float> processServerResponse(float x, float y) {
+        Log.i("blah", "processServerResponse");
+        super.processServerResponse(x, y);
+        Vector3 best = this.projectPoint(x, y);
+        ArrayList<Float> targetCoordinates = new ArrayList<Float>();
+        targetCoordinates.add(best.x);
+        targetCoordinates.add(best.y);
+        targetCoordinates.add(best.z);
+        return targetCoordinates;
     }
 }

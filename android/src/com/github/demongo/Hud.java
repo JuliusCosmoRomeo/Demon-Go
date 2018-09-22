@@ -30,7 +30,6 @@ public class Hud {
     private Stage hud;
 
     private Actor loading;
-    private Actor demonCaught;
 
     private TriggerListener listener;
 
