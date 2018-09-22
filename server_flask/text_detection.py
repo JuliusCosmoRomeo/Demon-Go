@@ -51,7 +51,7 @@ class TextDetection:
                 t[key] += value * cls.RECTANGLE_EXPANSION_SIZE
         return rst
 
-    def draw_text_boxes(self, img, rst):
+    def draw_text_boxes(self, img, rst, user_id):
         for t in rst:
             d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                           t['y2'], t['x3'], t['y3']], dtype='int32')
@@ -71,7 +71,7 @@ class TextDetection:
         conn.commit()
         conn.close()
 
-    def crop_text(self, img, points):
+    def crop_text(self, img, points, user_id):
 
         def clamp(n, largest):
             return max(0, min(int(n), largest))
@@ -101,23 +101,24 @@ class TextDetection:
                     now = datetime.now().isoformat(timespec='milliseconds')
 
                     # Cols are user_id, filename, text, rotation, time, confidence
-                    data.append((1, filename, img_text, int(rotation), now, str(conf)))
+                    data.append((user_id, filename, img_text, int(rotation), now, str(conf)))
 
         if data:
             self.write_data(data)
         self.out_queue.put(files)
+        print('Analysis complete')
 
     def detect_text(self):
         prediction_function = get_predictor(self.CHECKPOINT_PATH)
 
         while True:
             try:
-                img = self.in_queue.get(timeout=self.QUEUE_TIMEOUT)
+                img, user_id = self.in_queue.get(timeout=self.QUEUE_TIMEOUT)
             except queue.Empty:
                 continue
 
             rst = self.expand_text_box(prediction_function(img)['text_lines'])
             if rst:
-                self.process(img, rst)
+                self.process(img, rst, user_id)
             else:
                 self.out_queue.put([])

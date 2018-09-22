@@ -1,56 +1,29 @@
 package com.github.demongo;
 
 import android.content.Context;
-import android.media.Image;
-import android.opengl.GLES20;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
-import com.badlogic.gdx.graphics.g3d.Material;
-import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
-import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
-import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
-import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
-import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.Matrix4;
-import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
-import com.badlogic.gdx.utils.Array;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
-import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
-import com.google.ar.core.Point;
-import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
-import com.google.ar.core.TrackingState;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
-import com.google.ar.core.PointCloud;
 
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
 
-import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 import java.util.Collection;
-import java.util.List;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
