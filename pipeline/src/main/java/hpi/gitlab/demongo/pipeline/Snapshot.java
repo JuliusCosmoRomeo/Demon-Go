@@ -45,6 +45,10 @@ public class Snapshot {
         return debugMat;
     }
 
+    public void setDebugMat(Mat newMat) {
+        debugMat = newMat.clone();
+    }
+
     public Mat getDebugMat() {
         return debugMat;
     }

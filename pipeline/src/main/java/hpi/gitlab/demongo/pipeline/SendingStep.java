@@ -14,9 +14,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class SendingStep extends StepWithQueue {
-    private static final String TAG = SendingStep.class.getName();
-    // private static final String URL = "http://206.189.248.195:5000";
-    private static final String URL = "http://tmbe.me:8088";
+    private static final String TAG = "demon-go-SendingStep";
+    private static final String URL = "http://139.59.145.241:5000";
+    // private static final String URL = "http://tmbe.me:8088";
 
     private RequestQueue requestQueue;
     private ScheduledExecutorService executorService;

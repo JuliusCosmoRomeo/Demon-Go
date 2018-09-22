@@ -16,6 +16,7 @@ public class Pipeline {
 
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
+    private ColorfulnessEstimationStep colorfulnessEstimationStep;
     private BlurEstimationStep blurEstimationStep;
     private ContourDetectionStep contourDetectionStep;
     private DirectSendStep directSendStep;
@@ -39,6 +40,7 @@ public class Pipeline {
         noiseEstimationStep = new NoiseEstimationStep();
         blurEstimationStep = new BlurEstimationStep();
         contourDetectionStep = new ContourDetectionStep();
+        colorfulnessEstimationStep = new ColorfulnessEstimationStep();
         directSendStep = new DirectSendStep();
         sendingStep = new SendingStep(requestQueue);
 
@@ -49,16 +51,16 @@ public class Pipeline {
                 .next(sendingStep);
         angleChangeStep
                 .next(contourDetectionStep)
+                .next(colorfulnessEstimationStep)
                 .next(noiseEstimationStep)
                 .next(sendingStep);
 
-        angleChangeStep
-                .next(brandDetectionStep)
-                .next(sendingStep);
+       angleChangeStep
+               .next(brandDetectionStep)
+               .next(sendingStep);
         nextFrames = new CircularFifoQueue<>(10);
 
         firstStep = blurEstimationStep;
-        // firstStep.setMeasureTime(true);
         firstStep.setNextFrames(nextFrames);
         Thread pipelineThread = new Thread(firstStep);
         pipelineThread.start();
