@@ -61,11 +61,9 @@ public class ColorfulnessEstimationStep extends Step {
             Point offset = new Point();
             Size wholesize = new Size();
             last.mat.locateROI(wholesize,offset);
-            if (colorfulness < THRESHOLD) {
-                color = new Scalar(0, 255, 0);
-            } else {
-                color = new Scalar(255, 0, 0);
-            }
+            offset.y += 30;
+            color = new Scalar(0, 255, 255);
+
             Imgproc.putText (
                     last.getDebugMat(),                          // Matrix obj of the image
                     Double.toString(colorfulness),          // Text to be added

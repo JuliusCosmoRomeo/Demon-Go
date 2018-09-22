@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SendingStep extends StepWithQueue {
     private static final String TAG = SendingStep.class.getName();
-    // private static final String URL = "http://206.189.248.195:5000";
+//    private static final String URL = "http://139.59.145.241:5000";
 //    private static final String URL = "http://tmbe.me:8088";
     private static final String URL = "http://10.42.0.1:5000";
 
