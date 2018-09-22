@@ -2,14 +2,12 @@ package hpi.gitlab.demongo.pipeline;
 
 import android.graphics.Bitmap;
 import android.util.Base64;
-import android.util.Log;
-
-import com.google.firebase.iid.FirebaseInstanceId;
 
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,5 +72,9 @@ public class Snapshot {
 //        parameters.put("token", FirebaseInstanceId.getInstance().getToken());
         // parameters.put("score", Double.toString(this.score));
         return parameters;
+    }
+
+    public ArrayList<Float> processServerResponse(float x, float y) {
+        return null;
     }
 }
