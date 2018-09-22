@@ -17,10 +17,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class SendingStep extends StepWithQueue {
+
     private static final String TAG = SendingStep.class.getName();
 //    private static final String URL = "http://139.59.145.241:5000";
-//    private static final String URL = "http://tmbe.me:8088";
-    private static final String URL = "http://10.42.0.1:5000";
+    // private static final String URL = "http://tmbe.me:8088";
+    private static final String URL = "http://pb8704.byod.hpi.de:5000";
 
     private RequestQueue requestQueue;
     private ScheduledExecutorService executorService;
@@ -70,7 +71,7 @@ public class SendingStep extends StepWithQueue {
     }
 
     private void sendImage(final Snapshot snapshot) {
-        String url = URL + "/post";
+        String url = URL + "/detect_text";
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override

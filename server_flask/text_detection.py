@@ -34,6 +34,8 @@ class TextDetection:
     def __init__(self, in_queue=None, out_queue=None, split=False):
         self.in_queue = in_queue or Queue()
         self.out_queue = out_queue or Queue()
+        self.prediction_function = get_predictor(self.CHECKPOINT_PATH)
+
         self.process = self.crop_text if split else self.draw_text_boxes
 
     @staticmethod
@@ -51,7 +53,31 @@ class TextDetection:
                 t[key] += value * cls.RECTANGLE_EXPANSION_SIZE
         return rst
 
-    def draw_text_boxes(self, img, rst, user_id):
+    @staticmethod
+    def clamp(n, upper_bound):
+        return max(0, min(int(n), upper_bound))
+
+    @staticmethod
+    def text_bounding_rect(textboxes, height, width):
+
+        min_x = 10000
+        max_x = 0
+        min_y = 10000
+        max_y = 0
+
+        for textbox in textboxes:
+            for k, v in textbox.items():
+
+                if k.startswith('x'):
+                    min_x = min(min_x, TextDetection.clamp(v, width))
+                    max_x = max(max_x, TextDetection.clamp(v, width))
+                elif k.startswith('y'):
+                    min_y = min(min_y, TextDetection.clamp(v, height))
+                    max_y = max(max_y, TextDetection.clamp(v, height))
+
+        return (min_x, min_y, max_x, max_y)
+
+    def draw_text_boxes(self, img, rst):
         for t in rst:
             d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                           t['y2'], t['x3'], t['y3']], dtype='int32')
@@ -59,9 +85,38 @@ class TextDetection:
             cv2.polylines(
                 img, [d], isClosed=True,
                 color=(255, 255, 0), thickness=1)
-        filename = self.save_image(img)
 
-        self.out_queue.put([filename])
+        return img
+
+    def crop_text(self, img, points, user_id):
+
+        HEIGHT, WIDTH, _ = img.shape
+        min_x, min_y, max_x, max_y = self.text_bounding_rect(points)
+
+        cropped_img = img[min_y:max_y, min_x:max_x]
+        return cropped_img
+
+    def detection_loop(self):
+
+        while True:
+            try:
+                img, user_id = self.in_queue.get(timeout=self.QUEUE_TIMEOUT)
+            except queue.Empty:
+                continue
+
+            rst = self.expand_text_box(
+                self.prediction_function(img)['text_lines'])
+            if rst:
+
+                modified_img = self.process(img, rst)
+                filename = self.save_image(modified_img)
+
+                self.out_queue.put([filename])
+            else:
+                self.out_queue.put([])
+
+
+class OCR:
 
     @staticmethod
     def write_data(values):
@@ -71,54 +126,9 @@ class TextDetection:
         conn.commit()
         conn.close()
 
-    def crop_text(self, img, points, user_id):
+    def text_from_image(img, filename):
+        img_text, rotation, conf = get_word_from_img(img)
+        now = datetime.now().isoformat(timespec='milliseconds')
 
-        def clamp(n, largest):
-            return max(0, min(int(n), largest))
-
-        HEIGHT, WIDTH, _ = img.shape
-
-        files = []
-        data = []
-        for textbox in points:
-            min_x = 10000
-            max_x = 0
-            min_y = 10000
-            max_y = 0
-            for k, v in textbox.items():
-
-                if k.startswith('x'):
-                    min_x = min(min_x, clamp(v, WIDTH))
-                    max_x = max(max_x, clamp(v, WIDTH))
-                elif k.startswith('y'):
-                    min_y = min(min_y, clamp(v, HEIGHT))
-                    max_y = max(max_y, clamp(v, HEIGHT))
-                else:
-                    cropped_img = img[min_y:max_y, min_x:max_x]
-                    filename = self.save_image(cropped_img)
-                    files.append(filename)
-                    img_text, rotation, conf = get_word_from_img(cropped_img)
-                    now = datetime.now().isoformat(timespec='milliseconds')
-
-                    # Cols are user_id, filename, text, rotation, time, confidence
-                    data.append((user_id, filename, img_text, int(rotation), now, str(conf)))
-
-        if data:
-            self.write_data(data)
-        self.out_queue.put(files)
-        print('Analysis complete')
-
-    def detect_text(self):
-        prediction_function = get_predictor(self.CHECKPOINT_PATH)
-
-        while True:
-            try:
-                img, user_id = self.in_queue.get(timeout=self.QUEUE_TIMEOUT)
-            except queue.Empty:
-                continue
-
-            rst = self.expand_text_box(prediction_function(img)['text_lines'])
-            if rst:
-                self.process(img, rst, user_id)
-            else:
-                self.out_queue.put([])
+        # Cols are user_id, filename, text, rotation, time, confidence
+        return (1, filename, img_text, int(rotation), now, str(conf))
