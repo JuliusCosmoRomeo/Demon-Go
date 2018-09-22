@@ -10,6 +10,10 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -28,9 +32,12 @@ public class SendingStep extends StepWithQueue {
     private static String uniqueID = null;
     private static final String PREF_UNIQUE_ID = "PREF_UNIQUE_ID";
 
+    private Pipeline pipeline;
 
-    SendingStep(RequestQueue requestQueue, Context context) {
+
+    SendingStep(RequestQueue requestQueue, Context context, Pipeline _pipeline) {
         this.requestQueue = requestQueue;
+        pipeline = _pipeline;
         uniqueID = id(context);
 
         Runnable senderRunnable = new Runnable() {
@@ -70,12 +77,27 @@ public class SendingStep extends StepWithQueue {
     }
 
     private void sendImage(final Snapshot snapshot) {
-        String url = URL + "/post";
+//        String url = URL + "/post";
+        Log.i(TAG, "snapClass: " + snapshot.getClass());
+        String url = URL + "/test";
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
                 Log.i(TAG, "Server response: " + response);
+                try {
+                    JSONObject jsonResponse = new JSONObject(response);
+                    double x = (double) jsonResponse.get("x");
+                    double y = (double) jsonResponse.get("y");
+                    Log.i(TAG, "onResponse: " + x + ", " + y);
+                    ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
+                    if(targetCoordinates != null) {
+                       pipeline.addTarget(targetCoordinates);
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }, new Response.ErrorListener() {
             @Override
@@ -93,7 +115,7 @@ public class SendingStep extends StepWithQueue {
         };
 
         this.requestQueue.add(request);
-        Log.e(TAG, "POST-request added: ");
+        Log.i(TAG, "POST-request added: ");
     }
 
     @Override
