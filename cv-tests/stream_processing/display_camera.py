@@ -15,6 +15,7 @@ from urllib.error import URLError
 from draw_contours import (
     draw_contours,
     hough_lines,
+    hough_linesP,
 )
 from rectangles import (
     RectangleDrawer
