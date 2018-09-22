@@ -4,6 +4,7 @@
     <title>Demon GO Gallery</title>
 
 <!-- <link href="https://fonts.googleapis.com/css?family=Jua" rel="stylesheet"> -->
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai-sublime.min.css">
 <style>
 body {
   font-family: Jua;
@@ -17,31 +18,63 @@ body {
         float: left;
         margin: 1em;
       }
+      .flexbox {
+        display: flex;
+      }
+      .column {
+        flex: 1;
+        border-right: 1px solid black;
+        min-height: 1000px;
+      }
+
+
 </style>
   </head>
   <body>
 
     <h1>Demon GO Gallery</h1>
-  <div id="gallery"></div>
+    <div class="flexbox">
+      <div class="column" id="feed_gallery" ></div>
+      <div class="column" id="text_gallery" ></div>
+      <div class="column">
+        <pre><code class="json" id="user_profile">{
+  "images": []
+}</code></pre>
+      </div>
+    </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
     <script>
       var socket = io();
 
-      function addImage(path) {
+      function addImageToElement(path, element_id) {
           var img = new Image();
           img.src = path;
-          var gallery = document.getElementById('gallery');
-          document.getElementById('gallery').appendChild(img);
+          var gallery = document.getElementById(element_id);
+          gallery.insertBefore(img, gallery.firstChild);
       }
 
       socket.on('new image', data => {
-          addImage(data.path);
+          addImageToElement(data.path, 'feed_gallery');
       });
 
-      socket.on('init', data => {
-          data.forEach(addImage);
+      socket.on('recognized_text', data => {
+          addImageToElement(data.path, 'text_gallery');
+          var profileElement = document.getElementById('user_profile');
+
+          profileString = profileElement.textContent;
+          profile = JSON.parse(profileString);
+          console.log(profile);
+          profile.images.push(data);
+          profileElement.innerHTML = JSON.stringify(profile, null, 4);
+          hljs.highlightBlock(profileElement);
       });
+
+      // socket.on('init', data => {
+      //     data.forEach(addImage);
+      // });
     </script>
   </body>
 </html>

@@ -6,7 +6,12 @@ import numpy as np
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
 
-from text_detection import TextDetection
+from text_detection import (
+    OCR,
+    TextDetection,
+)
+from ocr2 import get_string
+
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -55,10 +60,9 @@ def detect_text():
         cv2.IMREAD_COLOR
     )
 
-    path = TextDetection.save_image(img)
     socketio.emit(
         'new image',
-        {'path': path}
+        {'path': TextDetection.save_image(img)}
     )
 
     boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
@@ -72,6 +76,17 @@ def detect_text():
             'x': float(min_x + int((max_x-min_x) / 2)),
             'y': float(min_y + int((max_y-min_y) / 2)),
         }
+        print('Trying to consume:')
+        img_text = get_string(img)
+        print(f'Result: {img_text}')
+        td.draw_text_boxes(img, boxes)
+        socketio.emit(
+            'recognized_text',
+            {
+                'path': TextDetection.save_image(img),
+                'text': img_text,
+            }
+        )
         print(mid_point)
         return jsonify(mid_point)
     else:

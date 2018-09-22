@@ -126,6 +126,7 @@ class OCR:
         conn.commit()
         conn.close()
 
+    @staticmethod
     def text_from_image(img, filename):
         img_text, rotation, conf = get_word_from_img(img)
         now = datetime.now().isoformat(timespec='milliseconds')
