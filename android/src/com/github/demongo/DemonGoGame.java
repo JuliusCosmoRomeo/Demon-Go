@@ -22,7 +22,6 @@ import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
-
 import java.util.Collection;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
