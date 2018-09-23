@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
@@ -19,14 +20,18 @@ import java.nio.FloatBuffer;
 
 public class ARDebug {
     private Array<ModelInstance> pointCubes = new Array<>();
+    private Array<ModelInstance> targetPoints = new Array<>();
     private Model pointCubeModel;
+    private Model sphereModel;
     private ModelInstance originIndicator;
 
     private final float POINT_SIZE = 0.03f;
+    private final float TRACKING_SPHERE_SIZE = 0.1f;
 
     ARDebug() {
         createPointCube();
         createOriginIndicator();
+        createTargetPointIndicator();
     }
 
     public void update(Frame frame) {
@@ -56,6 +61,13 @@ public class ARDebug {
     public void draw(ModelBatch modelBatch, Environment environment) {
         modelBatch.render(originIndicator, environment);
         modelBatch.render(pointCubes, environment);
+        modelBatch.render(targetPoints, environment);
+    }
+
+    private void createTargetPointIndicator() {
+        sphereModel = new ModelBuilder().createSphere(TRACKING_SPHERE_SIZE, TRACKING_SPHERE_SIZE, TRACKING_SPHERE_SIZE, 10,10,
+                new Material(ColorAttribute.createDiffuse(Color.BLUE)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
     }
 
     private void createOriginIndicator() {
@@ -69,5 +81,11 @@ public class ARDebug {
         pointCubeModel = modelBuilder.createBox(POINT_SIZE, POINT_SIZE, POINT_SIZE,
                 new Material(ColorAttribute.createDiffuse(Color.GREEN)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+    }
+
+    private void addTargetPoint(Vector3 point) {
+        ModelInstance instance = new ModelInstance(sphereModel);
+        instance.transform.setToTranslation(point);
+        targetPoints.add(instance);
     }
 }
