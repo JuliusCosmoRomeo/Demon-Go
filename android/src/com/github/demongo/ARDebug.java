@@ -14,7 +14,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.google.ar.core.Frame;
 import com.google.ar.core.PointCloud;
-import com.google.ar.core.Session;
 
 import java.nio.FloatBuffer;
 
@@ -83,7 +82,7 @@ public class ARDebug {
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
     }
 
-    private void addTargetPoint(Vector3 point) {
+    public void addTargetPoint(Vector3 point) {
         ModelInstance instance = new ModelInstance(sphereModel);
         instance.transform.setToTranslation(point);
         targetPoints.add(instance);

@@ -60,16 +60,19 @@ public class DemonGoGame extends ARCoreScene {
 		// currently angle change is disabled for debugging
 		pipeline = new Pipeline(context, new NullStep());
 
+        arDebug = new ARDebug();
+        overlay = new Overlay();
+
 		assetManager = new AssetManager();
 		demon = new Demon(getCamera(), assetManager, new Demon.PhaseChangedListener() {
 			@Override
 			public void changed(Demon demon, Demon.Phase phase) {
 			    Float[] points = pipeline.requestTargets();
-				Log.i("demon-go-targets", "changed: " + points.length);
 				Log.i("demon-go-targets", Arrays.toString(points));
 			    Vector3[] targets = new Vector3[points.length / 3];
 			    for (int i = 0; i < targets.length; i++) {
 			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+			    	arDebug.addTargetPoint(targets[i]);
 				}
 				demon.setTargets(targets, getSession());
 			}
@@ -79,8 +82,6 @@ public class DemonGoGame extends ARCoreScene {
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
-		arDebug = new ARDebug();
-		overlay = new Overlay();
 		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
 			@Override
 			public void onPvPStarted() {
@@ -156,7 +157,7 @@ public class DemonGoGame extends ARCoreScene {
 			lastSnapshot = new ARSnapshot(1.0, frame);
 			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
-			Log.e("demon-go", "no image yet");
+//			Log.e("demon-go", "no image yet");
 		}
 
 		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);

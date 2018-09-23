@@ -256,10 +256,15 @@ public class ARSnapshot extends Snapshot {
     public ArrayList<Float> processServerResponse(float x, float y) {
         super.processServerResponse(x, y);
         Vector3 best = this.projectPoint(x, y);
-        ArrayList<Float> targetCoordinates = new ArrayList<Float>();
-        targetCoordinates.add(best.x);
-        targetCoordinates.add(best.y);
-        targetCoordinates.add(best.z);
-        return targetCoordinates;
+        if (best.x != 0.0 && best.y != 0.0 && best.z != 0.0) {
+            ArrayList<Float> targetCoordinates = new ArrayList<Float>();
+            targetCoordinates.add(best.x);
+            targetCoordinates.add(best.y);
+            targetCoordinates.add(best.z);
+            return targetCoordinates;
+        } else {
+            Log.i(TAG, "processServerResponse: Ommitting projection to 0;0;0");
+            return null;
+        }
     }
 }

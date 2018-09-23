@@ -91,9 +91,7 @@ def detect_text():
         print(mid_point)
         return jsonify(mid_point)
     else:
-        x = random.uniform(0, 1080)
-        y = random.uniform(0, 1920)
-        return jsonify({"x": x, "y": y})
+        return jsonify({})
 
 
 @app.route('/test', methods=['POST', 'GET'])
