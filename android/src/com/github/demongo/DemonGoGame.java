@@ -23,6 +23,7 @@ import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
@@ -64,7 +65,8 @@ public class DemonGoGame extends ARCoreScene {
 			@Override
 			public void changed(Demon demon, Demon.Phase phase) {
 			    Float[] points = pipeline.requestTargets();
-				Log.i("demon-go", "changed: " + points.length);
+				Log.i("demon-go-targets", "changed: " + points.length);
+				Log.i("demon-go-targets", Arrays.toString(points));
 			    Vector3[] targets = new Vector3[points.length / 3];
 			    for (int i = 0; i < targets.length; i++) {
 			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
