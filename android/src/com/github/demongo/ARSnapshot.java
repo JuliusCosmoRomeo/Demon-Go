@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
 public class ARSnapshot extends Snapshot {
+    private static final String TAG = "demon-go-ARSnapshot";
+
     // code from http://answers.opencv.org/question/61628/android-camera2-yuv-to-rgb-conversion-turns-out-green/
     private static Mat convertYuv420888ToMat(Image image, boolean isGreyOnly) {
         int width = image.getWidth();
@@ -151,6 +153,7 @@ public class ARSnapshot extends Snapshot {
 
         float minDistance = 99999999999.0f;
         Vector3 best = new Vector3();
+        Log.e(TAG, "projectPoint: " + points.length);
 
         for (int i = 0; i < points.length;) {
             point.set(points[i++], points[i++], points[i++]);
@@ -168,7 +171,7 @@ public class ARSnapshot extends Snapshot {
             if (distance < minDistance) {
                 minDistance = distance;
                 best.set(points[i - 3], points[i - 2], points[i - 1]);
-                Log.e("demon-go-ar", point.toString());
+                Log.e(TAG, point.toString());
             }
         }
 
@@ -251,7 +254,6 @@ public class ARSnapshot extends Snapshot {
 
     @Override
     public ArrayList<Float> processServerResponse(float x, float y) {
-        Log.i("blah", "processServerResponse");
         super.processServerResponse(x, y);
         Vector3 best = this.projectPoint(x, y);
         ArrayList<Float> targetCoordinates = new ArrayList<Float>();

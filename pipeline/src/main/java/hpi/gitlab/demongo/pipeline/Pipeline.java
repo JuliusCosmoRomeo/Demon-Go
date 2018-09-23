@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Pipeline {
+    private static final String TAG = "demon-go-Pipeline";
 
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
@@ -76,13 +77,13 @@ public class Pipeline {
     }
 
     public void addTarget(ArrayList<Float> targetCoordinates) {
-        Log.i("blah", "addTarget: " + String.valueOf(targetCoordinates));
+        Log.i(TAG, "addTarget: " + String.valueOf(targetCoordinates));
         this.targets.addAll(targetCoordinates);
     }
 
     // return {x0, y0, z0, x1, y1, z1, ...}
     public Float[] requestTargets() {
-        Log.i("blah", "requestTargets: " + this.targets.size());
+        Log.i(TAG,"requestTargets: " + this.targets.size());
         return this.targets.toArray(new Float[0]);
     }
 

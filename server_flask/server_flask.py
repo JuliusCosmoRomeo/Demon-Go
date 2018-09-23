@@ -1,5 +1,6 @@
 import base64
 import multiprocessing
+import random
 
 import cv2
 import numpy as np
@@ -90,7 +91,9 @@ def detect_text():
         print(mid_point)
         return jsonify(mid_point)
     else:
-        return jsonify({})
+        x = random.uniform(0, 1080)
+        y = random.uniform(0, 1920)
+        return jsonify({"x": x, "y": y})
 
 
 @app.route('/test', methods=['POST', 'GET'])
