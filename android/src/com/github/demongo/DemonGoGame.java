@@ -142,7 +142,7 @@ public class DemonGoGame extends ARCoreScene {
 			lastSnapshot = new ARSnapshot(1.0, frame);
 			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
-			Log.e("demon-go", "no image yet");
+//			Log.e("demon-go", "no image yet");
 		}
 
 		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);

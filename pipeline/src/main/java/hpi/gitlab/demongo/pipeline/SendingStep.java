@@ -87,13 +87,17 @@ public class SendingStep extends StepWithQueue {
             public void onResponse(String response) {
 //                Log.i(TAG, "Server response: " + response);
                 try {
-                    JSONObject jsonResponse = new JSONObject(response);
-                    double x = (double) jsonResponse.get("x");
-                    double y = (double) jsonResponse.get("y");
-                    Log.i(TAG, "onResponse: " + x + ", " + y);
-                    ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
-                    if(targetCoordinates != null) {
-                       pipeline.addTarget(targetCoordinates);
+                    if(!response.equals("{}")) {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        double x = (double) jsonResponse.get("x");
+                        double y = (double) jsonResponse.get("y");
+                        Log.i(TAG, "onResponse: " + x + ", " + y);
+                        ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
+                        if(targetCoordinates != null) {
+                            pipeline.addTarget(targetCoordinates);
+                        }
+                    } else {
+                        Log.i(TAG, "onResponse: empty response");
                     }
 
                 } catch (JSONException e) {
