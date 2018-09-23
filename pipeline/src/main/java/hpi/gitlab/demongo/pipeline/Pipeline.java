@@ -13,6 +13,12 @@ import java.util.HashMap;
 
 public class Pipeline {
 
+    private BrandDetectionStep brandDetectionStep;
+    private NoiseEstimationStep noiseEstimationStep;
+    private ColorfulnessEstimationStep colorfulnessEstimationStep;
+    private BlurEstimationStep blurEstimationStep;
+    private ContourDetectionStep contourDetectionStep;
+    private DirectSendStep directSendStep;
     private Step firstStep;
     private SendingStep sendingStep;
     private CircularFifoQueue<Snapshot> nextFrames;
@@ -29,10 +35,11 @@ public class Pipeline {
 
         BrandDetectionStep brandDetectionStep = new BrandDetectionStep(context, objectTemplateNameMap);
 
-        NoiseEstimationStep noiseEstimationStep = new NoiseEstimationStep();
-        BlurEstimationStep blurEstimationStep = new BlurEstimationStep();
-        ContourDetectionStep contourDetectionStep = new ContourDetectionStep();
-        DirectSendStep directSendStep = new DirectSendStep();
+        noiseEstimationStep = new NoiseEstimationStep();
+        blurEstimationStep = new BlurEstimationStep();
+        contourDetectionStep = new ContourDetectionStep();
+        colorfulnessEstimationStep = new ColorfulnessEstimationStep();
+        directSendStep = new DirectSendStep();
         sendingStep = new SendingStep(requestQueue, context);
 
         blurEstimationStep
@@ -42,12 +49,13 @@ public class Pipeline {
                 .next(sendingStep);
         angleChangeStep
                 .next(contourDetectionStep)
+                .next(colorfulnessEstimationStep)
                 .next(noiseEstimationStep)
                 .next(sendingStep);
 
-        angleChangeStep
-                .next(brandDetectionStep)
-                .next(sendingStep);
+       angleChangeStep
+               .next(brandDetectionStep)
+               .next(sendingStep);
         nextFrames = new CircularFifoQueue<>(10);
 
         firstStep = blurEstimationStep;

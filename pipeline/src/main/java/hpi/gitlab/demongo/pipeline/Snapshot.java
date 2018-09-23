@@ -45,6 +45,10 @@ public class Snapshot {
         return debugMat;
     }
 
+    public void setDebugMat(Mat newMat) {
+        debugMat = newMat.clone();
+    }
+
     public Mat getDebugMat() {
         return debugMat;
     }
@@ -67,7 +71,7 @@ public class Snapshot {
     public Map<String, String> getRequestParameterList() {
         Map<String, String> parameters = new HashMap<String, String>();
         parameters.put("image", matToBase64String(this.mat));
-        parameters.put("token", FirebaseInstanceId.getInstance().getToken());
+//        parameters.put("token", FirebaseInstanceId.getInstance().getToken());
         // parameters.put("score", Double.toString(this.score));
         return parameters;
     }

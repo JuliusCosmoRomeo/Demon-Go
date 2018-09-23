@@ -3,7 +3,12 @@ from dataclasses import dataclass
 
 import cv2
 
-from estimators import estimate_noise
+from estimators import (
+    estimate_noise,
+    estimate_lines,
+    estimate_color_variation,
+)
+
 
 @dataclass
 class Rectangle:
@@ -51,7 +56,7 @@ class RectangleDrawer:
         for rect in self.rectangles[1:]:
             if rect.finished:
                 crop = img[rect.y0:rect.y1, rect.x0:rect.x1]
-                rect.sigma = estimate_noise(crop)
+                rect.sigma = estimate_color_variation(crop)
 
                 name = f'Crop {len(self.processed)}'
                 cv2.imshow(name, crop)
