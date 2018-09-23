@@ -2,48 +2,30 @@ import cv2
 import numpy as np
 import imutils
 
-from estimators import estimate_noise
+from estimators import (
+    estimate_noise,
+    estimate_color_variation,
+)
 from four_point_transform import four_point_transform
+from transform import transform
 
-MIN_AREA = 2000
-
-
-def transform(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (9, 9), 0)
-    high_thresh = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)[0]
-    low_thresh = 0.5*high_thresh
-    gray = cv2.bilateralFilter(gray, 11, 17, 17)
-    cv2.imshow('bf', gray)
-    gray = cv2.Canny(gray, low_thresh, high_thresh)
-    cv2.imshow('adaptive_transform', gray)
-    # gray = cv2.Canny(gray, 30, 200)
-    # cv2.imshow('transform', gray2)
-
-    return gray
+MIN_AREA = 500
 
 
-def old_transform(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.threshold(blurred, 70, 255, cv2.THRESH_BINARY)[1]
-
-    return thresh
-
-
-def show_noise(img, approx):
+def show_noise(img, approx=None):
     approx = np.reshape(approx, (4, 2))
-    img = img.copy()
     dewarped = four_point_transform(img, approx)
     sigma = estimate_noise(dewarped)
+    color = estimate_color_variation(dewarped)
     cv2.imshow('warped', dewarped)
 
     cv2.putText(
         img,
-        f'Sigma: {sigma}',
-        (approx[0][0], approx[0][1] + 20),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1
+        f'Sigma: {sigma:.2f} Color: {color:.2f}',
+        (approx[0][0], approx[0][1] - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1
     )
+    return sigma, color
 
 
 def draw_contours(img):
@@ -52,20 +34,30 @@ def draw_contours(img):
     cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 
     for contour in cnts:
-        cv2.drawContours(img, contour, -1, (255, 255, 0), 2)
         area = cv2.contourArea(contour)
         if area > MIN_AREA:
             peri = cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, 0.01 * peri, False)
-            # if len(approx) == 4:
-                # show_noise(img, approx)
-            cv2.drawContours(img, [approx], -1, (0, 255, 0), 2)
-            cv2.putText(
-                img,
-                f'Area: {area}',
-                (approx[0][0][0], approx[0][0][1] + 40),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1
-            )
+            approx = cv2.approxPolyDP(contour, 0.01 * peri, True)
+            cv2.drawContours(img, contour, -1, (255, 255, 0), 2)
+            if len(approx) == 4:
+                sigma, color = show_noise(img, approx)
+            # else:
+            #     rect = cv2.minAreaRect(contour)
+            #     box = cv2.boxPoints(rect)
+            #     box = np.int0(box)
+            #     sigma, color = show_noise(img, box)
+
+                if sigma > 1.0 and color < 90:
+                    fill = (0, 255, 0)
+                else:
+                    fill = (255, 0, 0)
+                cv2.drawContours(img, [approx], -1, fill, 2)
+                cv2.putText(
+                    img,
+                    f'A: {area}',
+                    (approx[0][0][0], approx[0][0][1] + 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1
+                )
 
     return img
 

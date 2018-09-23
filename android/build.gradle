@@ -137,6 +137,6 @@ idea {
 dependencies {
     implementation project(':opencv')
     implementation project(':pipeline')
-    implementation 'com.google.firebase:firebase-firestore:17.0.1'
+    implementation 'com.google.firebase:firebase-firestore:17.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
 }

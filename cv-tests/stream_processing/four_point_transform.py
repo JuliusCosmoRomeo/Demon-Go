@@ -31,6 +31,7 @@ def order_points(pts):
 
 
 def four_point_transform(image, pts):
+    image = image.copy()
     # obtain a consistent order of the points and unpack them
     # individually
     rect = order_points(pts)

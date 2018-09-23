@@ -121,8 +121,6 @@ public class BrandDetectionStep extends Step {
             outputStreamWriter.write(data);
             outputStreamWriter.close();
             stream.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -25,6 +25,7 @@ public class Hud {
     private Stage hud;
 
     private Actor loading;
+    private Actor demonCaught;
 
     private TriggerListener listener;
 
@@ -84,7 +85,7 @@ public class Hud {
                 @Override
                 public void completed() {
                     listener.onSpellCompleted();
-                    showSpellCanvas = true;
+                    showSpellCanvas = false;
                 }
             });
 

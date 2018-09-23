@@ -46,7 +46,6 @@ class TextDetection:
 
     @classmethod
     def expand_text_box(cls, rst):
-        # I'd love to hear feedback which improves this code ;)
         for t in rst:
             for key, value in cls.RECTANGLE_EXPANSION.items():
                 t[key] += value * cls.RECTANGLE_EXPANSION_SIZE
