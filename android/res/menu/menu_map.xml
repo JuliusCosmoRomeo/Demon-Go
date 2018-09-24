@@ -1,7 +1,8 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:context="de.goslarsche.live.HomeActivity">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_seek"
+        android:orderInCategory="100"
+        android:title="Find Demon" />
     <item
         android:id="@+id/action_mark"
         android:orderInCategory="100"

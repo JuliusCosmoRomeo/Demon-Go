@@ -21,9 +21,11 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.demongo.AndroidLauncher;
 import com.github.demongo.Demon;
 import com.github.demongo.DemonBattle;
 import com.github.demongo.DemonGallery;
+import com.github.demongo.DemonGoGame;
 import com.github.demongo.ParcelableGeoPoint;
 import com.github.demongo.PlayerUtil;
 import com.github.demongo.R;
@@ -733,6 +735,9 @@ public class MapActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_mark) {
+        }
+        if (item.getItemId() == R.id.action_seek) {
+            startActivity(new Intent(this, AndroidLauncher.class));
         }
         return super.onOptionsItemSelected(item);
     }
