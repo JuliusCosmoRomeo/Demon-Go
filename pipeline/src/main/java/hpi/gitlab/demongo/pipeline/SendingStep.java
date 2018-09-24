@@ -25,10 +25,9 @@ public class SendingStep extends StepWithQueue {
     private static final String TAG = "demon-go-SendingStep";
 
 //    private static final String URL = "http://206.189.248.195:5000";
-//    private static final String URL = "http://139.59.145.241:5000";
+    private static final String URL = "http://139.59.145.241:5000";
 //    private static final String URL = "http://tmbe.me:8088";
 //    private static final String URL = "http://pb8704.byod.hpi.de:5000";
-    private static final String URL = "http://10.42.0.1:5000";
 
     private RequestQueue requestQueue;
     private ScheduledExecutorService executorService;
