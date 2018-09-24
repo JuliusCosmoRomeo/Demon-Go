@@ -14,6 +14,7 @@ public class SpellCanvas {
     }
 
     private static final float WIDTH = 40;
+    private static final int STEPS = 6;
 
     private float canvasWidth;
     private float canvasHeight;
@@ -35,10 +36,9 @@ public class SpellCanvas {
     private Vector2[] points;
 
     public void newSpell() {
-        int steps = 3;
-        points = new Vector2[steps];
+        points = new Vector2[STEPS];
 
-        for (int i = 0; i < steps; i++) {
+        for (int i = 0; i < STEPS; i++) {
             points[i] = new Vector2((float) Math.random() * canvasWidth, (float) Math.random() * canvasHeight);
         }
     }

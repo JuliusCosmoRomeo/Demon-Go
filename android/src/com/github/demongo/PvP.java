@@ -78,6 +78,30 @@ public class PvP {
         });
     }
 
+    /*
+	private Anchor cloudAnchor;
+	private void maybeCreatePvPCloudAnchor() {
+	    Collection<Plane> planes = getSession().getAllTrackables(Plane.class);
+		if (pvp != null && !planes.isEmpty()) {
+            cloudAnchor = getSession().createAnchor(planes.iterator().next().getCenterPose());
+            getSession().hostCloudAnchor(cloudAnchor);
+        }
+	}
+
+	private void checkCloudAnchor() {
+	    if (cloudAnchor == null)
+	        return;
+
+	    Anchor.CloudAnchorState state = cloudAnchor.getCloudAnchorState();
+	    if (state.isError()) {
+            // TODO
+	        Log.e("demon-go-pvp", "failed to create cloud anchor!");
+        } else if (state == Anchor.CloudAnchorState.SUCCESS) {
+	        pvp.updateCloudAnchorId(cloudAnchor.getCloudAnchorId());
+        }
+    }
+    */
+
     public void setUpdatePositionCallback(UpdatePositionCallback _callback) {
         callback = _callback;
     }

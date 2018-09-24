@@ -2,6 +2,7 @@ package com.github.demongo;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -28,13 +29,18 @@ public class Hud {
 
     private TriggerListener listener;
 
+    private Label debugInfo;
+    private ARDebug debug;
+
     private boolean showSpellCanvas = false;
 
-    Hud(final Context context, float scalingFactor, TriggerListener _listener) {
+    Hud(final Context context, float scalingFactor, TriggerListener _listener, ARDebug arDebug) {
         listener = _listener;
         hud = new Stage(new ScalingViewport(Scaling.fit,
         Gdx.graphics.getWidth() / scalingFactor,
         Gdx.graphics.getHeight() / scalingFactor));
+
+        debug = arDebug;
 
         float hudWidth = hud.getWidth();
         float hudHeight = hud.getHeight();
@@ -60,13 +66,16 @@ public class Hud {
             }
         });
         startPvP.setPosition(hudWidth - startPvP.getWidth(), 0);
-        // pvp is disabled atm
+        // ar pvp is disabled atm
         // hud.addActor(startPvP);
 
         loading = new Label("Gathering Energy ...", skin);
-
         loading.setPosition(hudWidth / 2 - loading.getWidth() / 2, hudHeight / 2 - loading.getHeight() / 2);
         hud.addActor(loading);
+
+        debugInfo = new Label("", skin);
+        debugInfo.setFontScale(0.3f);
+        hud.addActor(debugInfo);
     }
 
     public void setLoading(boolean _loading) {
@@ -89,6 +98,9 @@ public class Hud {
             });
 
     public void draw() {
+        debugInfo.setText(debug.getInfoString());
+        debugInfo.setPosition(0, hud.getHeight() - debugInfo.getPrefHeight() / 2);
+
         hud.act(Gdx.graphics.getDeltaTime());
         hud.draw();
 

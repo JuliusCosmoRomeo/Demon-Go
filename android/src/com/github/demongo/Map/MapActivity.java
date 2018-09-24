@@ -114,6 +114,11 @@ public class MapActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // if we were opened from the AR component after a successful demon heist!
+        if (getIntent().hasExtra("demon-captured")) {
+            handleDemonCaptured();
+        }
+
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_map);
         mapView = (MapView) findViewById(R.id.mapView);
@@ -180,6 +185,18 @@ public class MapActivity extends AppCompatActivity {
                 });
 
                 addCustomInfoWindowAdapter();
+            }
+        });
+    }
+
+    private void handleDemonCaptured() {
+        new NameDialog(this, new NameDialogChosenListener() {
+            @Override
+            public void nameChosen(String name) {
+                Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
+                demonGallery.putExtra("action", DemonGallery.Action.Add);
+                demonGallery.putExtra("name", name);
+                startActivityForResult(demonGallery, GALLERY_REQUEST);
             }
         });
     }

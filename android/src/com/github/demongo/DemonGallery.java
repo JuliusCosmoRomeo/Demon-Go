@@ -37,7 +37,8 @@ public class DemonGallery extends Activity {
     public enum Action {
         Attack,
         Defend,
-        Deposit
+        Deposit,
+        Add
     }
 
     public static final ParcelUuid nullStashId = new ParcelUuid(UUID.fromString("00000000-0000-0000-0000-000000000000"));
@@ -59,8 +60,11 @@ public class DemonGallery extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_demon_gallery);
 
-
         this.action = (Action) getIntent().getExtras().get("action");
+        if (action == Action.Add) {
+            demons.add(new Demon(getIntent().getStringExtra("name"), 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+        }
+
         db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
             public void onComplete(@NonNull Task<QuerySnapshot> task) {

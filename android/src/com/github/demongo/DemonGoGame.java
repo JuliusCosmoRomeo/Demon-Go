@@ -1,6 +1,7 @@
 package com.github.demongo;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
+import com.github.demongo.Map.MapActivity;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
@@ -23,7 +25,6 @@ import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
 
-import java.util.Arrays;
 import java.util.Collection;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
@@ -84,19 +85,23 @@ public class DemonGoGame extends ARCoreScene {
 		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
 			@Override
 			public void onPvPStarted() {
+			    // can currently not be reached because the button is disabled
 				pvp = new PvP(context);
 			}
 
 			@Override
 			public void onSpellCompleted() {
 				if (!demon.moveToNextTarget()) {
-					// TODO move to "you caught the demon" screen
 					Log.e("demon-go", "A winner is you!");
 					demon.setCaptured();
+
+					Intent intent = new Intent(context, MapActivity.class);
+					intent.putExtra("demon-captured", true);
+					context.startActivity(intent);
 				}
 				waitingForSpellCompletion = false;
 			}
-		});
+		}, arDebug);
 
 		final Session session = getSession();
 
@@ -118,28 +123,6 @@ public class DemonGoGame extends ARCoreScene {
 
 		paused = false;
 	}
-
-	private Anchor cloudAnchor;
-	private void maybeCreatePvPCloudAnchor() {
-	    Collection<Plane> planes = getSession().getAllTrackables(Plane.class);
-		if (pvp != null && !planes.isEmpty()) {
-            cloudAnchor = getSession().createAnchor(planes.iterator().next().getCenterPose());
-            getSession().hostCloudAnchor(cloudAnchor);
-        }
-	}
-
-	private void checkCloudAnchor() {
-	    if (cloudAnchor == null)
-	        return;
-
-	    Anchor.CloudAnchorState state = cloudAnchor.getCloudAnchorState();
-	    if (state.isError()) {
-            // TODO
-	        Log.e("demon-go-pvp", "failed to create cloud anchor!");
-        } else if (state == Anchor.CloudAnchorState.SUCCESS) {
-	        pvp.updateCloudAnchorId(cloudAnchor.getCloudAnchorId());
-        }
-    }
 
     private void update(Frame frame) {
 	    if (paused) {
@@ -168,15 +151,15 @@ public class DemonGoGame extends ARCoreScene {
 		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);
 		Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());
 		getCamera().view.getTranslation(cameraPosition);
-		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING)
-			Log.e("demon-go-capturing", Float.toString(demon.getCurrentTarget().dst(cameraPosition)) + " " + demon.getCurrentTarget().toString() + " " + cameraPosition.toString());
 
-		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && demon.getCurrentTarget().dst(cameraPosition) < 20) {
+		float distanceToDemon = demon.getCurrentTarget().dst(cameraPosition);
+
+		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && distanceToDemon < 2) {
 			hud.showSpell();
 			waitingForSpellCompletion = true;
 		}
 
-		arDebug.update(frame, demon);
+		arDebug.update(frame, demon, distanceToDemon);
 	}
 
 	@Override

@@ -30,6 +30,8 @@ public class ARDebug {
     private final float POINT_SIZE = 0.03f;
     private final float TRACKING_SPHERE_SIZE = 0.1f;
 
+    private String infoString;
+
     ARDebug() {
         createPointCube();
         createOriginIndicator();
@@ -37,7 +39,7 @@ public class ARDebug {
         createRoomSizeIndicator();
     }
 
-    public void update(Frame frame, ARDemon demon) {
+    public void update(Frame frame, ARDemon demon, float distanceToDemon) {
         PointCloud cloud = frame.acquirePointCloud();
         FloatBuffer points = cloud.getPoints();
 
@@ -61,6 +63,10 @@ public class ARDebug {
         cloud.release();
 
         updateRoomSize(demon.getRoomMin(), demon.getRoomMax());
+
+        infoString = "Debug:\n" +
+                "Phase: " + demon.getPhase().toString() + "\n" +
+                (demon.getPhase() == ARDemon.Phase.CAPTURING ? "Distance to Demon: " + distanceToDemon + "\n" : "");
     }
 
     public void draw(ModelBatch modelBatch, Environment environment) {
@@ -83,7 +89,7 @@ public class ARDebug {
         ModelBuilder modelBuilder = new ModelBuilder();
         final Model cubeModel = modelBuilder.createBox(1, 1, 1,
                 GL20.GL_LINES,
-                new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+                new Material(ColorAttribute.createDiffuse(Color.BLUE)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         roomSizeIndicator = new ModelInstance(cubeModel);
     }
@@ -111,5 +117,9 @@ public class ARDebug {
         ModelInstance instance = new ModelInstance(sphereModel);
         instance.transform.setToTranslation(point);
         targetPoints.add(instance);
+    }
+
+    public String getInfoString() {
+        return infoString;
     }
 }
