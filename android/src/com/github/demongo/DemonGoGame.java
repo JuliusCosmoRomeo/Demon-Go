@@ -176,7 +176,7 @@ public class DemonGoGame extends ARCoreScene {
 			waitingForSpellCompletion = true;
 		}
 
-		arDebug.update(frame);
+		arDebug.update(frame, demon);
 	}
 
 	@Override

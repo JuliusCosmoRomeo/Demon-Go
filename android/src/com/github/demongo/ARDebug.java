@@ -2,6 +2,7 @@ package com.github.demongo;
 
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -24,6 +25,7 @@ public class ARDebug {
     private Model pointCubeModel;
     private Model sphereModel;
     private ModelInstance originIndicator;
+    private ModelInstance roomSizeIndicator;
 
     private final float POINT_SIZE = 0.03f;
     private final float TRACKING_SPHERE_SIZE = 0.1f;
@@ -32,9 +34,10 @@ public class ARDebug {
         createPointCube();
         createOriginIndicator();
         createTargetPointIndicator();
+        createRoomSizeIndicator();
     }
 
-    public void update(Frame frame) {
+    public void update(Frame frame, ARDemon demon) {
         PointCloud cloud = frame.acquirePointCloud();
         FloatBuffer points = cloud.getPoints();
 
@@ -56,12 +59,33 @@ public class ARDebug {
         }
 
         cloud.release();
+
+        updateRoomSize(demon.getRoomMin(), demon.getRoomMax());
     }
 
     public void draw(ModelBatch modelBatch, Environment environment) {
         modelBatch.render(originIndicator, environment);
         modelBatch.render(pointCubes, environment);
         modelBatch.render(targetPoints, environment);
+        modelBatch.render(roomSizeIndicator);
+    }
+
+    private Vector3 tmp1 = new Vector3();
+    private Vector3 tmp2 = new Vector3();
+    private void updateRoomSize(Vector3 roomMin, Vector3 roomMax) {
+        roomSizeIndicator.transform
+            .idt()
+            .translate(tmp1.set(roomMin).add(tmp2.set(roomMax).sub(roomMin).scl(0.5f)))
+            .scale(roomMax.x - roomMin.x, roomMax.y - roomMin.y, roomMax.z - roomMin.z);
+    }
+
+    private void createRoomSizeIndicator() {
+        ModelBuilder modelBuilder = new ModelBuilder();
+        final Model cubeModel = modelBuilder.createBox(1, 1, 1,
+                GL20.GL_LINES,
+                new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
+        roomSizeIndicator = new ModelInstance(cubeModel);
     }
 
     private void createTargetPointIndicator() {

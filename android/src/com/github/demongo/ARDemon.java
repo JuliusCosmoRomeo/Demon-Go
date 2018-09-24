@@ -109,6 +109,9 @@ public class ARDemon {
     private Vector3 roomMin = new Vector3(-MIN_ROOM_SIZE, 0, -MIN_ROOM_SIZE);
     private Vector3 roomMax = new Vector3(MIN_ROOM_SIZE, MIN_ROOM_SIZE, MIN_ROOM_SIZE);
 
+    public Vector3 getRoomMin() { return roomMin; }
+    public Vector3 getRoomMax() { return roomMax; }
+
     private Anchor[] anchors;
     private int currentTarget = 0;
 
