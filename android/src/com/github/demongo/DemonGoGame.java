@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.math.collision.Ray;
+import com.badlogic.gdx.utils.Timer;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.github.demongo.Map.MapActivity;
 import com.google.ar.core.Anchor;
@@ -31,6 +32,8 @@ import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
+	private static final int SECONDS_SPELL_SEARCH_TIMEOUT = 10;
+
 	private AssetManager assetManager;
 	private Environment environment;
 
@@ -48,6 +51,8 @@ public class DemonGoGame extends ARCoreScene {
 	private Context context;
 
 	private boolean paused = true;
+
+	private Timer.Task catchSpellTimeout;
 
 	DemonGoGame(Context context) {
 		this.context = context;
@@ -67,12 +72,16 @@ public class DemonGoGame extends ARCoreScene {
 		demon = new ARDemon(getCamera(), assetManager, new ARDemon.PhaseChangedListener() {
 			@Override
 			public void changed(ARDemon demon, ARDemon.Phase phase) {
-                Float[] points = pipeline.requestTargets();
-                Vector3[] targets = new Vector3[points.length / 3];
-			    for (int i = 0; i < targets.length; i++) {
-			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+			    if (phase == ARDemon.Phase.CAPTURING) {
+			        scheduleRescueSpellTimer();
+
+					Float[] points = pipeline.requestTargets();
+                    Vector3[] targets = new Vector3[points.length / 3];
+                    for (int i = 0; i < targets.length; i++) {
+                        targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+                    }
+                    demon.setTargets(targets, getSession());
 				}
-				demon.setTargets(targets, getSession());
 			}
 		});
 
@@ -91,15 +100,7 @@ public class DemonGoGame extends ARCoreScene {
 
 			@Override
 			public void onSpellCompleted() {
-				if (!demon.moveToNextTarget()) {
-					Log.e("demon-go", "A winner is you!");
-					demon.setCaptured();
-
-					Intent intent = new Intent(context, MapActivity.class);
-					intent.putExtra("demon-captured", true);
-					context.startActivity(intent);
-				}
-				waitingForSpellCompletion = false;
+			    spellCompleted();
 			}
 		}, arDebug);
 
@@ -122,6 +123,34 @@ public class DemonGoGame extends ARCoreScene {
 		}
 
 		paused = false;
+	}
+
+	private void spellCompleted() {
+		waitingForSpellCompletion = false;
+
+		if (!demon.moveToNextTarget()) {
+			Log.e("demon-go", "A winner is you!");
+			demon.setCaptured();
+			Intent intent = new Intent(context, MapActivity.class);
+			intent.putExtra("demon-captured", true);
+			context.startActivity(intent);
+			return;
+		}
+		scheduleRescueSpellTimer();
+	}
+
+	private void scheduleRescueSpellTimer() {
+		if (catchSpellTimeout != null) {
+			catchSpellTimeout.cancel();
+		}
+		catchSpellTimeout = new Timer.Task() {
+			@Override
+			public void run() {
+				catchSpellTimeout = null;
+				hud.showSpell();
+			}
+		};
+		new Timer().scheduleTask(catchSpellTimeout, SECONDS_SPELL_SEARCH_TIMEOUT);
 	}
 
     private void update(Frame frame) {
@@ -156,6 +185,10 @@ public class DemonGoGame extends ARCoreScene {
 
 		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && distanceToDemon < 2) {
 			hud.showSpell();
+			if (catchSpellTimeout != null) {
+                catchSpellTimeout.cancel();
+				catchSpellTimeout = null;
+			}
 			waitingForSpellCompletion = true;
 		}
 

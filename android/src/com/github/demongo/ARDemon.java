@@ -255,7 +255,12 @@ public class ARDemon {
     }
 
     public void setCaptured() {
+        if (phase == Phase.CAPTURED) {
+            return;
+        }
+
         phase = Phase.CAPTURED;
+        phaseChangedListener.changed(this, getPhase());
     }
 
     // accessors for debug info

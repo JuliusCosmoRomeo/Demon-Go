@@ -14,7 +14,7 @@ public class SpellCanvas {
     }
 
     private static final float WIDTH = 40;
-    private static final int STEPS = 6;
+    private static final int STEPS = 4;
 
     private float canvasWidth;
     private float canvasHeight;

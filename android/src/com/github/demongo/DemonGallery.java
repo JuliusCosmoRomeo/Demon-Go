@@ -62,7 +62,7 @@ public class DemonGallery extends Activity {
 
         this.action = (Action) getIntent().getExtras().get("action");
         if (action == Action.Add) {
-            demons.add(new Demon(getIntent().getStringExtra("name"), 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+            demons.add(0, new Demon(getIntent().getStringExtra("name"), 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
         }
 
         db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
