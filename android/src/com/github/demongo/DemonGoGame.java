@@ -15,7 +15,6 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Timer;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.github.demongo.Map.MapActivity;
-import com.google.ar.core.Anchor;
 import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
@@ -26,9 +25,6 @@ import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
 
-import java.util.Collection;
-
-import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
@@ -66,9 +62,10 @@ public class DemonGoGame extends ARCoreScene {
 
 		angleChangeStep = new AngleChangeStep();
 		// currently angle change is disabled for debugging
-		pipeline = new Pipeline(context, new NullStep());
+		pipeline = new Pipeline(context, angleChangeStep);
 
 		assetManager = new AssetManager();
+		arDebug = new ARDebug();
 		demon = new ARDemon(getCamera(), assetManager, new ARDemon.PhaseChangedListener() {
 			@Override
 			public void changed(ARDemon demon, ARDemon.Phase phase) {
@@ -79,6 +76,7 @@ public class DemonGoGame extends ARCoreScene {
                     Vector3[] targets = new Vector3[points.length / 3];
                     for (int i = 0; i < targets.length; i++) {
                         targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
+						arDebug.addTargetPoint(targets[i]);
                     }
                     demon.setTargets(targets, getSession());
 				}
@@ -89,7 +87,6 @@ public class DemonGoGame extends ARCoreScene {
 		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
 		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
 
-		arDebug = new ARDebug();
 		overlay = new Overlay();
 		hud = new Hud(context, context.getResources().getDisplayMetrics().density, new Hud.TriggerListener() {
 			@Override
@@ -174,7 +171,7 @@ public class DemonGoGame extends ARCoreScene {
 			lastSnapshot = new ARSnapshot(1.0, frame);
 			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
-			Log.e("demon-go", "no image yet");
+//			Log.e("demon-go", "no image yet");
 		}
 
 		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);

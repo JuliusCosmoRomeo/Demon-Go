@@ -25,10 +25,9 @@ public class SendingStep extends StepWithQueue {
     private static final String TAG = "demon-go-SendingStep";
 
 //    private static final String URL = "http://206.189.248.195:5000";
-//    private static final String URL = "http://139.59.145.241:5000";
+    private static final String URL = "http://139.59.145.241:5000";
 //    private static final String URL = "http://tmbe.me:8088";
 //    private static final String URL = "http://pb8704.byod.hpi.de:5000";
-    private static final String URL = "http://10.42.0.1:5000";
 
     private RequestQueue requestQueue;
     private ScheduledExecutorService executorService;
@@ -88,13 +87,17 @@ public class SendingStep extends StepWithQueue {
             public void onResponse(String response) {
 //                Log.i(TAG, "Server response: " + response);
                 try {
-                    JSONObject jsonResponse = new JSONObject(response);
-                    double x = (double) jsonResponse.get("x");
-                    double y = (double) jsonResponse.get("y");
-                    Log.i(TAG, "onResponse: " + x + ", " + y);
-                    ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
-                    if(targetCoordinates != null) {
-                       pipeline.addTarget(targetCoordinates);
+                    if(!response.equals("{}")) {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        double x = (double) jsonResponse.get("x");
+                        double y = (double) jsonResponse.get("y");
+                        Log.i(TAG, "onResponse: " + x + ", " + y);
+                        ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
+                        if(targetCoordinates != null) {
+                            pipeline.addTarget(targetCoordinates);
+                        }
+                    } else {
+                        Log.i(TAG, "onResponse: empty response");
                     }
 
                 } catch (JSONException e) {
