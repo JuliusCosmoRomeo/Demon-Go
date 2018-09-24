@@ -36,7 +36,7 @@ public class Shot {
                 0.1f,
                 5,
                 GL20.GL_TRIANGLES,
-                new Material(ColorAttribute.createDiffuse(Color.RED)),
+                new Material(ColorAttribute.createDiffuse(new Color(1, 0, 0, 1))),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
 
         instance = new ModelInstance(model);

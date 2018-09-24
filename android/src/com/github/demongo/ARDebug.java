@@ -46,7 +46,7 @@ public class ARDebug {
             cube.transform.setToTranslation(points.get(), points.get(), points.get());
             float confidence = points.get();
 
-            cube.materials.get(0).set(ColorAttribute.createDiffuse(Color.RED.lerp(Color.GREEN, confidence)));
+            cube.materials.get(0).set(ColorAttribute.createDiffuse(Color.RED.cpy().lerp(Color.GREEN, confidence)));
             num++;
         }
 

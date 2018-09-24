@@ -92,6 +92,10 @@ public class SpellCanvas {
     }
 
     void render() {
+        final Color COMPLETED_COLOR = Color.GREEN;
+        final Color ERROR_COLOR = new Color(1, 0, 0, 1);
+        final Color UNCOMPLETED_COLOR = Color.WHITE;
+
         boolean flashing = mistakeFlashDuration > 0;
         if (flashing) {
             mistakeFlashDuration -= Gdx.graphics.getDeltaTime();
@@ -99,13 +103,13 @@ public class SpellCanvas {
 
         // start point
         renderer.begin(ShapeRenderer.ShapeType.Filled);
-        renderer.setColor(flashing ? Color.RED : progress > 0 || subProgress > 0 ? Color.GREEN : Color.WHITE);
+        renderer.setColor(flashing ? ERROR_COLOR : progress > 0 || subProgress > 0 ? COMPLETED_COLOR : UNCOMPLETED_COLOR);
         renderer.circle(points[0].x, points[0].y, WIDTH * 2);
         renderer.end();
 
         // draw uncompleted part
         renderer.begin(ShapeRenderer.ShapeType.Filled);
-        renderer.setColor(flashing ? Color.RED : Color.WHITE);
+        renderer.setColor(flashing ? ERROR_COLOR : UNCOMPLETED_COLOR);
         for (int i = progress; i < points.length - 1; i++) {
             renderer.rectLine(points[i], points[i + 1], WIDTH);
         }
@@ -113,7 +117,7 @@ public class SpellCanvas {
 
         // draw completed part
         renderer.begin(ShapeRenderer.ShapeType.Filled);
-        renderer.setColor(flashing ? Color.RED : Color.GREEN);
+        renderer.setColor(flashing ? ERROR_COLOR : COMPLETED_COLOR);
         for (int i = 0; i < progress; i++) {
             renderer.rectLine(points[i], points[i + 1], WIDTH);
         }
