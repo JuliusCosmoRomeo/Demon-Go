@@ -108,4 +108,6 @@ venv.bak/
 venv/
 images/*
 static/*
+processed/*
+
 *.db

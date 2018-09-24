@@ -22,6 +22,8 @@ import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
+
+import java.util.Arrays;
 import java.util.Collection;
 
 import hpi.gitlab.demongo.pipeline.NullStep;
@@ -64,7 +66,7 @@ public class DemonGoGame extends ARCoreScene {
 		demon = new ARDemon(getCamera(), assetManager, new ARDemon.PhaseChangedListener() {
 			@Override
 			public void changed(ARDemon demon, ARDemon.Phase phase) {
-                float[] points = pipeline.requestTargets();
+                Float[] points = pipeline.requestTargets();
                 Vector3[] targets = new Vector3[points.length / 3];
 			    for (int i = 0; i < targets.length; i++) {
 			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
@@ -158,7 +160,7 @@ public class DemonGoGame extends ARCoreScene {
 		ARSnapshot lastSnapshot = null;
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
-			// pipeline.add(lastSnapshot);
+			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
 			Log.e("demon-go", "no image yet");
 		}

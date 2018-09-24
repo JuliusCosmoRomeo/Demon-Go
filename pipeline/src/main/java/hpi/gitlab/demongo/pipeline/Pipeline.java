@@ -1,6 +1,7 @@
 package hpi.gitlab.demongo.pipeline;
 
 import android.content.Context;
+import android.util.Log;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Pipeline {
+    private static final String TAG = "demon-go-Pipeline";
 
     private BrandDetectionStep brandDetectionStep;
     private NoiseEstimationStep noiseEstimationStep;
@@ -29,6 +31,7 @@ public class Pipeline {
             add("mate_flasche");
         }});
     }};
+    private ArrayList<Float> targets = new ArrayList<Float>();
 
     public Pipeline(Context context, Step angleChangeStep) {
         RequestQueue requestQueue = Volley.newRequestQueue(context);
@@ -40,7 +43,7 @@ public class Pipeline {
         contourDetectionStep = new ContourDetectionStep();
         colorfulnessEstimationStep = new ColorfulnessEstimationStep();
         directSendStep = new DirectSendStep();
-        sendingStep = new SendingStep(requestQueue, context);
+        sendingStep = new SendingStep(requestQueue, context, this);
 
         blurEstimationStep
                 .next(angleChangeStep);
@@ -73,9 +76,15 @@ public class Pipeline {
         nextFrames.add(snapshot);
     }
 
+    public void addTarget(ArrayList<Float> targetCoordinates) {
+        Log.i(TAG, "addTarget: " + String.valueOf(targetCoordinates));
+        this.targets.addAll(targetCoordinates);
+    }
+
     // return {x0, y0, z0, x1, y1, z1, ...}
-    public float[] requestTargets() {
-        return new float[] {};
+    public Float[] requestTargets() {
+        Log.i(TAG,"requestTargets: " + this.targets.size());
+        return this.targets.toArray(new Float[0]);
     }
 
     public Mat debugAdd(Snapshot snapshot) {

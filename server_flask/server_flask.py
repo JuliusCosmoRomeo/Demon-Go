@@ -1,17 +1,23 @@
 import base64
 import multiprocessing
+import random
 
 import cv2
 import numpy as np
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
 
-from text_detection import TextDetection
+from text_detection import (
+    OCR,
+    TextDetection,
+)
+from ocr2 import get_string
+
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-td = TextDetection(split=True)
+td = TextDetection(split=False)
 
 
 @app.route('/', methods=['GET'])
@@ -46,6 +52,50 @@ def get_image():
     return 'gotcha'
 
 
+@app.route('/detect_text', methods=['POST'])
+def detect_text():
+    image_data = base64.b64decode(request.form['image'])
+
+    img = cv2.imdecode(
+        np.fromstring(image_data, dtype=np.uint8),
+        cv2.IMREAD_COLOR
+    )
+
+    socketio.emit(
+        'new image',
+        {'path': TextDetection.save_image(img)}
+    )
+
+    boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
+
+    HEIGHT, WIDTH, _ = img.shape
+
+    if boxes:
+        min_x, min_y, max_x, max_y = td.text_bounding_rect(
+            boxes, HEIGHT, WIDTH)
+        mid_point = {
+            'x': float(min_x + int((max_x-min_x) / 2)),
+            'y': float(min_y + int((max_y-min_y) / 2)),
+        }
+        print('Trying to consume:')
+        img_text = get_string(img)
+        print(f'Result: {img_text}')
+        td.draw_text_boxes(img, boxes)
+        socketio.emit(
+            'recognized_text',
+            {
+                'path': TextDetection.save_image(img),
+                'text': img_text,
+            }
+        )
+        print(mid_point)
+        return jsonify(mid_point)
+    else:
+        x = random.uniform(0, 1080)
+        y = random.uniform(0, 1920)
+        return jsonify({"x": x, "y": y})
+
+
 @app.route('/test', methods=['POST', 'GET'])
 def test():
     filename = 'examples/fsr.jpg'
@@ -70,7 +120,7 @@ def test():
 
 
 if __name__ == '__main__':
-    p = multiprocessing.Process(target=td.detect_text)
+    p = multiprocessing.Process(target=td.detection_loop)
     p.start()
 
     socketio.run(

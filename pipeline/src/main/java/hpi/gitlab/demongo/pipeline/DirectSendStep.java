@@ -10,9 +10,8 @@ public class DirectSendStep extends Step {
     @Override
     public void process(Snapshot last) {
         frame_counter += 1;
-        Log.i(TAG, "process.frame_send: " + frame_counter);
-
         if (frame_counter == 100) {
+            Log.i(TAG, "Sending " + frame_counter + "th frame");
             frame_counter = 0;
             this.output(last);
         }

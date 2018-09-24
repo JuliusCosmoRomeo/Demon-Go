@@ -10,6 +10,10 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -17,9 +21,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class SendingStep extends StepWithQueue {
-    private static final String TAG = SendingStep.class.getName();
+
+    private static final String TAG = "demon-go-SendingStep";
+
+//    private static final String URL = "http://206.189.248.195:5000";
 //    private static final String URL = "http://139.59.145.241:5000";
 //    private static final String URL = "http://tmbe.me:8088";
+//    private static final String URL = "http://pb8704.byod.hpi.de:5000";
     private static final String URL = "http://10.42.0.1:5000";
 
     private RequestQueue requestQueue;
@@ -28,9 +36,12 @@ public class SendingStep extends StepWithQueue {
     private static String uniqueID = null;
     private static final String PREF_UNIQUE_ID = "PREF_UNIQUE_ID";
 
+    private Pipeline pipeline;
 
-    SendingStep(RequestQueue requestQueue, Context context) {
+
+    SendingStep(RequestQueue requestQueue, Context context, Pipeline _pipeline) {
         this.requestQueue = requestQueue;
+        pipeline = _pipeline;
         uniqueID = id(context);
 
         Runnable senderRunnable = new Runnable() {
@@ -70,12 +81,25 @@ public class SendingStep extends StepWithQueue {
     }
 
     private void sendImage(final Snapshot snapshot) {
-        String url = URL + "/post";
+        String url = URL + "/detect_text";
 
         StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
             @Override
             public void onResponse(String response) {
-                Log.i(TAG, "Server response: " + response);
+//                Log.i(TAG, "Server response: " + response);
+                try {
+                    JSONObject jsonResponse = new JSONObject(response);
+                    double x = (double) jsonResponse.get("x");
+                    double y = (double) jsonResponse.get("y");
+                    Log.i(TAG, "onResponse: " + x + ", " + y);
+                    ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
+                    if(targetCoordinates != null) {
+                       pipeline.addTarget(targetCoordinates);
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         }, new Response.ErrorListener() {
             @Override
@@ -87,13 +111,13 @@ public class SendingStep extends StepWithQueue {
             protected Map<String, String> getParams() {
                 Map<String, String> params = snapshot.getRequestParameterList();
                 params.put("user_id", uniqueID);
-                Log.i(TAG, "getParams: " + uniqueID);
+//                Log.i(TAG, "getParams: " + uniqueID);
                 return params;
             }
         };
 
         this.requestQueue.add(request);
-        Log.e(TAG, "POST-request added: ");
+        Log.i(TAG, "POST-request added: ");
     }
 
     @Override
