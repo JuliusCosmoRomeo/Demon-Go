@@ -111,12 +111,12 @@ public class MapActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_map);
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.setStyleUrl("mapbox://styles/tom95/cji612zco1t3b2spbn7leib2q");
-        //clearAllStashes();
 
         battle = new DemonBattle(this,db);
 
@@ -153,7 +153,7 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.addOnMapLongClickListener(new MapboxMap.OnMapLongClickListener() {
                     @Override
                     public void onMapLongClick(@NonNull LatLng point) {
-                        Stash stash = new Stash(new ParcelUuid(UUID.randomUUID()), new ParcelUuid(playerId),
+                        final Stash stash = new Stash(new ParcelUuid(UUID.randomUUID()), new ParcelUuid(playerId),
                                 new ParcelableGeoPoint(new GeoPoint(point.getLatitude(), point.getLongitude())),
                                 0,
                                 1000,
@@ -212,7 +212,7 @@ public class MapActivity extends AppCompatActivity {
                 View container = getLayoutInflater().inflate(R.layout.map_info_window, null);
                 TextView playerName = container.findViewById(R.id.playerName);
 
-                boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+                final boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
                 String player = isCurrentPlayer ? "Demon-Hunter" : "Gegner";
                 playerName.setText("Besitzer: " + player);
 
@@ -359,8 +359,12 @@ public class MapActivity extends AppCompatActivity {
                 for (DocumentChange dc : snapshot.getDocumentChanges()) {
                     switch (dc.getType()){
                         case ADDED:
-                            Log.i(TAG, "New stash: " + dc.getDocument().getData());
+                            Log.i(TAG, "New stash: " + dc.getDocument().getData() + " (" + dc.getDocument().getId() + ")");
                             doc = dc.getDocument();
+                            if (!doc.contains("player_id") || !(doc.get("player_id") instanceof String)) {
+                                Log.i(TAG, "Skipping invalid document " + doc.getId());
+                                continue;
+                            }
                             stash = new Stash(doc.getData());
                             addStashMarkerWithDemons(stash, doc);
                             break;
@@ -427,7 +431,7 @@ public class MapActivity extends AppCompatActivity {
     }
 
 
-    private void fetchDemonsForStash(QueryDocumentSnapshot doc, final GeoPoint position){
+    private void fetchDemonsForStash(final QueryDocumentSnapshot doc, final GeoPoint position){
         db.collection("stashes").document(doc.getId()).collection("demons").addSnapshotListener(
             new EventListener<QuerySnapshot>() {
                 @Override
@@ -442,7 +446,7 @@ public class MapActivity extends AppCompatActivity {
                             case REMOVED:
                                 //added and removed are same for demon marker updates
                             case ADDED:
-                                ArrayList<Demon> demons = new ArrayList<>();
+                                final ArrayList<Demon> demons = new ArrayList<>();
                                 db.collection("stashes").document(doc.getId().toString()).collection("demons").get().addOnCompleteListener(
                                     new OnCompleteListener<QuerySnapshot>() {
                                         @Override
@@ -775,7 +779,7 @@ public class MapActivity extends AppCompatActivity {
         mapView.onSaveInstanceState(outState);
     }
 
-    private void onAttack(Demon demon){
+    private void onAttack(final Demon demon){
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
             new OnCompleteListener<QuerySnapshot>() {
                 @Override

@@ -8,6 +8,7 @@ import android.util.Log;
 import com.github.demongo.Map.MapActivity;
 import com.google.firebase.firestore.GeoPoint;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;

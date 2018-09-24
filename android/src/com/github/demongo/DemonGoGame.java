@@ -44,6 +44,8 @@ public class DemonGoGame extends ARCoreScene {
 
 	private Context context;
 
+	private boolean paused = true;
+
 	DemonGoGame(Context context) {
 		this.context = context;
 	}
@@ -62,8 +64,8 @@ public class DemonGoGame extends ARCoreScene {
 		demon = new ARDemon(getCamera(), assetManager, new ARDemon.PhaseChangedListener() {
 			@Override
 			public void changed(ARDemon demon, ARDemon.Phase phase) {
-			    float[] points = pipeline.requestTargets();
-			    Vector3[] targets = new Vector3[points.length / 3];
+                float[] points = pipeline.requestTargets();
+                Vector3[] targets = new Vector3[points.length / 3];
 			    for (int i = 0; i < targets.length; i++) {
 			    	targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
 				}
@@ -111,6 +113,8 @@ public class DemonGoGame extends ARCoreScene {
 		} catch (CameraNotAvailableException e) {
 			Log.e("demon-go-camera", "camera not available");
 		}
+
+		paused = false;
 	}
 
 	private Anchor cloudAnchor;
@@ -135,7 +139,11 @@ public class DemonGoGame extends ARCoreScene {
         }
     }
 
-    public void update(Frame frame) {
+    private void update(Frame frame) {
+	    if (paused) {
+	    	return;
+		}
+
 		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
 			hud.setLoading(false);
 		}
@@ -189,5 +197,17 @@ public class DemonGoGame extends ARCoreScene {
 	protected void postRender(Frame frame) {
 	    // overlay.render(frame.getCamera().getPose());
 	    hud.draw();
+	}
+
+	@Override
+	public void pause() {
+		super.pause();
+		paused = true;
+	}
+
+	@Override
+	public void resume() {
+		super.resume();
+		paused = false;
 	}
 }

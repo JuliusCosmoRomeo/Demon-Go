@@ -16,7 +16,7 @@ import java.util.ArrayList;
 public class StashUtils {
 
 
-    public static void updateRadius(FirebaseFirestore db, Stash currentStash) {
+    public static void updateRadius(final FirebaseFirestore db, final Stash currentStash) {
         final String TAG = "demon-go-stash-utils";
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").get().addOnCompleteListener(
                 new OnCompleteListener<QuerySnapshot>() {
@@ -28,7 +28,7 @@ public class StashUtils {
                                 Demon defender = new Demon(document.getData());
                                 totalDefenderHP += defender.getHp();
                             }
-                            double radius = (double)totalDefenderHP/1000;
+                            final double radius = (double)totalDefenderHP/1000;
                             //check if this radius is possible
                             db.collection("stashes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                 @Override
