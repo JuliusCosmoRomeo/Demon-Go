@@ -26,6 +26,7 @@ import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
 
+import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
@@ -52,6 +53,13 @@ public class DemonGoGame extends ARCoreScene {
 
 	private Timer.Task catchSpellTimeout;
 
+	private ConfidentVector3[] bestVectors = {
+        new ConfidentVector3(new Vector3(-30, 1, 0), 0),
+        new ConfidentVector3(new Vector3(30, 1, 0), 0),
+        new ConfidentVector3(new Vector3(0, 1, -30), 0),
+        new ConfidentVector3(new Vector3(0, 1, 30), 0)
+	};
+
 	DemonGoGame(Context context) {
 		this.context = context;
 	}
@@ -64,7 +72,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		angleChangeStep = new AngleChangeStep();
 		// currently angle change is disabled for debugging
-		pipeline = new Pipeline(context, angleChangeStep);
+		pipeline = new Pipeline(context, new NullStep());
 
 		assetManager = new AssetManager();
 		arDebug = new ARDebug();
@@ -79,7 +87,7 @@ public class DemonGoGame extends ARCoreScene {
                     for (int i = 0; i < targets.length; i++) {
                         targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
                     }
-                    demon.setTargets(targets, getSession());
+                    demon.setTargets(targets, getSession(), bestVectors);
 
 					for (Anchor anchor : demon.getAnchors())
                         arDebug.addTargetPoint(new Vector3(anchor.getPose().getTranslation()));
@@ -158,6 +166,20 @@ public class DemonGoGame extends ARCoreScene {
 		new Timer().scheduleTask(catchSpellTimeout, SECONDS_SPELL_SEARCH_TIMEOUT);
 	}
 
+	private void maybeUseBestVector(ConfidentVector3 vector) {
+		int closest = 0;
+		float distance = vector.distance(bestVectors[0]);
+		for (int i = 1; i < bestVectors.length; i++) {
+			float newDistance = vector.distance(bestVectors[i]);
+			if (newDistance < distance) {
+				distance = newDistance;
+				closest = i;
+			}
+		}
+		if (vector.confidence > bestVectors[closest].confidence)
+            bestVectors[closest] = vector;
+	}
+
     private void update(Frame frame) {
 	    if (paused) {
 	    	return;
@@ -177,6 +199,7 @@ public class DemonGoGame extends ARCoreScene {
 		lastSnapshot = null;
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
+			maybeUseBestVector(lastSnapshot.bestTracked);
 			pipeline.add(lastSnapshot);
 		} catch (NotYetAvailableException e) {
 //			Log.e("demon-go", "no image yet");
@@ -188,7 +211,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		float distanceToDemon = demon.getPosition().dst(cameraPosition);
 
-		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && distanceToDemon < 2) {
+		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && demon.getCurrentTarget().dst(cameraPosition) < 0.5) {
 			hud.showSpell();
 			if (catchSpellTimeout != null) {
                 catchSpellTimeout.cancel();
