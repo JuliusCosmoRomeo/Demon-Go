@@ -15,6 +15,7 @@ import com.badlogic.gdx.math.collision.Ray;
 import com.badlogic.gdx.utils.Timer;
 import com.github.claywilkinson.arcore.gdx.ARCoreScene;
 import com.github.demongo.Map.MapActivity;
+import com.google.ar.core.Anchor;
 import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
@@ -77,9 +78,11 @@ public class DemonGoGame extends ARCoreScene {
                     Vector3[] targets = new Vector3[points.length / 3];
                     for (int i = 0; i < targets.length; i++) {
                         targets[i] = new Vector3(points[i * 3], points[i * 3 + 1], points[i * 3 + 2]);
-						arDebug.addTargetPoint(targets[i]);
                     }
                     demon.setTargets(targets, getSession());
+
+					for (Anchor anchor : demon.getAnchors())
+                        arDebug.addTargetPoint(new Vector3(anchor.getPose().getTranslation()));
 				}
 			}
 		});
@@ -179,11 +182,11 @@ public class DemonGoGame extends ARCoreScene {
 //			Log.e("demon-go", "no image yet");
 		}
 
-		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, getCamera().position);
 		Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());
-		getCamera().view.getTranslation(cameraPosition);
+		demon.move(lastSnapshot != null ? lastSnapshot.min : null, lastSnapshot != null ? lastSnapshot.max : null, cameraPosition);
+		// getCamera().view.getTranslation(cameraPosition);
 
-		float distanceToDemon = demon.getCurrentTarget().dst(cameraPosition);
+		float distanceToDemon = demon.getPosition().dst(cameraPosition);
 
 		if (!waitingForSpellCompletion && demon.getPhase() == ARDemon.Phase.CAPTURING && distanceToDemon < 2) {
 			hud.showSpell();
@@ -194,7 +197,7 @@ public class DemonGoGame extends ARCoreScene {
 			waitingForSpellCompletion = true;
 		}
 
-		arDebug.update(frame, demon, distanceToDemon);
+		arDebug.update(frame, demon, distanceToDemon, "Camera: " + cameraPosition.toString() + "\n" + "Demon: " + demon.getPosition().toString() + "\n");
 	}
 
 	@Override

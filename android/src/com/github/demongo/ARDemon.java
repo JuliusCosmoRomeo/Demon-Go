@@ -53,6 +53,8 @@ public class ARDemon {
         FIXED_BOX
     }
 
+    private static final float DEMON_SCALE = 0.6f;
+
     private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
 
     private static final int MIN_TARGETS = 3;
@@ -88,6 +90,7 @@ public class ARDemon {
                 new Material(ColorAttribute.createDiffuse(Color.RED)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         demonModel = assetManager.get(MODEL_PATH, Model.class);
+        demonModel.meshes.get(0).scale(DEMON_SCALE, DEMON_SCALE, DEMON_SCALE);
 
         instance = new ModelInstance(sphereModel);
     }
@@ -209,6 +212,10 @@ public class ARDemon {
         }
     }
 
+    Anchor[] getAnchors() {
+        return anchors;
+    }
+
     public void render(ModelBatch modelBatch, Environment environment) {
         if (phase == Phase.CAPTURED)
             return;
@@ -226,6 +233,10 @@ public class ARDemon {
         if (phase != Phase.CAPTURING)
             return Vector3.Zero;
         return anchorToTranslation(anchors[currentTarget]);
+    }
+
+    public Vector3 getPosition() {
+        return position;
     }
 
     public void shoot(Ray ray) {
