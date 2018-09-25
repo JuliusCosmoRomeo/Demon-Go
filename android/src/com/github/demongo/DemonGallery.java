@@ -45,13 +45,7 @@ public class DemonGallery extends Activity {
     private Action action;
     private CustomPagerAdapter mCustomPagerAdapter;
     private ViewPager mViewPager;
-    private final List<Demon> demons = new ArrayList<Demon>(){{
-        add(new Demon("luschi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        add(new Demon("flupsi",110,110,50,400, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        add(new Demon("schnucksi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        add(new Demon("superstubsi",350,350,150,5200, R.drawable.notification_icon,Demon.Type.Marid, nullStashId, new ParcelUuid(UUID.randomUUID())));
-    }};
+    private final List<Demon> demons = new ArrayList<Demon>();
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
 
@@ -61,9 +55,9 @@ public class DemonGallery extends Activity {
         setContentView(R.layout.activity_demon_gallery);
 
         this.action = (Action) getIntent().getExtras().get("action");
-        if (action == Action.Add) {
+        /*if (action == Action.Add) {
             demons.add(0, new Demon(getIntent().getStringExtra("name"), 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        }
+        }*/
 
         db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
