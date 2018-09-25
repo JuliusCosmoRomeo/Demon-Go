@@ -64,7 +64,7 @@ public class Pipeline {
                 .next(sendingStep);
 
        angleChangeStep
-               .next(brandDetectionStep)
+               .next(brandDetectionStep);
                // .next(sendingStep);
         nextFrames = new CircularFifoQueue<>(10);
 
@@ -81,6 +81,10 @@ public class Pipeline {
 
     public void add(Snapshot snapshot) {
         nextFrames.add(snapshot);
+    }
+
+    public void sendImmediately(Snapshot snapshot) {
+        sendingStep.queue(snapshot);
     }
 
     public void addTarget(ArrayList<Float> targetCoordinates) {

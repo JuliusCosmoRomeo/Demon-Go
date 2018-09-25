@@ -46,6 +46,7 @@ public class DemonGoGame extends ARCoreScene {
 
 	private Context context;
 
+	private ARSnapshot lastSnapshot;
 	private boolean paused = true;
 
 	private Timer.Task catchSpellTimeout;
@@ -125,6 +126,10 @@ public class DemonGoGame extends ARCoreScene {
 	private void spellCompleted() {
 		waitingForSpellCompletion = false;
 
+		if (lastSnapshot != null) {
+			pipeline.sendImmediately(lastSnapshot.copyWithNewScore(9999999.0));
+		}
+
 		if (!demon.moveToNextTarget()) {
 			Log.e("demon-go", "A winner is you!");
 			demon.setCaptured();
@@ -166,7 +171,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
 
-		ARSnapshot lastSnapshot = null;
+		lastSnapshot = null;
 		try {
 			lastSnapshot = new ARSnapshot(1.0, frame);
 			pipeline.add(lastSnapshot);
