@@ -1,10 +1,10 @@
 import base64
 import datetime
 import multiprocessing
-import random
 
 import cv2
 import numpy as np
+import imutils
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
 
@@ -23,9 +23,12 @@ td = TextDetection(split=False)
 def read_image_data(request):
     image_data = base64.b64decode(request.form['image'])
 
-    return cv2.imdecode(
-        np.fromstring(image_data, dtype=np.uint8),
-        cv2.IMREAD_COLOR
+    return imutils.rotate_bound(
+        cv2.imdecode(
+            np.fromstring(image_data, dtype=np.uint8),
+            cv2.IMREAD_COLOR
+        ),
+        90
     )
 
 
@@ -123,10 +126,15 @@ def detect_text():
     if boxes:
         min_x, min_y, max_x, max_y = td.text_bounding_rect(
             boxes, HEIGHT, WIDTH)
+
+        rotated_x = float(min_x + int((max_x-min_x) / 2))
+        rotated_y = float(min_y + int((max_y-min_y) / 2))
+
         mid_point = {
-            'x': float(min_x + int((max_x-min_x) / 2)),
-            'y': float(min_y + int((max_y-min_y) / 2)),
+            'x': rotated_y,
+            'y': WIDTH - rotated_x,
         }
+
         print('Trying to consume:')
         td.draw_text_boxes(img, boxes)
 

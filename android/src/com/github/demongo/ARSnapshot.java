@@ -93,8 +93,8 @@ public class ARSnapshot extends Snapshot {
     Vector3 max = new Vector3();
     Vector3 min = new Vector3();
 
-    private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix, Mat debugMat) {
-        super(mat, score, debugMat);
+    private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix, Mat debugMat, int x_off, int y_off) {
+        super(mat, score, debugMat, x_off, y_off);
         this.points = points;
         this.viewProjectionMatrix = viewProjectionMatrix;
     }
@@ -241,15 +241,15 @@ public class ARSnapshot extends Snapshot {
     }
 
     public ARSnapshot copyWith(Mat newMat, double newScore) {
-        return new ARSnapshot(newMat, newScore, points, viewProjectionMatrix, getDebugMat());
+        return new ARSnapshot(newMat, newScore, points, viewProjectionMatrix, getDebugMat(), x_offset, y_offset);
     }
 
-    public ARSnapshot copyWithNewMat(Mat newMat) {
-        return new ARSnapshot(newMat, score, points, viewProjectionMatrix, getDebugMat());
+    public ARSnapshot copyWithNewMat(Mat newMat, int x_off, int y_off) {
+        return new ARSnapshot(newMat, score, points, viewProjectionMatrix, getDebugMat(), x_off, y_off);
     }
 
     public ARSnapshot copyWithNewScore(double newScore) {
-        return new ARSnapshot(mat, newScore, points, viewProjectionMatrix, getDebugMat());
+        return new ARSnapshot(mat, newScore, points, viewProjectionMatrix, getDebugMat(), x_offset, y_offset);
     }
 
     @Override
