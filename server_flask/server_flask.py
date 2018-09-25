@@ -57,7 +57,7 @@ def get_image():
 
 @app.route('/brand', methods=['POST'])
 def add_brand():
-    brand_key = request.get_json().get('brand', None)
+    brand_key = request.form['brand']
 
     if brand_key:
         socketio.emit(
@@ -129,6 +129,13 @@ def detect_text():
         }
         print('Trying to consume:')
         td.draw_text_boxes(img, boxes)
+
+        socketio.emit(
+            'recognized_text', {
+                'path': TextDetection.save_image(img),
+                'textboxes': len(boxes),
+            }
+        )
 
         print(mid_point)
         return jsonify(mid_point)

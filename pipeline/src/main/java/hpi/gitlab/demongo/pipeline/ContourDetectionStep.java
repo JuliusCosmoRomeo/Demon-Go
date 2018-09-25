@@ -18,7 +18,7 @@ import java.util.List;
 
 
 public class ContourDetectionStep extends Step {
-    private static final String TAG = ContourDetectionStep.class.getName();
+    private static final String TAG = "demon-go-contour-step";
     private static final double MIN_CONTOUR_SIZE = 700;
     private static final double CONTOUR_EDGES = 4;
 
@@ -80,7 +80,9 @@ public class ContourDetectionStep extends Step {
                         Imgproc.drawContours(snap.getDebugMat(), approx, 0, new Scalar(255, 0, 0), 2);
                     }
 
-                    Mat roi = snap.mat.submat(rect);
+                    Mat roi = snap.mat.submat(rect).clone();
+                    Log.i(TAG, "roi " + roi.toString());
+
                     this.output(snap.copyWithNewMat(roi));
                 }
             }
