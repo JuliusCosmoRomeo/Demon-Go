@@ -136,7 +136,8 @@ public class DemonBattle {
                 Log.i(TAG, "deleting defeated stash");
                 db.collection("stashes").document(stashId).delete();
             } else {
-                StashUtils.updateRadius(db,stash);
+                stash.setRadius(0);
+                db.collection("stashes").document(stashId).set(stash.getMap());
             }
         } else {
             attRef.delete();

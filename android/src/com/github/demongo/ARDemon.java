@@ -53,6 +53,8 @@ public class ARDemon {
         FIXED_BOX
     }
 
+    private static final float DEMON_SCALE = 0.4f;
+
     private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
 
     private static final int MIN_TARGETS = 3;
@@ -88,6 +90,7 @@ public class ARDemon {
                 new Material(ColorAttribute.createDiffuse(Color.RED)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         demonModel = assetManager.get(MODEL_PATH, Model.class);
+        demonModel.meshes.get(0).scale(DEMON_SCALE, DEMON_SCALE, DEMON_SCALE);
 
         instance = new ModelInstance(sphereModel);
     }
@@ -190,12 +193,26 @@ public class ARDemon {
      *
      * @param t list of target vector positions
      */
-    public void setTargets(Vector3[] t, Session session) {
+    public void setTargets(Vector3[] t, Session session, ConfidentVector3[] bestVectors) {
         Vector3[] targets = new Vector3[Math.min(Math.max(t.length, MIN_TARGETS), MAX_TARGETS)];
+        int usedBestVectors = -1;
+
         if (t.length < MIN_TARGETS) {
             System.arraycopy(t, 0, targets, 0, t.length);
             for (int i = t.length; i < MIN_TARGETS; i++) {
-                Vector3 point = randomPointInRoom(1.5f);
+                Vector3 point = null;
+                while (usedBestVectors < bestVectors.length - 1) {
+                    usedBestVectors++;
+                    if (bestVectors[usedBestVectors].confidence > 0) {
+                        point = bestVectors[usedBestVectors].vector;
+                        break;
+                    }
+                }
+
+                // if none of the vectors were valid or we used all of the valid ones
+                if (point == null)
+                    point = randomPointInRoom(1.5f);
+
                 targets[i] = point;
             }
         } else if (t.length > MAX_TARGETS) {
@@ -207,6 +224,10 @@ public class ARDemon {
             Vector3 point = targets[i];
             anchors[i] = session.createAnchor(Pose.makeTranslation(point.x, point.y, point.z));
         }
+    }
+
+    Anchor[] getAnchors() {
+        return anchors;
     }
 
     public void render(ModelBatch modelBatch, Environment environment) {
@@ -226,6 +247,10 @@ public class ARDemon {
         if (phase != Phase.CAPTURING)
             return Vector3.Zero;
         return anchorToTranslation(anchors[currentTarget]);
+    }
+
+    public Vector3 getPosition() {
+        return position;
     }
 
     public void shoot(Ray ray) {

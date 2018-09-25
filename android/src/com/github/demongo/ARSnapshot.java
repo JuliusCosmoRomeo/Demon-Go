@@ -23,6 +23,25 @@ import java.util.ArrayList;
 
 import hpi.gitlab.demongo.pipeline.Snapshot;
 
+class ConfidentVector3 {
+    Vector3 vector;
+    float confidence;
+
+    ConfidentVector3(Vector3 v, float c) {
+        vector = v;
+        confidence = c;
+    }
+
+    void set(float x, float y, float z, float c) {
+        vector.set(x, y, z);
+        confidence = c;
+    }
+
+    float distance(ConfidentVector3 v) {
+        return vector.dst(v.vector);
+    }
+}
+
 public class ARSnapshot extends Snapshot {
     private static final String TAG = "demon-go-ARSnapshot";
 
@@ -93,6 +112,8 @@ public class ARSnapshot extends Snapshot {
     Vector3 max = new Vector3();
     Vector3 min = new Vector3();
 
+    ConfidentVector3 bestTracked = new ConfidentVector3(new Vector3(0, 0, 0), 0);
+
     private ARSnapshot(Mat mat, double score, float[] points, float[] viewProjectionMatrix, Mat debugMat, int x_off, int y_off) {
         super(mat, score, debugMat, x_off, y_off);
         this.points = points;
@@ -122,7 +143,10 @@ public class ARSnapshot extends Snapshot {
             points[num++] = x;
             points[num++] = y;
             points[num++] = z;
-            cloud.get(); // confidence
+            float confidence = cloud.get();
+            if (confidence > bestTracked.confidence) {
+                bestTracked.set(x, y, z, confidence);
+            }
         }
         c.release();
     }

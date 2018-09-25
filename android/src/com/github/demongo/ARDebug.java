@@ -38,7 +38,7 @@ public class ARDebug {
         createRoomSizeIndicator();
     }
 
-    public void update(Frame frame, ARDemon demon, float distanceToDemon) {
+    public void update(Frame frame, ARDemon demon, float distanceToDemon, String other) {
         PointCloud cloud = frame.acquirePointCloud();
         FloatBuffer points = cloud.getPoints();
 
@@ -64,6 +64,7 @@ public class ARDebug {
         updateRoomSize(demon.getRoomMin(), demon.getRoomMax());
 
         infoString = "Debug:\n" +
+                other +
                 "Phase: " + demon.getPhase().toString() + "\n" +
                 (demon.getPhase() == ARDemon.Phase.CAPTURING ? "Distance to Demon: " + distanceToDemon + "\n" : "");
     }

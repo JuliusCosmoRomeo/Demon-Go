@@ -19,15 +19,13 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.demongo.AndroidLauncher;
 import com.github.demongo.Demon;
 import com.github.demongo.DemonBattle;
 import com.github.demongo.DemonGallery;
-import com.github.demongo.DemonGoGame;
 import com.github.demongo.ParcelableGeoPoint;
-import com.github.demongo.PlayerUtil;
+import com.github.demongo.PlayerUtils;
 import com.github.demongo.R;
 import com.github.demongo.Stash;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -35,6 +33,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
@@ -56,6 +55,7 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
@@ -68,7 +68,7 @@ import static com.github.demongo.Demon.Type.Djinn;
 import static com.github.demongo.Demon.Type.Foliot;
 import static com.github.demongo.Demon.Type.Imp;
 import static com.github.demongo.Demon.Type.Marid;
-import static com.mapbox.mapboxsdk.style.expressions.Expression.bool;
+import static com.github.demongo.DemonGallery.nullStashId;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.eq;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.exponential;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.get;
@@ -121,11 +121,19 @@ public class MapActivity extends AppCompatActivity {
 
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_map);
-        mapView = (MapView) findViewById(R.id.mapView);
+        mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.setStyleUrl("mapbox://styles/tom95/cji612zco1t3b2spbn7leib2q");
 
         battle = new DemonBattle(this,db);
+
+        fetchPlayerEP();
+
+        db.collection("players").document(playerId.toString()).set(new HashMap<String,Object>(){{
+            put("ep",10000);
+        }});
+
+        resetPlayerDemons();
 
         stashMarkerMap = new HashMap();
         demonMarkerMap = new HashMap();
@@ -178,12 +186,8 @@ public class MapActivity extends AppCompatActivity {
                                 }
                             }
                         });
-
-                        //addNewStashMarker(stash);
-                        //addDemonMarkers(new Demon("luschi",100,30,230, R.drawable.notification_icon,Demon.Type.Imp, stash.getId()),point);
                     }
                 });
-
                 addCustomInfoWindowAdapter();
             }
         });
@@ -193,10 +197,45 @@ public class MapActivity extends AppCompatActivity {
         new NameDialog(this, new NameDialogChosenListener() {
             @Override
             public void nameChosen(String name) {
+                Demon demon = new Demon(name, 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID()));
+                db.collection("stashes").document(nullStashId.toString()).collection("demons").add(demon.getMap());
+
                 Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
-                demonGallery.putExtra("action", DemonGallery.Action.Add);
-                demonGallery.putExtra("name", name);
                 startActivityForResult(demonGallery, GALLERY_REQUEST);
+            }
+        });
+    }
+
+    private void fetchPlayerEP(){
+        db.collection("players").document(playerId.toString()).addSnapshotListener(new EventListener<DocumentSnapshot>() {
+            @Override
+            public void onEvent(@javax.annotation.Nullable DocumentSnapshot snapshot, @javax.annotation.Nullable FirebaseFirestoreException e) {
+
+                long ep = (long) snapshot.getData().get("ep");
+                TextView epLabel = findViewById(R.id.epLabel);
+                epLabel.setText(ep + " EP");
+            }
+        });
+    }
+
+    private void resetPlayerDemons(){
+
+        db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+
+                for (QueryDocumentSnapshot demon : task.getResult()) {
+                    demon.getReference().delete();
+                }
+
+                ArrayList<Demon> demons = new ArrayList<Demon>(){{
+                    add(new Demon("flupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("schnucksi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                }};
+                for(Demon demon : demons){
+                    db.collection("stashes").document(nullStashId.toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
+                }
             }
         });
     }
@@ -231,12 +270,12 @@ public class MapActivity extends AppCompatActivity {
                 View container = getLayoutInflater().inflate(R.layout.map_info_window, null);
                 TextView playerName = container.findViewById(R.id.playerName);
 
-                final boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+                final boolean isCurrentPlayer = PlayerUtils.isCurrentPlayer(stash.getPlayerID(),playerId);
                 String player = isCurrentPlayer ? "Demon-Hunter" : "Gegner";
                 playerName.setText("Besitzer: " + player);
 
                 TextView radius = container.findViewById(R.id.radius);
-                radius.setText("Radius:" + stash.getRadius() + " km");
+                radius.setText("Radius: " + (int)(stash.getRadius() * 1000) + " m");
 
                 TextView capacity = container.findViewById(R.id.capacity);
                 String fillStatus = isCurrentPlayer ? stash.getFilled() +"/" +stash.getCapacity() + " EP" : stash.getFilled() + " EP";
@@ -244,7 +283,7 @@ public class MapActivity extends AppCompatActivity {
 
                 LinearLayout buttonContainer = container.findViewById(R.id.buttonContainer);
 
-                if (PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId)){
+                if (PlayerUtils.isCurrentPlayer(stash.getPlayerID(),playerId)){
                     ImageButton defendBtn = new ImageButton(MapActivity.this);
                     defendBtn.setImageResource(R.drawable.icons8_schild);
                     defendBtn.setBackground(null);
@@ -279,9 +318,9 @@ public class MapActivity extends AppCompatActivity {
                             @Override
                             public void onClick(View v) {
                                 //player.setEP(+=stash.getFilled);
-                                stash.setFilled(0);
-                                db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+                                PlayerUtils.clearStash(currentStash,db);
                                 marker.hideInfoWindow();
+
                             }
                         });
                         buttonContainer.addView(stealBtn);
@@ -294,9 +333,7 @@ public class MapActivity extends AppCompatActivity {
                         stealBtn.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
-                                //player.setEP(+=stash.getFilled);
-                                stash.setFilled(0);
-                                db.collection("stashes").document(stash.getId().toString()).set(stash.getMap());
+                                PlayerUtils.clearStash(currentStash,db);
                                 marker.hideInfoWindow();
                             }
                         });
@@ -406,7 +443,7 @@ public class MapActivity extends AppCompatActivity {
     private void addStashMarkerWithDemons(Stash stash, QueryDocumentSnapshot doc) {
         GeoPoint position = stash.getLocation();
         if (position != null)  {
-            boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+            boolean isCurrentPlayer = PlayerUtils.isCurrentPlayer(stash.getPlayerID(),playerId);
             if (stash.getRadius()==-1){
                 stash.setRadius(1);
             }
@@ -421,7 +458,7 @@ public class MapActivity extends AppCompatActivity {
 
     private void updateStashMarker(Stash stash){
         removeStashMarker(stash.getId());
-        boolean isCurrentPlayer = PlayerUtil.isCurrentPlayer(stash.getPlayerID(),playerId);
+        boolean isCurrentPlayer = PlayerUtils.isCurrentPlayer(stash.getPlayerID(),playerId);
         Log.i(TAG, "stash player id " + stash.getPlayerID().toString());
         Log.i(TAG, "is current player " + isCurrentPlayer);
         if (stash.getRadius()==-1){
@@ -492,7 +529,7 @@ public class MapActivity extends AppCompatActivity {
 
     private void addStashMarker(Stash stash, boolean isCurrentPlayer){
 
-        //we don't want to display empty (new) stashes with no defenders to other players
+        //we don't want to display empty (new) stashes (of others) with no defenders
         if (stash.getFilled()!=0 || stash.hasDefenders() || isCurrentPlayer){
             LatLng pos = new LatLng(stash.getLocation().getLatitude(), stash.getLocation().getLongitude());
             StashMarkerOptions markerOptions = new StashMarkerOptions(stash);
@@ -717,19 +754,7 @@ public class MapActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int which) {
                         //deposit value to stash
                         marker.hideInfoWindow();
-                        stash.setFilled(slider.getProgress());
-                        db.collection("stashes").document(stash.getId().toString()).set(stash.getMap()).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void aVoid) {
-                                Log.d(TAG, "DocumentSnapshot successfully written! ");
-                            }
-                        })
-                                .addOnFailureListener(new OnFailureListener() {
-                                    @Override
-                                    public void onFailure(@NonNull Exception e) {
-                                        Log.w(TAG, "Error writing document", e);
-                                    }
-                                });
+                        PlayerUtils.updateEp(stash,db,-(slider.getProgress()-stash.getFilled()));
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -826,6 +851,7 @@ public class MapActivity extends AppCompatActivity {
         //addDemonMarkers(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
         StashUtils.updateRadius(db,currentStash);
+        db.collection("stashes").document(nullStashId.toString()).collection("demons").document(demon.getId().toString()).delete();
     }
 
     @Override

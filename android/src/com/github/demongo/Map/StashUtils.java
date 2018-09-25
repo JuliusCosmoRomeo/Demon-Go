@@ -23,12 +23,14 @@ public class StashUtils {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         long totalDefenderHP = 0;
+
                         if (task.isSuccessful()) {
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 Demon defender = new Demon(document.getData());
                                 totalDefenderHP += defender.getHp();
                             }
                             final double radius = (double)totalDefenderHP/1000;
+                            final int demonCount = task.getResult().size();
                             //check if this radius is possible
                             db.collection("stashes").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
                                 @Override
@@ -45,10 +47,11 @@ public class StashUtils {
                                         } else {
                                             currentStash.setRadius(radius);
                                         }
+                                        currentStash.setCapacity(1000 + (demonCount*1000));
                                         currentStash.setHasDefenders(true);
                                         Log.i(TAG, "stash before update " + currentStash.toString());
-                                        db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
                                     }
+                                    db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
 
                                 }
                             });
