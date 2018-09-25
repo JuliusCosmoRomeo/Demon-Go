@@ -27,7 +27,8 @@ public class Stash implements Parcelable {
     private ParcelUuid playerID;
     private final ParcelableGeoPoint location;
     private double radius;
-    private final long capacity;
+
+    private long capacity;
 
     private long filled;
     private boolean hasDefenders;
@@ -128,6 +129,12 @@ public class Stash implements Parcelable {
         this.filled = filled;
         this.map.put(FILLED,this.filled);
     }
+
+    public void setCapacity(long capacity) {
+        this.capacity = capacity;
+        this.map.put(CAPACITY,capacity);
+    }
+
 
     public boolean hasDefenders(){
         return this.hasDefenders;

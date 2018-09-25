@@ -133,7 +133,7 @@ public class MapActivity extends AppCompatActivity {
             put("ep",10000);
         }});
 
-        //resetPlayerDemons();
+        resetPlayerDemons();
 
         stashMarkerMap = new HashMap();
         demonMarkerMap = new HashMap();
@@ -234,7 +234,7 @@ public class MapActivity extends AppCompatActivity {
                     add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
                 }};
                 for(Demon demon : demons){
-                    db.collection("stashes").document(nullStashId.toString()).collection("demons").add(demon.getMap());
+                    db.collection("stashes").document(nullStashId.toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
                 }
             }
         });
@@ -851,6 +851,7 @@ public class MapActivity extends AppCompatActivity {
         //addDemonMarkers(demon,new LatLng(currentStash.getLocation().getLatitude(), currentStash.getLocation().getLongitude()));
         db.collection("stashes").document(currentStash.getId().toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
         StashUtils.updateRadius(db,currentStash);
+        db.collection("stashes").document(nullStashId.toString()).collection("demons").document(demon.getId().toString()).delete();
     }
 
     @Override
