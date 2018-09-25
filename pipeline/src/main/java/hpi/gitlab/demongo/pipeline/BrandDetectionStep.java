@@ -33,22 +33,32 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+
 public class BrandDetectionStep extends Step {
+
+    static final public class BrandLogo {
+        public final String logo_name;
+        public final Integer threshold;
+        public Template template;
+        public BrandLogo(String name, Integer thresh) {
+            this.logo_name = name;
+            this.threshold = thresh;
+        }
+    }
 
     private static final String TAG = "demon-go-brand-det";
     FeatureDetector Orbdetector;
     DescriptorExtractor OrbExtractor;
     DescriptorMatcher matcher;
-    //all templates go into this map
-    HashMap<String, ArrayList<Template>> objectTemplateMap = new HashMap();
 
 
     private Context context;
     private long lastNotificationTimestamp = System.currentTimeMillis();
     private final String NOTIFICATION_CHANNEL_ID = "demon-go-notifications";
     private int notificationId = 0;
+    private HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> templatesMap;
 
-    public BrandDetectionStep(Context context, HashMap<String, ArrayList<String>> templatesMap){
+    public BrandDetectionStep(Context context, HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> templatesMap){
         this.context = context;
         createNotificationChannel();
 
@@ -72,12 +82,12 @@ public class BrandDetectionStep extends Step {
         //read the template images and save them in the local template list
         InputStream stream = null;
         for (String object : templatesMap.keySet()){
-            for (String templateString : templatesMap.get(object)) {
+            for (BrandDetectionStep.BrandLogo logo : templatesMap.get(object)) {
                 Mat templ;
                 MatOfKeyPoint keypointsTemplate = new MatOfKeyPoint();
                 Mat descriptorsTemplate = new Mat();
 
-                Uri uri = Uri.parse(templateString + ".png");
+                Uri uri = Uri.parse(logo.logo_name + ".png");
 
                 try {
                     stream = context.getAssets().open(uri.toString());
@@ -96,17 +106,10 @@ public class BrandDetectionStep extends Step {
                 Orbdetector.detect(templ, keypointsTemplate);
                 OrbExtractor.compute(templ, keypointsTemplate, descriptorsTemplate);
 
-                //add the template to the objectTemplateMap
-                final Template template = new Template(templ, keypointsTemplate, descriptorsTemplate, templateString);
-                ArrayList<Template> templateListForObject = objectTemplateMap.get(object);
-                if (templateListForObject == null) {
-                    templateListForObject = new ArrayList<Template>() {{
-                        add(template);
-                    }};
-                } else {
-                    templateListForObject.add(template);
-                }
-                objectTemplateMap.put(object, templateListForObject);
+                final Template template = new Template(templ, keypointsTemplate, descriptorsTemplate, logo.logo_name);
+                logo.template = template;
+
+                this.templatesMap = templatesMap;
             }
         }
     }
@@ -140,23 +143,21 @@ public class BrandDetectionStep extends Step {
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
 
         MatOfDMatch matches = new MatOfDMatch();
-        for (String objectName : objectTemplateMap.keySet()){
+        for (String objectName : templatesMap.keySet()){
 
-            for (Template templ : objectTemplateMap.get(objectName)) {
+            for (BrandDetectionStep.BrandLogo logo : templatesMap.get(objectName)) {
 
-                matcher.match(descriptorsImg, templ.descriptors, matches);
+                matcher.match(descriptorsImg, logo.template.descriptors, matches);
 
                 List<DMatch> matchesList = matches.toList();
 
                 for (int i = 0; i < descriptorsImg.rows(); i++) {
-                    //TODO: find a better threshold abstraction
-                    if (matchesList.get(i).distance < 25) {
-                        Log.i(TAG, "match found " + templ.uri);
+                    if (matchesList.get(i).distance < logo.threshold) {
+                        Log.i(TAG, "match found " + logo.template.uri + " Distance: " + matchesList.get(i).distance);
                         if (System.currentTimeMillis() - lastNotificationTimestamp > 3000){
                             sendNotification(objectName);
                             lastNotificationTimestamp = System.currentTimeMillis();
                         }
-
 
                         return true;
                     }

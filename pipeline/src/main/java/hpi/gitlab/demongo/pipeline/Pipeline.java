@@ -24,18 +24,18 @@ public class Pipeline {
     private Step firstStep;
     private SendingStep sendingStep;
     private CircularFifoQueue<Snapshot> nextFrames;
-    private final HashMap<String, ArrayList<String>> objectTemplateNameMap = new HashMap<String, ArrayList<String>>(){{
-        put("mate", new ArrayList<String>(){{
-            add("mate_logo");
-            add("mate_label");
-            add("mate_flasche");
-            add("club_mate_logo_x25");
+    private final HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> objectTemplateNameMap = new HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>>(){{
+        put("mate", new ArrayList<BrandDetectionStep.BrandLogo>(){{
+            add(new BrandDetectionStep.BrandLogo("mate_logo", 25));
+            add(new BrandDetectionStep.BrandLogo("mate_label", 25));
+            add(new BrandDetectionStep.BrandLogo("mate_flasche", 25));
+            add(new BrandDetectionStep.BrandLogo("club_mate_logo_x25", 25));
         }});
-        put("ahoj_brause", new ArrayList<String>(){{
-            add("ahoj_brause_logo");
+        put("ahoj_brause", new ArrayList<BrandDetectionStep.BrandLogo>(){{
+            add(new BrandDetectionStep.BrandLogo("ahoj_brause_logo", 20));
         }});
-        put("thinkpad", new ArrayList<String>(){{
-            add("thinkpad-logo-white");
+        put("thinkpad", new ArrayList<BrandDetectionStep.BrandLogo>(){{
+            add(new BrandDetectionStep.BrandLogo("thinkpad-logo-white", 25));
         }});
     }};
     private ArrayList<Float> targets = new ArrayList<Float>();
