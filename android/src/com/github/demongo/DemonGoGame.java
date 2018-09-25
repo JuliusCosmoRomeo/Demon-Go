@@ -74,8 +74,7 @@ public class DemonGoGame extends ARCoreScene {
 		OpenCVLoader.initDebug();
 
 		angleChangeStep = new AngleChangeStep();
-		// currently angle change is disabled for debugging
-		pipeline = new Pipeline(context, new NullStep());
+		pipeline = new Pipeline(context, angleChangeStep);
 
 		assetManager = new AssetManager();
 		arDebug = new ARDebug();

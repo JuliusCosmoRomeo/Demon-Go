@@ -81,17 +81,24 @@ def ocr():
         'new image',
         {'path': TextDetection.save_image(img)}
     )
+
     boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
 
-    results = OCR.get_text_cells(img, boxes)
-
-    for result in results:
+    if boxes:
+        td.draw_text_boxes(img, boxes)
         socketio.emit(
             'recognized_text',
-            result
+            {'path': TextDetection.save_image(img)}
         )
+        results = OCR.get_text_cells(img, boxes)
 
-    return jsonify(results)
+        for result in results:
+            socketio.emit(
+                'ocr_result',
+                result
+            )
+
+        return jsonify(results)
 
 
 @app.route('/test_ocr', methods=['GET'])
@@ -103,7 +110,7 @@ def test_ocr():
 
     for result in results:
         socketio.emit(
-            'recognized_text',
+            'ocr_result',
             result
         )
 
@@ -139,10 +146,8 @@ def detect_text():
         td.draw_text_boxes(img, boxes)
 
         socketio.emit(
-            'recognized_text', {
-                'path': TextDetection.save_image(img),
-                'textboxes': len(boxes),
-            }
+            'recognized_text',
+            {'path': TextDetection.save_image(img)}
         )
 
         print(mid_point)

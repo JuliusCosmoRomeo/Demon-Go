@@ -71,7 +71,7 @@ public class BrandDetectionStep extends Step {
             add(new BrandLogo("club_mate_logo_x25", 25));
         }});
         put("ahoj_brause", new ArrayList<BrandLogo>(){{
-            add(new BrandLogo("ahoj_brause_logo", 20));
+            add(new BrandLogo("ahoj_brause_logo", 25));
         }});
         put("thinkpad", new ArrayList<BrandLogo>(){{
             add(new BrandLogo("thinkpad-logo-white", 25));

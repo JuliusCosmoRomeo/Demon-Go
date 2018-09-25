@@ -63,11 +63,15 @@ body {
 
       socket.on('recognized_text', data => {
           addImageToElement(data.path, 'text_gallery');
+      });
+
+      socket.on('ocr_result', data => {
+          addImageToElement(data.path, 'text_gallery');
           var profileElement = document.getElementById('user_profile');
 
           profileString = profileElement.textContent;
           profile = JSON.parse(profileString);
-          profile.images.push(data);
+          profile.images.unshift(data);
           profileElement.innerHTML = JSON.stringify(profile, null, 4);
           hljs.highlightBlock(profileElement);
       });
@@ -78,7 +82,7 @@ body {
           profileString = profileElement.textContent;
           profile = JSON.parse(profileString);
           if (data.brand in profile.brands) {
-            profile.brands[data.brand].push(data.time)
+            profile.brands[data.brand].unshift(data.time)
           } else {
             profile.brands[data.brand] = [data.time]
           }
