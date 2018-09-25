@@ -47,8 +47,8 @@ public class StashUtils {
                                         }
                                         currentStash.setHasDefenders(true);
                                         Log.i(TAG, "stash before update " + currentStash.toString());
-                                        db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
                                     }
+                                    db.collection("stashes").document(currentStash.getId().toString()).set(currentStash.getMap());
 
                                 }
                             });
