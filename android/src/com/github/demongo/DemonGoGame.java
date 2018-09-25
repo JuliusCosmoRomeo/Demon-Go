@@ -143,7 +143,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		if (lastSnapshot != null) {
 			pipeline.sendImmediately(lastSnapshot.copyWithNewScore(9999999.0));
-			Log.e("demon-go-spell", "Sending full frame.");
+			Log.d("demon-go-spell", "Sending full frame.");
 		}
 
 		if (!demon.moveToNextTarget()) {
@@ -201,10 +201,10 @@ public class DemonGoGame extends ARCoreScene {
 
 		boolean angleChanged = angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
 
-		lastSnapshot = null;
 		frameCounter += 1;
 		if (angleChanged && frameCounter >= MIN_FRAME_WAIT) {
-           try {
+            lastSnapshot = null;
+            try {
                Thread.sleep(100);
            } catch(InterruptedException ex)
            {
