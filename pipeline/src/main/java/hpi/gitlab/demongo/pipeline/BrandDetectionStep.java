@@ -3,9 +3,7 @@ package hpi.gitlab.demongo.pipeline;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -13,6 +11,13 @@ import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.util.Log;
+
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 
 import org.opencv.android.Utils;
 import org.opencv.core.DMatch;
@@ -24,7 +29,6 @@ import org.opencv.features2d.DescriptorMatcher;
 import org.opencv.features2d.FeatureDetector;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,15 +36,16 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class BrandDetectionStep extends Step {
 
     static final public class BrandLogo {
-        public final String logo_name;
-        public final Integer threshold;
-        public Template template;
-        public BrandLogo(String name, Integer thresh) {
+        final String logo_name;
+        final Integer threshold;
+        Template template;
+        BrandLogo(String name, Integer thresh) {
             this.logo_name = name;
             this.threshold = thresh;
         }
@@ -56,33 +61,39 @@ public class BrandDetectionStep extends Step {
     private long lastNotificationTimestamp = System.currentTimeMillis();
     private final String NOTIFICATION_CHANNEL_ID = "demon-go-notifications";
     private int notificationId = 0;
-    private HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> templatesMap;
+    private RequestQueue requestQueue;
 
-    public BrandDetectionStep(Context context, HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> templatesMap){
+    private HashMap<String, ArrayList<BrandLogo>> objectTemplateNameMap = new HashMap<String, ArrayList<BrandLogo>>(){{
+        put("mate", new ArrayList<BrandLogo>(){{
+            add(new BrandLogo("mate_logo", 25));
+            add(new BrandLogo("mate_label", 25));
+            add(new BrandLogo("mate_flasche", 25));
+            add(new BrandLogo("club_mate_logo_x25", 25));
+        }});
+        put("ahoj_brause", new ArrayList<BrandLogo>(){{
+            add(new BrandLogo("ahoj_brause_logo", 20));
+        }});
+        put("thinkpad", new ArrayList<BrandLogo>(){{
+            add(new BrandLogo("thinkpad-logo-white", 25));
+        }});
+    }};
+
+    public BrandDetectionStep(Context context, RequestQueue requestQueue){
         this.context = context;
+        this.requestQueue = requestQueue;
         createNotificationChannel();
 
         //needed for feature matching
         Orbdetector = FeatureDetector.create(FeatureDetector.ORB);
 
-        /*String orbParamFileName = "/path/to/file/orb_params.yml";
-        File outputDir = context.getCacheDir(); // If in an Activity (otherwise getActivity.getCacheDir();
-        File outputFile = null;
-        try {
-            outputFile = File.createTempFile("orbDetectorParams", ".YAML", outputDir);
-            writeToFile(outputFile, "%YAML:1.0\nscoreType: 1\nedgeThreshold: 1\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-*/
         //Orbdetector.read(outputFile.getPath());
         OrbExtractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
 
         //read the template images and save them in the local template list
         InputStream stream = null;
-        for (String object : templatesMap.keySet()){
-            for (BrandDetectionStep.BrandLogo logo : templatesMap.get(object)) {
+        for (String object : objectTemplateNameMap.keySet()){
+            for (BrandDetectionStep.BrandLogo logo : this.objectTemplateNameMap.get(object)) {
                 Mat templ;
                 MatOfKeyPoint keypointsTemplate = new MatOfKeyPoint();
                 Mat descriptorsTemplate = new Mat();
@@ -108,8 +119,6 @@ public class BrandDetectionStep extends Step {
 
                 final Template template = new Template(templ, keypointsTemplate, descriptorsTemplate, logo.logo_name);
                 logo.template = template;
-
-                this.templatesMap = templatesMap;
             }
         }
     }
@@ -143,9 +152,9 @@ public class BrandDetectionStep extends Step {
         OrbExtractor.compute(frame, keypointsImg, descriptorsImg);
 
         MatOfDMatch matches = new MatOfDMatch();
-        for (String objectName : templatesMap.keySet()){
+        for (String objectName : this.objectTemplateNameMap.keySet()){
 
-            for (BrandDetectionStep.BrandLogo logo : templatesMap.get(objectName)) {
+            for (BrandDetectionStep.BrandLogo logo : this.objectTemplateNameMap.get(objectName)) {
 
                 matcher.match(descriptorsImg, logo.template.descriptors, matches);
 
@@ -158,6 +167,7 @@ public class BrandDetectionStep extends Step {
                             sendNotification(objectName);
                             lastNotificationTimestamp = System.currentTimeMillis();
                         }
+                        this.sendDetectedBrand(objectName);
 
                         return true;
                     }
@@ -172,7 +182,6 @@ public class BrandDetectionStep extends Step {
 
     @Override
     public void process(Snapshot last) {
-
          if(matchFeatures(last.mat)){
              this.output(last);
          }
@@ -210,6 +219,36 @@ public class BrandDetectionStep extends Step {
             NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
+    }
+
+    private void sendDetectedBrand(final String brand_name) {
+        String url = "http://139.59.145.241:5000/brand";
+        Log.i(TAG, "sendDetectedBrand");
+
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(TAG, "sendDetectedBrand: " + error);
+
+                NetworkResponse networkResponse = error.networkResponse;
+                if (networkResponse != null) {
+                    Log.e(TAG, "sendDetectedBrand: " + String.valueOf(networkResponse.statusCode));
+                }
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("brand", brand_name);
+                return params;
+            }
+        };
+
+        this.requestQueue.add(request);
     }
 
     class Template {

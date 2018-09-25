@@ -188,4 +188,4 @@ class OCR:
         now = datetime.now().isoformat(timespec='milliseconds')
 
         # Cols are user_id, filename, text, rotation, time, confidence
-        return (1, filename, img_text, int(rotation), now, str(conf))
+        return 1, filename, img_text, int(rotation), now, str(conf)

@@ -3,14 +3,18 @@ package hpi.gitlab.demongo.pipeline;
 import android.content.Context;
 import android.util.Log;
 
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.opencv.core.Mat;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 public class Pipeline {
     private static final String TAG = "demon-go-Pipeline";
@@ -24,33 +28,20 @@ public class Pipeline {
     private Step firstStep;
     private SendingStep sendingStep;
     private CircularFifoQueue<Snapshot> nextFrames;
-    private final HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>> objectTemplateNameMap = new HashMap<String, ArrayList<BrandDetectionStep.BrandLogo>>(){{
-        put("mate", new ArrayList<BrandDetectionStep.BrandLogo>(){{
-            add(new BrandDetectionStep.BrandLogo("mate_logo", 25));
-            add(new BrandDetectionStep.BrandLogo("mate_label", 25));
-            add(new BrandDetectionStep.BrandLogo("mate_flasche", 25));
-            add(new BrandDetectionStep.BrandLogo("club_mate_logo_x25", 25));
-        }});
-        put("ahoj_brause", new ArrayList<BrandDetectionStep.BrandLogo>(){{
-            add(new BrandDetectionStep.BrandLogo("ahoj_brause_logo", 20));
-        }});
-        put("thinkpad", new ArrayList<BrandDetectionStep.BrandLogo>(){{
-            add(new BrandDetectionStep.BrandLogo("thinkpad-logo-white", 25));
-        }});
-    }};
     private ArrayList<Float> targets = new ArrayList<Float>();
+    private RequestQueue requestQueue;
 
     public Pipeline(Context context, Step angleChangeStep) {
-        RequestQueue requestQueue = Volley.newRequestQueue(context);
+        this.requestQueue = Volley.newRequestQueue(context);
 
-        BrandDetectionStep brandDetectionStep = new BrandDetectionStep(context, objectTemplateNameMap);
+        BrandDetectionStep brandDetectionStep = new BrandDetectionStep(context, requestQueue);
 
         noiseEstimationStep = new NoiseEstimationStep();
         blurEstimationStep = new BlurEstimationStep();
         contourDetectionStep = new ContourDetectionStep();
         colorfulnessEstimationStep = new ColorfulnessEstimationStep();
         directSendStep = new DirectSendStep();
-        sendingStep = new SendingStep(requestQueue, context, this);
+        sendingStep = new SendingStep(this.requestQueue, context, this);
 
         blurEstimationStep
                 .next(angleChangeStep);
@@ -83,8 +74,26 @@ public class Pipeline {
         nextFrames.add(snapshot);
     }
 
-    public void sendImmediately(Snapshot snapshot) {
-        sendingStep.queue(snapshot);
+    public void sendImmediately(final Snapshot snapshot) {
+        String url = "http://139.59.145.241:5000/ocr";
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e(TAG, "sendImmediatelyError: " + error);
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = snapshot.getRequestParameterList();
+                return params;
+            }
+        };
+
+        this.requestQueue.add(request);
     }
 
     public void addTarget(ArrayList<Float> targetCoordinates) {
