@@ -38,6 +38,7 @@ body {
       <div class="column" id="text_gallery" ></div>
       <div class="column">
         <pre><code class="json" id="user_profile">{
+  "brands": {},
   "images": []
 }</code></pre>
       </div>
@@ -66,8 +67,21 @@ body {
 
           profileString = profileElement.textContent;
           profile = JSON.parse(profileString);
-          console.log(profile);
           profile.images.push(data);
+          profileElement.innerHTML = JSON.stringify(profile, null, 4);
+          hljs.highlightBlock(profileElement);
+      });
+
+      socket.on('brand_timestamp', data => {
+          var profileElement = document.getElementById('user_profile');
+
+          profileString = profileElement.textContent;
+          profile = JSON.parse(profileString);
+          if (data.brand in profile.brands) {
+            profile.brands[data.brand].push(data.time)
+          } else {
+            profile.brands[data.brand] = [data.time]
+          }
           profileElement.innerHTML = JSON.stringify(profile, null, 4);
           hljs.highlightBlock(profileElement);
       });

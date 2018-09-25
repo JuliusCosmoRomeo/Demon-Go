@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 
 from ocr import get_word_from_img
+from ocr2 import get_string
 
 sys.path.append("./EAST")
 from EAST.run_demo_server import get_predictor
@@ -82,6 +83,11 @@ class TextDetection:
             d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
                           t['y2'], t['x3'], t['y3']], dtype='int32')
             d = d.reshape(-1, 2)
+            rect = cv2.minAreaRect(d)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            cv2.drawContours(img, [box], 0, (0, 0, 255), 2)
+
             cv2.polylines(
                 img, [d], isClosed=True,
                 color=(255, 255, 0), thickness=1)
@@ -117,6 +123,56 @@ class TextDetection:
 
 
 class OCR:
+
+    @staticmethod
+    def rotated_subimage(image, center, width, height, theta):
+
+        shape = image.shape[:2]
+
+        matrix = cv2.getRotationMatrix2D(center=center, angle=theta, scale=1)
+        image = cv2.warpAffine(src=image, M=matrix, dsize=shape)
+
+        x = int(center[0] - width/2)
+        y = int(center[1] - height/2)
+
+        image = image[y:y+int(height), x:int(x+width)]
+
+        return image
+
+    @staticmethod
+    def get_text_cells(img, text_boxes):
+
+        results = []
+
+        if text_boxes:
+
+            rectangles = []
+            for t in text_boxes:
+                d = np.array([t['x0'], t['y0'], t['x1'], t['y1'], t['x2'],
+                              t['y2'], t['x3'], t['y3']], dtype='int32')
+                d = d.reshape(-1, 2)
+                rect = cv2.minAreaRect(d)
+                rectangles.append(rect)
+
+            #     box = cv2.boxPoints(rect)
+            #     box = np.int0(box)
+            #     rectangles.append(box)
+            # rectangles = np.array(rectangles)
+            # print(rectangles)
+            # results = cv2.groupRectangles(np.concatenate((rectangles, rectangles)), 1, eps=0.05)[0]
+
+            for rect in rectangles:
+                try:
+                    sub_img = OCR.rotated_subimage(img, rect[0], *rect[1], rect[2])
+                    text, processed_img = get_string(sub_img)
+
+                    results.append({
+                        'path': TextDetection.save_image(processed_img),
+                        'text': text
+                    })
+                except AttributeError:
+                    pass
+        return results
 
     @staticmethod
     def write_data(values):

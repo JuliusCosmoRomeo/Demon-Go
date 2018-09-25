@@ -29,6 +29,13 @@ public class Pipeline {
             add("mate_logo");
             add("mate_label");
             add("mate_flasche");
+            add("club_mate_logo_x25");
+        }});
+        put("ahoj_brause", new ArrayList<String>(){{
+            add("ahoj_brause_logo");
+        }});
+        put("thinkpad", new ArrayList<String>(){{
+            add("thinkpad-logo-white");
         }});
     }};
     private ArrayList<Float> targets = new ArrayList<Float>();
@@ -58,7 +65,7 @@ public class Pipeline {
 
        angleChangeStep
                .next(brandDetectionStep)
-               .next(sendingStep);
+               // .next(sendingStep);
         nextFrames = new CircularFifoQueue<>(10);
 
         firstStep = blurEstimationStep;

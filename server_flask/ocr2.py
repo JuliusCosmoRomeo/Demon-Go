@@ -12,6 +12,7 @@ def apply_threshold(img, argument):
         5: cv2.threshold(cv2.medianBlur(img, 3), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
         6: cv2.adaptiveThreshold(cv2.GaussianBlur(img, (5, 5), 0), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2),
         7: cv2.adaptiveThreshold(cv2.medianBlur(img, 3), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 2),
+        8: cv2.threshold(cv2.bilateralFilter(img, 11, 17, 17), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1],
     }
     return switcher.get(argument, "Invalid method")
 
@@ -21,7 +22,7 @@ def crop_image(img, start_x, start_y, end_x, end_y):
     return cropped
 
 
-def get_string(img, method=1):
+def get_string(img, method=8):
 
     # img = cv2.resize(img, None, fx=1.2, fy=1.2, interpolation=cv2.INTER_CUBIC)
 
@@ -35,15 +36,16 @@ def get_string(img, method=1):
 
     cv2.imwrite('processed/pre.jpg', img)
 
-    for method in range(1, 8):
-        #  Apply threshold to get image with only black and white
-        proc = apply_threshold(img.copy(), method)
+    # for method in range(1, 8):
+    #  Apply threshold to get image with only black and white
+    proc = apply_threshold(img.copy(), method)
+    # proc = transform(img.copy())
 
-        # Recognize text with tesseract for python
-        # result = pytesseract.image_to_string(img, lang="eng+deu")
-        cv2.imwrite(f'processed/method{method}.jpg', proc)
-
-        result = pytesseract.image_to_string(
-            proc, lang='eng+deu', boxes=False, config='--psm 8 --oem 1')
-        print(f'{method}: {result}')
-    return result
+    # Recognize text with tesseract for python
+    cv2.imwrite(f'processed/method{method}.jpg', proc)
+    result = pytesseract.image_to_string(
+        proc,
+        lang='eng+deu', boxes=False, config='--psm 7 --oem 1'
+    )
+    # print(f'{method}: {result}')
+    return result, proc

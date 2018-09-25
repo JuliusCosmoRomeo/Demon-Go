@@ -1,4 +1,5 @@
 import base64
+import datetime
 import multiprocessing
 import random
 
@@ -11,13 +12,21 @@ from text_detection import (
     OCR,
     TextDetection,
 )
-from ocr2 import get_string
 
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
 td = TextDetection(split=False)
+
+
+def read_image_data(request):
+    image_data = base64.b64decode(request.form['image'])
+
+    return cv2.imdecode(
+        np.fromstring(image_data, dtype=np.uint8),
+        cv2.IMREAD_COLOR
+    )
 
 
 @app.route('/', methods=['GET'])
@@ -27,13 +36,7 @@ def index():
 
 @app.route('/post', methods=['GET', 'POST'])
 def get_image():
-    image_data = base64.b64decode(request.form['image'])
-    print("POST-Request", request.form['user_id'])
-
-    img = cv2.imdecode(
-        np.fromstring(image_data, dtype=np.uint8),
-        cv2.IMREAD_COLOR
-    )
+    img = read_image_data(request)
 
     filename = TextDetection.save_image(img)
     socketio.emit(
@@ -52,14 +55,61 @@ def get_image():
     return 'gotcha'
 
 
+@app.route('/brand', methods=['POST'])
+def add_brand():
+    brand_key = request.get_json().get('brand', None)
+
+    if brand_key:
+        socketio.emit(
+            'brand_timestamp',
+            {'brand': brand_key, 'time': f'{datetime.datetime.now()}'}
+        )
+
+        return 'success'
+    else:
+        return 'no key'
+
+
+@app.route('/ocr', methods=['POST'])
+def ocr():
+
+    img = read_image_data(request)
+    socketio.emit(
+        'new image',
+        {'path': TextDetection.save_image(img)}
+    )
+    boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
+
+    results = OCR.get_text_cells(img, boxes)
+
+    for result in results:
+        socketio.emit(
+            'recognized_text',
+            result
+        )
+
+    return jsonify(results)
+
+
+@app.route('/test_ocr', methods=['GET'])
+def test_ocr():
+    img = cv2.imread('examples/TEST_IMG_HAMBACHER.jpg')
+    boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
+
+    results = OCR.get_text_cells(img, boxes)
+
+    for result in results:
+        socketio.emit(
+            'recognized_text',
+            result
+        )
+
+    return jsonify(results)
+
+
 @app.route('/detect_text', methods=['POST'])
 def detect_text():
-    image_data = base64.b64decode(request.form['image'])
-
-    img = cv2.imdecode(
-        np.fromstring(image_data, dtype=np.uint8),
-        cv2.IMREAD_COLOR
-    )
+    img = read_image_data(request)
 
     socketio.emit(
         'new image',
@@ -78,16 +128,8 @@ def detect_text():
             'y': float(min_y + int((max_y-min_y) / 2)),
         }
         print('Trying to consume:')
-        img_text = get_string(img)
-        print(f'Result: {img_text}')
         td.draw_text_boxes(img, boxes)
-        socketio.emit(
-            'recognized_text',
-            {
-                'path': TextDetection.save_image(img),
-                'text': img_text,
-            }
-        )
+
         print(mid_point)
         return jsonify(mid_point)
     else:
