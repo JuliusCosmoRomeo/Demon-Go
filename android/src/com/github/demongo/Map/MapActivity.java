@@ -19,6 +19,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.github.demongo.AndroidLauncher;
 import com.github.demongo.Demon;
@@ -40,6 +41,8 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.mapbox.android.core.permissions.PermissionsListener;
+import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
@@ -50,12 +53,13 @@ import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
+import com.mapbox.mapboxsdk.plugins.locationlayer.LocationLayerPlugin;
+import com.mapbox.mapboxsdk.plugins.locationlayer.modes.CameraMode;
 import com.mapbox.mapboxsdk.style.layers.FillExtrusionLayer;
 import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
@@ -83,7 +87,7 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillExtrusionOpa
 
 import com.github.demongo.Demon.Type;
 
-public class MapActivity extends AppCompatActivity {
+public class MapActivity extends AppCompatActivity implements PermissionsListener {
     private static final String TAG = "demon-go-map";
     public static final UUID playerId = UUID.fromString("1b9624f8-4683-41c6-823e-89932573aa67");
     public static final UUID opponentId = UUID.fromString("1b9624f8-0000-41c6-823e-89932573aa67");
@@ -110,6 +114,9 @@ public class MapActivity extends AppCompatActivity {
 
     private Stash currentStash;
     private int demonLayerCount = 0;
+
+    private PermissionsManager permissionsManager;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,6 +149,7 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
                 mapboxMap = map;
+                enableLocationPlugin();
 
                 //add the demon icons as resources to the map
                 for (String demonName : Arrays.asList(MARKER_IMAGE_IMP,MARKER_IMAGE_FOLIOT,MARKER_IMAGE_DJINN,MARKER_IMAGE_AFRIT,MARKER_IMAGE_MARID)){
@@ -192,6 +200,44 @@ public class MapActivity extends AppCompatActivity {
             }
         });
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    public void onExplanationNeeded(List<String> permissionsToExplain) {
+
+    }
+
+    @Override
+    public void onPermissionResult(boolean granted) {
+        if (granted) {
+            enableLocationPlugin();
+        } else {
+            Toast.makeText(this, "", Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
+
+    private void enableLocationPlugin() {
+        // Check if permissions are enabled and if not request
+        if (PermissionsManager.areLocationPermissionsGranted(this)) {
+
+            // Create an instance of the plugin. Adding in LocationLayerOptions is also an optional
+            // parameter
+            LocationLayerPlugin locationLayerPlugin = new LocationLayerPlugin(mapView, mapboxMap);
+
+            // Set the plugin's camera mode
+            locationLayerPlugin.setCameraMode(CameraMode.TRACKING);
+            getLifecycle().addObserver(locationLayerPlugin);
+        } else {
+            permissionsManager = new PermissionsManager(this);
+            permissionsManager.requestLocationPermissions(this);
+        }
+    }
+
 
     private void handleDemonCaptured() {
         new NameDialog(this, new NameDialogChosenListener() {
@@ -876,5 +922,10 @@ public class MapActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+
     }
 }
