@@ -63,6 +63,7 @@ body {
 
           for (i = 0; i < stringarray.length; ++i) {
             for (j = 0; i < expressions.length; i++) {
+                console.log("Testing:" + stringarray[i] + "|" + expressions[j])
                 if (stringarray[i].match(expressions[j])) {
                     return true;
                 }
@@ -77,8 +78,13 @@ body {
       function addImageToElement(path, element_id) {
           var img = new Image();
           img.src = path;
+          var a = document.createElement('a');
+          a.setAttribute('href',path);
+          a.setAttribute('target','_blank');
+          a.appendChild(img);
+
           var gallery = document.getElementById(element_id);
-          gallery.insertBefore(img, gallery.firstChild);
+          gallery.insertBefore(a, gallery.firstChild);
       }
 
       socket.on('new image', data => {
@@ -108,7 +114,17 @@ body {
           profileString = profileElement.textContent;
           profile = JSON.parse(profileString);
           if (data.brand in profile.brands) {
-            profile.brands[data.brand].unshift(data.time)
+            var brand_data = profile.brands[data.brand]
+            brand_data.unshift(data.time)
+
+            if (brand_data.length >= 4) {
+              if (brand_data[brand_data.length - 1] == "...") {
+                brand_data.pop();
+              }
+              brand_data.pop();
+              brand_data.push("...");
+            }
+
           } else {
             profile.brands[data.brand] = [data.time]
           }
