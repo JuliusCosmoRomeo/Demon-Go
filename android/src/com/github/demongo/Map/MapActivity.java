@@ -2,13 +2,16 @@ package com.github.demongo.Map;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.ParcelUuid;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -28,8 +31,9 @@ import com.github.demongo.ParcelableGeoPoint;
 import com.github.demongo.PlayerUtils;
 import com.github.demongo.R;
 import com.github.demongo.Stash;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentChange;
@@ -40,11 +44,16 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.mapbox.android.core.permissions.PermissionsManager;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.Icon;
+import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.Marker;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.annotations.MarkerViewOptions;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.annotations.PolygonOptions;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -55,7 +64,6 @@ import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
-import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.UUID;
@@ -95,6 +103,7 @@ public class MapActivity extends AppCompatActivity {
     private static final String MARKER_IMAGE_AFRIT = "marker_afrit";
     private static final String MARKER_IMAGE_MARID = "marker_marid";
     static final int GALLERY_REQUEST = 1;  // The request code
+    private FusedLocationProviderClient mFusedLocationClient;
 
     private DemonBattle battle;
 
@@ -107,12 +116,14 @@ public class MapActivity extends AppCompatActivity {
     private MapboxMap mapboxMap;
 
     private FirebaseFirestore db = FirebaseFirestore.getInstance();
-
+    Location location;
     private Stash currentStash;
     private int demonLayerCount = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
 
         // if we were opened from the AR component after a successful demon heist!
         if (getIntent().hasExtra("demon-captured")) {
@@ -142,7 +153,6 @@ public class MapActivity extends AppCompatActivity {
             @Override
             public void onMapReady(@NonNull final MapboxMap map) {
                 mapboxMap = map;
-
                 //add the demon icons as resources to the map
                 for (String demonName : Arrays.asList(MARKER_IMAGE_IMP,MARKER_IMAGE_FOLIOT,MARKER_IMAGE_DJINN,MARKER_IMAGE_AFRIT,MARKER_IMAGE_MARID)){
                     int drawable = -1;
@@ -162,6 +172,23 @@ public class MapActivity extends AppCompatActivity {
                     mapboxMap.addImage(demonName, icon);
                 }
 
+                if ( ContextCompat.checkSelfPermission( MapActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION ) == PackageManager.PERMISSION_GRANTED ) {
+
+                    mFusedLocationClient.getLastLocation()
+                            .addOnSuccessListener(MapActivity.this, new OnSuccessListener<Location>() {
+                                @Override
+                                public void onSuccess(Location location) {
+                                    // Got last known location. In some rare situations this can be null.
+                                    if (location != null) {
+                                        IconFactory iconFactory = IconFactory.getInstance(MapActivity.this);
+                                        Icon icon = iconFactory.fromResource(R.drawable.current_location);
+                                        // Add the marker to the map
+                                        mapboxMap.addMarker(new MarkerViewOptions()
+                                                .position(new LatLng(location.getLatitude(), location.getLongitude())).icon(icon));
+                                    }
+                                }
+                            });
+                }
 
                 setupBuildings();
                 fetchStashes();
@@ -192,6 +219,8 @@ public class MapActivity extends AppCompatActivity {
             }
         });
     }
+
+
 
     private void handleDemonCaptured() {
         new NameDialog(this, new NameDialogChosenListener() {
