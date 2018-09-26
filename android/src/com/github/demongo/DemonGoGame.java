@@ -149,6 +149,7 @@ public class DemonGoGame extends ARCoreScene {
 		if (!demon.moveToNextTarget(hud)) {
 			Log.e("demon-go", "A winner is you!");
 			demon.setCaptured();
+			//getSession().pause();
 			Intent intent = new Intent(context, MapActivity.class);
 			intent.putExtra("demon-captured", true);
 			context.startActivity(intent);
