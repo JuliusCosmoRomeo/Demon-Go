@@ -2,13 +2,11 @@ package com.github.demongo;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
@@ -16,7 +14,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Scaling;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
@@ -79,10 +76,6 @@ public class Hud {
         // ar pvp is disabled atm
         // hud.addActor(startPvP);
 
-        loading = new Label("Gathering Energy ...", skin);
-        loading.setPosition(hudWidth / 2 - loading.getWidth() / 2, hudHeight / 2 - loading.getHeight() / 2);
-        hud.addActor(loading);
-
         Label.LabelStyle rectStyle = new Label.LabelStyle(new Label("", skin).getStyle());
         Pixmap p = new Pixmap((int) hudWidth, (int) hudHeight, Pixmap.Format.RGB888);
         p.setColor(Color.RED);
@@ -109,10 +102,6 @@ public class Hud {
         hp.setVisible(true);
         // hp.setColor(isPhaseTwo ? Color.GREEN : Color.RED);
         hp.setWidth((hud.getWidth() - HP_INSET * 2) * healthPercent);
-    }
-
-    public void setLoading(boolean _loading) {
-        loading.setVisible(_loading);
     }
 
     public void showSpell() {

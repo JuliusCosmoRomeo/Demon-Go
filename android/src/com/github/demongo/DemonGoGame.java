@@ -19,14 +19,12 @@ import com.google.ar.core.Anchor;
 import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Config;
 import com.google.ar.core.Frame;
-import com.google.ar.core.Plane;
 import com.google.ar.core.Session;
 import com.google.ar.core.exceptions.CameraNotAvailableException;
 import com.google.ar.core.exceptions.NotYetAvailableException;
 
 import org.opencv.android.OpenCVLoader;
 
-import hpi.gitlab.demongo.pipeline.NullStep;
 import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
@@ -189,10 +187,6 @@ public class DemonGoGame extends ARCoreScene {
     private void update(Frame frame) {
 	    if (paused) {
 	    	return;
-		}
-
-		if (!getSession().getAllTrackables(Plane.class).isEmpty()) {
-			hud.setLoading(false);
 		}
 
 		if (Gdx.input.justTouched()) {

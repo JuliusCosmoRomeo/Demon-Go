@@ -30,6 +30,7 @@ public class ARDebug {
     private final float TRACKING_SPHERE_SIZE = 0.1f;
 
     private String infoString;
+    private final boolean IS_DEBUG_MODE = false;
 
     ARDebug() {
         createPointCube();
@@ -70,10 +71,12 @@ public class ARDebug {
     }
 
     public void draw(ModelBatch modelBatch, Environment environment) {
-        modelBatch.render(originIndicator, environment);
-        modelBatch.render(pointCubes, environment);
-        modelBatch.render(targetPoints, environment);
-        modelBatch.render(roomSizeIndicator);
+        if(IS_DEBUG_MODE) {
+            modelBatch.render(originIndicator, environment);
+            modelBatch.render(pointCubes, environment);
+            modelBatch.render(targetPoints, environment);
+            modelBatch.render(roomSizeIndicator);
+        }
     }
 
     private Vector3 tmp1 = new Vector3();
@@ -120,6 +123,10 @@ public class ARDebug {
     }
 
     public String getInfoString() {
-        return infoString;
+        if(IS_DEBUG_MODE) {
+            return infoString;
+        } else {
+            return "";
+        }
     }
 }
