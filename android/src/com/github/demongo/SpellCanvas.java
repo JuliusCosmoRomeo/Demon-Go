@@ -15,7 +15,7 @@ public class SpellCanvas {
 
     private static final float WIDTH = 40;
     private static final int STEPS = 4;
-    private static final float SCREEN_OFFSET = 40.0f;
+    private static final float SCREEN_OFFSET = 100.0f;
 
     private float canvasWidth;
     private float canvasHeight;
