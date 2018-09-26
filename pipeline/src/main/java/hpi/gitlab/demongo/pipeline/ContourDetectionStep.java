@@ -72,7 +72,6 @@ public class ContourDetectionStep extends Step {
                     final List<MatOfPoint> approx = new ArrayList<>();
                     approx.add(approxContour);
 
-
                     if (snap.isDebug()) {
 //                        snap.setDebugMat(transformedMat);
                         Imgproc.rectangle(snap.getDebugMat(), rect.tl(), rect.br(), new Scalar(255, 255, 0), 2, 8, 0);
@@ -81,9 +80,9 @@ public class ContourDetectionStep extends Step {
                     }
 
                     Mat roi = snap.mat.submat(rect).clone();
-                    Log.i(TAG, "roi " + roi.toString());
+                    // Log.i(TAG, "Rect: " + rect.toString());
 
-                    this.output(snap.copyWithNewMat(roi));
+                    this.output(snap.copyWithNewMat(roi, rect.x, rect.y));
                 }
             }
         }

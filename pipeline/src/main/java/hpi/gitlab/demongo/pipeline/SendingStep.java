@@ -91,8 +91,8 @@ public class SendingStep extends StepWithQueue {
                         JSONObject jsonResponse = new JSONObject(response);
                         double x = (double) jsonResponse.get("x");
                         double y = (double) jsonResponse.get("y");
-                        Log.i(TAG, "onResponse: " + x + ", " + y);
-                        ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) x , (float) y);
+                        Log.i(TAG, "onResponse: " + x + ", " + y + " Snap offset(" + snapshot.x_offset + ", " + snapshot.y_offset);
+                        ArrayList<Float> targetCoordinates = snapshot.processServerResponse((float) (x + snapshot.x_offset)  , (float) y + snapshot.x_offset);
                         if(targetCoordinates != null) {
                             pipeline.addTarget(targetCoordinates);
                         }

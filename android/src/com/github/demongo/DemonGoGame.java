@@ -31,6 +31,7 @@ import hpi.gitlab.demongo.pipeline.Pipeline;
 
 public class DemonGoGame extends ARCoreScene {
 	private static final int SECONDS_SPELL_SEARCH_TIMEOUT = 10;
+	private static final int MIN_FRAME_WAIT = 20;
 
 	private AssetManager assetManager;
 	private Environment environment;
@@ -53,6 +54,8 @@ public class DemonGoGame extends ARCoreScene {
 
 	private Timer.Task catchSpellTimeout;
 
+	private int frameCounter = 0;
+
 	private ConfidentVector3[] bestVectors = {
         new ConfidentVector3(new Vector3(-30, 1, 0), 0),
         new ConfidentVector3(new Vector3(30, 1, 0), 0),
@@ -72,7 +75,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		angleChangeStep = new AngleChangeStep();
 		// currently angle change is disabled for debugging
-		pipeline = new Pipeline(context, new NullStep());
+		pipeline = new Pipeline(context, angleChangeStep);
 
 		assetManager = new AssetManager();
 		arDebug = new ARDebug();
@@ -80,6 +83,7 @@ public class DemonGoGame extends ARCoreScene {
 			@Override
 			public void changed(ARDemon demon, ARDemon.Phase phase) {
 			    if (phase == ARDemon.Phase.CAPTURING) {
+
 			        scheduleRescueSpellTimer();
 
 					Float[] points = pipeline.requestTargets();
@@ -123,7 +127,7 @@ public class DemonGoGame extends ARCoreScene {
 		Config config = new Config(session);
 		config.setFocusMode(Config.FocusMode.AUTO);
 		// config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
-		session.setCameraConfig(session.getSupportedCameraConfigs().get(0));
+		// session.setCameraConfig(session.getSupportedCameraConfigs().get(2));
 		session.configure(config);
 		try {
             session.resume();
@@ -139,6 +143,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		if (lastSnapshot != null) {
 			pipeline.sendImmediately(lastSnapshot.copyWithNewScore(9999999.0));
+			Log.d("demon-go-spell", "Sending full frame.");
 		}
 
 		if (!demon.moveToNextTarget()) {
@@ -194,15 +199,25 @@ public class DemonGoGame extends ARCoreScene {
 			demon.shoot(pickRay);
 		}
 
-		angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
+		boolean angleChanged = angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
 
-		lastSnapshot = null;
-		try {
-			lastSnapshot = new ARSnapshot(1.0, frame);
-			maybeUseBestVector(lastSnapshot.bestTracked);
-			pipeline.add(lastSnapshot);
-		} catch (NotYetAvailableException e) {
-//			Log.e("demon-go", "no image yet");
+		frameCounter += 1;
+		if (angleChanged && frameCounter >= MIN_FRAME_WAIT) {
+            lastSnapshot = null;
+            try {
+               Thread.sleep(100);
+           } catch(InterruptedException ex)
+           {
+               Thread.currentThread().interrupt();
+           }
+			try {
+				lastSnapshot = new ARSnapshot(1.0, frame);
+				maybeUseBestVector(lastSnapshot.bestTracked);
+				pipeline.add(lastSnapshot);
+			} catch (NotYetAvailableException e) {
+				Log.e("demon-go", "no image yet");
+			}
+			frameCounter = 0;
 		}
 
 		Vector3 cameraPosition = new Vector3(frame.getCamera().getPose().getTranslation());

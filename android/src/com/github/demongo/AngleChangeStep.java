@@ -29,6 +29,9 @@ public class AngleChangeStep extends StepWithQueue {
     }
 
     boolean checkPictureTransformDelta(Matrix4 current) {
+        if (hasNewAngle) {
+            return true;
+        }
         if (lastPictureTransform == null)
             lastPictureTransform = current;
 
@@ -47,7 +50,7 @@ public class AngleChangeStep extends StepWithQueue {
         float lastAngle = lastRotation.getAngle();
         float currentAngle = currentRotation.getAngle();
 
-        if (lastPosition.dst(currentPosition) > 0.2 || Math.abs(lastAngle - currentAngle) > 10) {
+        if (lastPosition.dst(currentPosition) > 0.1 || Math.abs(lastAngle - currentAngle) > 5) {
             lastPictureTransform.set(current);
             hasNewAngle = true;
             return true;

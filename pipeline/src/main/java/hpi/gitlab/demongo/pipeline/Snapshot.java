@@ -15,27 +15,31 @@ public class Snapshot {
     protected Mat mat;
     protected double score;
     private Mat debugMat;
+    public int x_offset;
+    public int y_offset;
 
-    public Snapshot(Mat mat, double score, Mat debugMat) {
+    public Snapshot(Mat mat, double score, Mat debugMat, int x_off, int y_off) {
         this.mat = mat;
         this.score = score;
         this.debugMat = debugMat;
+        this.x_offset = x_off;
+        this.y_offset = y_off;
     }
 
     public Snapshot(Mat mat, double score) {
-        this(mat, score, null);
+        this(mat, score, null, 0, 0);
     }
 
     public Snapshot copyWith(Mat mat, double score) {
-        return new Snapshot(mat, score, debugMat);
+        return new Snapshot(mat, score, debugMat, x_offset, y_offset);
     }
 
-    public Snapshot copyWithNewMat(Mat newMat) {
-        return new Snapshot(newMat, score, debugMat);
+    public Snapshot copyWithNewMat(Mat newMat, int x_off, int y_off) {
+        return new Snapshot(newMat, score, debugMat, x_off, y_off);
     }
 
     public Snapshot copyWithNewScore(double newScore) {
-        return new Snapshot(mat, newScore, debugMat);
+        return new Snapshot(mat, newScore, debugMat, x_offset, y_offset);
     }
 
     public Mat createDebugMat() {

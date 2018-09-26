@@ -15,6 +15,7 @@ public class SpellCanvas {
 
     private static final float WIDTH = 40;
     private static final int STEPS = 4;
+    private static final float SCREEN_OFFSET = 40.0f;
 
     private float canvasWidth;
     private float canvasHeight;
@@ -38,8 +39,13 @@ public class SpellCanvas {
     public void newSpell() {
         points = new Vector2[STEPS];
 
+        float width = canvasWidth - SCREEN_OFFSET * 2;
+        float height = canvasHeight - SCREEN_OFFSET * 2;
+
         for (int i = 0; i < STEPS; i++) {
-            points[i] = new Vector2((float) Math.random() * canvasWidth, (float) Math.random() * canvasHeight);
+            points[i] = new Vector2(
+                SCREEN_OFFSET + (float) Math.random() * width,
+                SCREEN_OFFSET + (float) Math.random() * height);
         }
     }
 

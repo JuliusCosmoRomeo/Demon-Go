@@ -6,6 +6,7 @@ from multiprocessing import Queue
 from datetime import datetime
 
 import cv2
+import imutils
 import numpy as np
 
 from ocr import get_word_from_img
@@ -164,6 +165,12 @@ class OCR:
             for rect in rectangles:
                 try:
                     sub_img = OCR.rotated_subimage(img, rect[0], *rect[1], rect[2])
+                    HEIGHT, WIDTH, _ = sub_img.shape
+                    if HEIGHT > WIDTH:
+                        sub_img = imutils.rotate_bound(
+                            sub_img,
+                            270
+                        )
                     text, processed_img = get_string(sub_img)
 
                     results.append({
