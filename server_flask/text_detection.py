@@ -92,12 +92,6 @@ class TextDetection:
             cv2.polylines(
                 img, [d], isClosed=True,
                 color=(255, 255, 0), thickness=1)
-            cv2.putText(
-                img,
-                f'theta: {rect[2]:.2f}',
-                tuple(d[0]),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1
-            )
 
         return img
 
