@@ -110,9 +110,9 @@ def ocr():
         return jsonify({"results": texts})
 
 
-@app.route('/test_ocr', methods=['GET'])
-def test_ocr():
-    img = cv2.imread('examples/TEST_IMG_CARD.jpg')
+@app.route('/test_ocr/<img_name>', methods=['GET'])
+def test_ocr(img_name):
+    img = cv2.imread(f'examples/{img_name}.jpg')
     boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
 
     if boxes:
