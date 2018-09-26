@@ -57,7 +57,6 @@ public class ARDemon {
         FIXED_BOX
     }
 
-    private static final float DEMON_SCALE = 0.4f;
     private static final float DEMON_OFFSET_Y = -0.2f;
 
     private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
@@ -66,7 +65,7 @@ public class ARDemon {
     private static final int MAX_TARGETS = 5;
 
     private static final float SPEED = 2;
-    private static final float SPHERE_SIZE = 0.8f;
+    private static final float SPHERE_SIZE = 0.5f;
     private static final String MODEL_PATH = "demon_anim.g3db";
 
     private ModelInstance instance;
@@ -82,6 +81,8 @@ public class ARDemon {
 
     private PhaseChangedListener phaseChangedListener;
     private AnimationController animation;
+
+    private float healthPercent = 1.0f;
 
     ARDemon(Camera camera, AssetManager assetManager, PhaseChangedListener listener) {
         phaseChangedListener = listener;
@@ -129,8 +130,7 @@ public class ARDemon {
         instance.transform.getRotation(currentRotation, true);
         new Matrix4().setToLookAt(position, target, new Vector3(0, 1, 0)).getRotation(desiredRotation, true);
 
-        instance.transform.set(currentRotation.slerp(desiredRotation, Gdx.graphics.getDeltaTime()));
-        instance.transform.setTranslation(position);
+        instance.transform.set(position, currentRotation.slerp(desiredRotation, Gdx.graphics.getDeltaTime()));
     }
 
     private static Vector3 anchorToTranslation(Anchor a) {
@@ -162,7 +162,7 @@ public class ARDemon {
         }
 
         if (phase == Phase.SCANNING) {
-            interpTime += Gdx.graphics.getDeltaTime() * 0.3;
+            interpTime += Gdx.graphics.getDeltaTime() * 0.4;
             if (interpTime >= 1.0f) {
                 interpTime = 0.0f;
                 randomLastPosition.set(randomTargetPosition);
@@ -189,9 +189,11 @@ public class ARDemon {
         }
     }
 
-    public boolean moveToNextTarget() {
+    public boolean moveToNextTarget(Hud hud) {
         waitingAtTarget = false;
         currentTarget++;
+        healthPercent -= 1.0f / anchors.length;
+        hud.setDemonHealth(healthPercent, true);
         return currentTarget < anchors.length;
     }
 
@@ -227,8 +229,6 @@ public class ARDemon {
             System.arraycopy(t, 0, targets, 0, targets.length);
         }
 
-        Log.e("demon-go-animations", Arrays.toString(targets));
-
         anchors = new Anchor[targets.length];
         for (int i = 0; i < targets.length; i++) {
             Vector3 point = targets[i];
@@ -263,14 +263,20 @@ public class ARDemon {
         return position;
     }
 
-    public void shoot(Ray ray) {
+    public void shoot(Ray ray, Hud hud) {
         if (phase != Phase.SCANNING)
             return;
 
         shots.add(new Shot(ray.cpy()));
 
         if (hitByRay(ray)) {
-            enterCapturingPhase();
+            healthPercent -= 0.34f;
+            hud.setDemonHealth(healthPercent, false);
+            if (healthPercent <= 0) {
+                enterCapturingPhase();
+                healthPercent = 1.0f;
+                hud.setDemonHealth(healthPercent, true);
+            }
         }
     }
 

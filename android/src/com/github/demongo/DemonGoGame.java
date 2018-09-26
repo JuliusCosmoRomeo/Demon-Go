@@ -146,7 +146,7 @@ public class DemonGoGame extends ARCoreScene {
 			Log.d("demon-go-spell", "Sending full frame.");
 		}
 
-		if (!demon.moveToNextTarget()) {
+		if (!demon.moveToNextTarget(hud)) {
 			Log.e("demon-go", "A winner is you!");
 			demon.setCaptured();
 			Intent intent = new Intent(context, MapActivity.class);
@@ -196,7 +196,7 @@ public class DemonGoGame extends ARCoreScene {
 
 		if (Gdx.input.justTouched()) {
 			Ray pickRay = getCamera().getPickRay(Gdx.input.getX(), Gdx.input.getY());
-			demon.shoot(pickRay);
+			demon.shoot(pickRay, hud);
 		}
 
 		boolean angleChanged = angleChangeStep.checkPictureTransformDelta(getCamera().view.cpy());
