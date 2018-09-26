@@ -115,6 +115,7 @@ public class Demon implements Parcelable {
     public Demon(Map<String, Object> map){
         this.map = map;
         this.id = map.get(ID) != null ? ParcelUuid.fromString((String) map.get(ID)) : new ParcelUuid(UUID.randomUUID());
+        this.name = map.get(NAME) != null ? ((String) map.get(NAME)) : "blubsi";
         this.stashId = map.get(STASH_ID) != null ? ParcelUuid.fromString((String) map.get(STASH_ID)) : new ParcelUuid(UUID.randomUUID());
         this.maxHp = map.get(MAXHP) != null ? (long) map.get(MAXHP) : -1;
         this.hp = map.get(HP) != null ? (long) map.get(HP) : -1;

@@ -197,10 +197,10 @@ public class MapActivity extends AppCompatActivity {
         new NameDialog(this, new NameDialogChosenListener() {
             @Override
             public void nameChosen(String name) {
-                Demon demon = new Demon(name, 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID()));
+                Demon demon = new Demon(name, 500, 500, 250, 2300, R.drawable.notification_icon, Type.Marid, nullStashId, new ParcelUuid(UUID.randomUUID()));
                 db.collection("stashes").document(nullStashId.toString()).collection("demons").add(demon.getMap());
-
                 Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
+                demonGallery.putExtra("action", DemonGallery.Action.Add);
                 startActivityForResult(demonGallery, GALLERY_REQUEST);
             }
         });

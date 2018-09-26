@@ -123,7 +123,7 @@ public class DemonGoGame extends ARCoreScene {
 		Config config = new Config(session);
 		config.setFocusMode(Config.FocusMode.AUTO);
 		// config.setCloudAnchorMode(Config.CloudAnchorMode.ENABLED);
-		session.setCameraConfig(session.getSupportedCameraConfigs().get(2));
+		session.setCameraConfig(session.getSupportedCameraConfigs().get(0));
 		session.configure(config);
 		try {
             session.resume();

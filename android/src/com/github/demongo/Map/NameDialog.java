@@ -13,7 +13,7 @@ interface NameDialogChosenListener {
 class NameDialog {
     NameDialog(Context context, final NameDialogChosenListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle("Name of your new Demon:");
+        builder.setTitle("Sehr gut, du hast den Dämonen gefangen! Wie möchtest du ihn nennen?");
 
         final EditText input = new EditText(context);
         input.setInputType(InputType.TYPE_CLASS_TEXT);

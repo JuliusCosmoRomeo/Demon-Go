@@ -55,9 +55,6 @@ public class DemonGallery extends Activity {
         setContentView(R.layout.activity_demon_gallery);
 
         this.action = (Action) getIntent().getExtras().get("action");
-        /*if (action == Action.Add) {
-            demons.add(0, new Demon(getIntent().getStringExtra("name"), 100, 100, 30, 230, R.drawable.notification_icon, Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-        }*/
 
         db.collection("stashes").document(nullStashId.toString()).collection("demons").get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
             @Override
@@ -130,7 +127,7 @@ public class DemonGallery extends Activity {
             TextView hpText = itemView.findViewById(R.id.hp);
             hpText.setText(demon.getHp() + "/" + demon.getMaxHp() + " hp");
             ImageButton actionButton = itemView.findViewById(R.id.action_button);
-            switch(action){
+            switch (action) {
                 case Attack:
                     actionButton.setImageResource(R.drawable.icons8_schwert);
                     break;
@@ -139,6 +136,9 @@ public class DemonGallery extends Activity {
                     break;
                 case Deposit:
                     actionButton.setImageResource(R.drawable.icons8_gelddose);
+                    break;
+                case Add:
+                    actionButton.setVisibility(View.INVISIBLE);
                     break;
                 default:
                     break;
