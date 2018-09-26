@@ -29,6 +29,9 @@ public class AngleChangeStep extends StepWithQueue {
     }
 
     boolean checkPictureTransformDelta(Matrix4 current) {
+        if (hasNewAngle) {
+            return true;
+        }
         if (lastPictureTransform == null)
             lastPictureTransform = current;
 
