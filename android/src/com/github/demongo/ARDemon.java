@@ -7,6 +7,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Mesh;
 import com.badlogic.gdx.graphics.VertexAttributes;
 import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
@@ -14,10 +15,12 @@ import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.model.Animation;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffect;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleEffectLoader;
 import com.badlogic.gdx.graphics.g3d.particles.ParticleSystem;
 import com.badlogic.gdx.graphics.g3d.particles.batches.PointSpriteParticleBatch;
+import com.badlogic.gdx.graphics.g3d.utils.AnimationController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Matrix4;
@@ -33,6 +36,7 @@ import com.google.ar.core.Pose;
 import com.google.ar.core.Session;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Vector;
 
@@ -54,6 +58,7 @@ public class ARDemon {
     }
 
     private static final float DEMON_SCALE = 0.4f;
+    private static final float DEMON_OFFSET_Y = -0.2f;
 
     private static MovementMode MOVEMENT_MODE = MovementMode.IN_ROOM;
 
@@ -62,7 +67,7 @@ public class ARDemon {
 
     private static final float SPEED = 2;
     private static final float SPHERE_SIZE = 0.8f;
-    private static final String MODEL_PATH = "demon01.g3db";
+    private static final String MODEL_PATH = "demon_anim.g3db";
 
     private ModelInstance instance;
     private Model demonModel;
@@ -76,6 +81,7 @@ public class ARDemon {
     private Phase phase = Phase.SCANNING;
 
     private PhaseChangedListener phaseChangedListener;
+    private AnimationController animation;
 
     ARDemon(Camera camera, AssetManager assetManager, PhaseChangedListener listener) {
         phaseChangedListener = listener;
@@ -90,7 +96,8 @@ public class ARDemon {
                 new Material(ColorAttribute.createDiffuse(Color.RED)),
                 VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal);
         demonModel = assetManager.get(MODEL_PATH, Model.class);
-        demonModel.meshes.get(0).scale(DEMON_SCALE, DEMON_SCALE, DEMON_SCALE);
+        // for (Mesh mesh : demonModel.meshes)
+            // mesh.scale(DEMON_SCALE, DEMON_SCALE, DEMON_SCALE);
 
         instance = new ModelInstance(sphereModel);
     }
@@ -165,18 +172,19 @@ public class ARDemon {
             position.lerp(randomTargetPosition, easeInOutQuad(interpTime));
             instance.transform.setTranslation(position);
         } else if (phase == Phase.CAPTURING) {
+            Vector3 target  = anchorToTranslation(anchors[currentTarget]).add(0, DEMON_OFFSET_Y, 0);
             if (!waitingAtTarget) {
-                Vector3 delta = anchorToTranslation(anchors[currentTarget]).sub(position);
+                Vector3 delta = target.sub(position);
                 float distance = delta.len();
                 position.add(delta.nor().scl(Gdx.graphics.getDeltaTime() * SPEED * Math.min(1, distance)));
-                setPositionTowards(position, anchorToTranslation(anchors[currentTarget]));
+                setPositionTowards(position, target);
 
                 if (distance < 0.05) {
                     waitingAtTarget = true;
                     // TODO start animation
                 }
             } else {
-                setPositionTowards(anchorToTranslation(anchors[currentTarget]), cameraPosition);
+                setPositionTowards(target, cameraPosition);
             }
         }
     }
@@ -215,9 +223,11 @@ public class ARDemon {
 
                 targets[i] = point;
             }
-        } else if (t.length > MAX_TARGETS) {
-            System.arraycopy(t, 0, targets, 0, MAX_TARGETS);
+        } else if (t.length > MIN_TARGETS) {
+            System.arraycopy(t, 0, targets, 0, targets.length);
         }
+
+        Log.e("demon-go-animations", Arrays.toString(targets));
 
         anchors = new Anchor[targets.length];
         for (int i = 0; i < targets.length; i++) {
@@ -276,6 +286,11 @@ public class ARDemon {
 
         phase = Phase.CAPTURING;
         instance = new ModelInstance(demonModel);
+        for (Animation a : instance.animations) {
+            Log.e("demon-go-animation", a.id);
+        }
+        // animation = new AnimationController(instance);
+        // animation.setAnimation("Armature.001|move", -1);
         phaseChangedListener.changed(this, getPhase());
     }
 
