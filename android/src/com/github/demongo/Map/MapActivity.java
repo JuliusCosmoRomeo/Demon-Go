@@ -93,6 +93,10 @@ import com.github.demongo.Demon.Type;
 
 public class MapActivity extends AppCompatActivity {
     private static final String TAG = "demon-go-map";
+    // Map Opponent must:
+    // 1: Clear all stashes and reset player demons ONCE
+    // 2: REMOVE stash clear and demon reset
+    // 3: Switch player/opponent id
     public static final UUID playerId = UUID.fromString("1b9624f8-4683-41c6-823e-89932573aa67");
     public static final UUID opponentId = UUID.fromString("1b9624f8-0000-41c6-823e-89932573aa67");
     private static final String MARKER_SOURCE = "markers-source";
@@ -124,7 +128,6 @@ public class MapActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-
         // if we were opened from the AR component after a successful demon heist!
         if (getIntent().hasExtra("demon-captured")) {
             handleDemonCaptured();
@@ -144,7 +147,8 @@ public class MapActivity extends AppCompatActivity {
             put("ep",10000);
         }});
 
-        resetPlayerDemons();
+//        clearAllStashes();
+//        resetPlayerDemons();
 
         stashMarkerMap = new HashMap();
         demonMarkerMap = new HashMap();
@@ -226,7 +230,7 @@ public class MapActivity extends AppCompatActivity {
         new NameDialog(this, new NameDialogChosenListener() {
             @Override
             public void nameChosen(String name) {
-                Demon demon = new Demon(name, 500, 500, 250, 2300, R.drawable.notification_icon, Type.Marid, nullStashId, new ParcelUuid(UUID.randomUUID()));
+                Demon demon = new Demon(name, 120, 120, 50, 300, R.drawable.notification_icon, Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID()));
                 db.collection("stashes").document(nullStashId.toString()).collection("demons").add(demon.getMap());
                 Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
                 demonGallery.putExtra("action", DemonGallery.Action.Add);
@@ -258,9 +262,15 @@ public class MapActivity extends AppCompatActivity {
                 }
 
                 ArrayList<Demon> demons = new ArrayList<Demon>(){{
-                    add(new Demon("flupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("schnucksi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("blubsi",220,220,90,1440, R.drawable.notification_icon,Demon.Type.Afrit, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Dupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Wupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Mupsi",50,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("kleiner Flupsi",50,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("kleiner Hupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Lupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Glubschi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                     add(new Demon("Mieser Rupsi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                     add(new Demon("Fieser Zupsi",220,220,90,1440, R.drawable.biggerdemon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
                 }};
                 for(Demon demon : demons){
                     db.collection("stashes").document(nullStashId.toString()).collection("demons").document(demon.getId().toString()).set(demon.getMap());
