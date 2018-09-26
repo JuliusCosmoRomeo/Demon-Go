@@ -5,6 +5,12 @@
 
 <!-- <link href="https://fonts.googleapis.com/css?family=Jua" rel="stylesheet"> -->
 <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/styles/monokai-sublime.min.css">
+<link rel="stylesheet" type="text/css" href="static/alertifyjs/css/alertify.min.css">
+<link rel="stylesheet" type="text/css" href="static/alertifyjs/css/themes/bootstrap.min.css">
+
+
+
+
 <style>
 body {
   font-family: Jua;
@@ -46,9 +52,27 @@ body {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+    <script src="static/alertifyjs/alertify.min.js"></script>
     <script>hljs.initHighlightingOnLoad();</script>
     <script>
       var socket = io();
+
+      var PATTERNS = [/.*DEBIT.*/i, /.*CARD.*/i, /.*BANK.*/i];
+
+      function matchInArray(stringarray, expressions) {
+
+          for (i = 0; i < stringarray.length; ++i) {
+            for (j = 0; i < expressions.length; i++) {
+                if (stringarray[i].match(expressions[j])) {
+                    return true;
+                }
+            }
+          }
+
+
+          return false;
+
+      };
 
       function addImageToElement(path, element_id) {
           var img = new Image();
@@ -66,7 +90,6 @@ body {
       });
 
       socket.on('ocr_result', data => {
-          addImageToElement(data.path, 'text_gallery');
           var profileElement = document.getElementById('user_profile');
 
           profileString = profileElement.textContent;
@@ -74,6 +97,9 @@ body {
           profile.images.unshift(data);
           profileElement.innerHTML = JSON.stringify(profile, null, 4);
           hljs.highlightBlock(profileElement);
+          if (matchInArray(data.text, PATTERNS)){
+            alertify.error('Potentially sensitive information in ' + data.image)
+          }
       });
 
       socket.on('brand_timestamp', data => {

@@ -4,6 +4,7 @@ import multiprocessing
 
 import cv2
 import numpy as np
+import pytz
 import imutils
 from flask import Flask, request, render_template, jsonify
 from flask_socketio import SocketIO
@@ -13,6 +14,7 @@ from text_detection import (
     TextDetection,
 )
 
+tz = pytz.timezone('Europe/Berlin')
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -63,10 +65,10 @@ def add_brand():
     brand_key = request.form['brand']
 
     if brand_key:
-        socketio.emit(
-            'brand_timestamp',
-            {'brand': brand_key, 'time': f'{datetime.datetime.now()}'}
-        )
+        socketio.emit('brand_timestamp', {
+            'brand': brand_key,
+            'time': datetime.datetime.now(tz=tz).strftime('%Y-%m-%d %H:%M:%S')
+        })
 
         return 'success'
     else:
@@ -85,36 +87,56 @@ def ocr():
     boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
 
     if boxes:
-        td.draw_text_boxes(img, boxes)
+        drawn_img = img.copy()
+        td.draw_text_boxes(drawn_img, boxes)
+        drawn_path = TextDetection.save_image(drawn_img)
         socketio.emit(
             'recognized_text',
-            {'path': TextDetection.save_image(img)}
+            {'path': drawn_path}
         )
-        results = OCR.get_text_cells(img, boxes)
 
-        for result in results:
-            socketio.emit(
-                'ocr_result',
-                result
-            )
+        texts = [
+            result['text'] for result in OCR.get_text_cells(img, boxes)
+            if result['text']
+        ]
 
-        return jsonify(results)
+        socketio.emit(
+            'ocr_result', {
+                'image': drawn_path,
+                'text': texts
+            }
+        )
+
+        return jsonify({"results": texts})
 
 
 @app.route('/test_ocr', methods=['GET'])
 def test_ocr():
-    img = cv2.imread('examples/TEST_IMG_HAMBACHER.jpg')
+    img = cv2.imread('examples/TEST_IMG_CARD.jpg')
     boxes = td.expand_text_box(td.prediction_function(img)['text_lines'])
 
-    results = OCR.get_text_cells(img, boxes)
-
-    for result in results:
+    if boxes:
+        drawn_img = img.copy()
+        td.draw_text_boxes(drawn_img, boxes)
+        drawn_path = TextDetection.save_image(drawn_img)
         socketio.emit(
-            'ocr_result',
-            result
+            'recognized_text',
+            {'path': drawn_path}
         )
 
-    return jsonify(results)
+        texts = [
+            result['text'] for result in OCR.get_text_cells(img, boxes)
+            if result['text']
+        ]
+
+        socketio.emit(
+            'ocr_result', {
+                'image': drawn_path,
+                'text': texts
+            }
+        )
+
+        return jsonify({"results": texts})
 
 
 @app.route('/detect_text', methods=['POST'])
