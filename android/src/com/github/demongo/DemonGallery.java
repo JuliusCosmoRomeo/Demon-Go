@@ -99,7 +99,7 @@ public class DemonGallery extends Activity {
 
             ImageView imageView = itemView.findViewById(R.id.image_view);
             final Demon demon = demons.get(position);
-            imageView.setImageResource((int)demon.getResource());
+            imageView.setImageResource(demon.getType() == Demon.Type.Djinn ? R.drawable.biggerdemon : R.drawable.smallerdemon);
             TextView demonName = itemView.findViewById(R.id.demon_name);
             demonName.setText(demon.getName());
             TextView demonType = itemView.findViewById(R.id.demon_type);

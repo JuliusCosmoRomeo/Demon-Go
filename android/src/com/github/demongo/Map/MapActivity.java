@@ -230,7 +230,7 @@ public class MapActivity extends AppCompatActivity {
         new NameDialog(this, new NameDialogChosenListener() {
             @Override
             public void nameChosen(String name) {
-                Demon demon = new Demon(name, 120, 120, 50, 300, R.drawable.notification_icon, Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID()));
+                Demon demon = new Demon(name, 120, 120, 50, 300, R.drawable.demon, Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID()));
                 db.collection("stashes").document(nullStashId.toString()).collection("demons").add(demon.getMap());
                 Intent demonGallery = new Intent(MapActivity.this,DemonGallery.class);
                 demonGallery.putExtra("action", DemonGallery.Action.Add);
@@ -262,14 +262,14 @@ public class MapActivity extends AppCompatActivity {
                 }
 
                 ArrayList<Demon> demons = new ArrayList<Demon>(){{
-                    add(new Demon("Dupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("Wupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("Mupsi",50,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("kleiner Flupsi",50,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("kleiner Hupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("Lupsi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                    add(new Demon("Glubschi",100,100,30,230, R.drawable.notification_icon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
-                     add(new Demon("Mieser Rupsi",150,150,60,780, R.drawable.notification_icon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Dupsi",100,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Wupsi",100,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Mupsi",50,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("kleiner Flupsi",50,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("kleiner Hupsi",100,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Lupsi",100,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                    add(new Demon("Glubschi",100,100,30,230, R.drawable.demon,Demon.Type.Imp, nullStashId, new ParcelUuid(UUID.randomUUID())));
+                     add(new Demon("Mieser Rupsi",150,150,60,780, R.drawable.demon,Demon.Type.Foliot, nullStashId, new ParcelUuid(UUID.randomUUID())));
                      add(new Demon("Fieser Zupsi",220,220,90,1440, R.drawable.biggerdemon,Demon.Type.Djinn, nullStashId, new ParcelUuid(UUID.randomUUID())));
                 }};
                 for(Demon demon : demons){
