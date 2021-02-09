@@ -4,7 +4,8 @@ This showcase application constists of two parts:
 - an Augmented Reaility Android game using ARCore and a sophisticated image processing pipeline using OpenCV and
 - an offline Flask server with OCR enabled by Tesseract.
 
-The application demonstrates the risks of camera-stream analysis in immersive AR games.
+The application demonstrates the risks of camera-stream analysis to find sensitive textual information like credit card details or brand logos while the player is involved in immersive AR games.
+The following game description is taken from our [unpublished paper](https://drive.google.com/file/d/1wR71WPDh_DmZJ_nUnx_y0vrCpbbSrKmX/view?usp=sharing) where the full text with all images can be found. 
 
 ## Game Motivation 
 
