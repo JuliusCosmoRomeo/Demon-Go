@@ -11,9 +11,11 @@ The application constists of 3 parts:
 2. [Mobile OpenCV Image Analysis Pipeline](#mobile-opencv-image-analysis-pipeline)
 3. [Offline OCR Image Processing](#offline-ocr-image-processing)
 
-The following game description is taken from our [unpublished paper](https://drive.google.com/file/d/1wR71WPDh_DmZJ_nUnx_y0vrCpbbSrKmX/view?usp=sharing) where the full text with all images can be found. 
+High level architecture:
 
 ![image](https://user-images.githubusercontent.com/10089188/107501695-0a7b8400-6b98-11eb-8386-dc94b0318741.png)
+
+The following game description is taken from our [unpublished paper](https://drive.google.com/file/d/1wR71WPDh_DmZJ_nUnx_y0vrCpbbSrKmX/view?usp=sharing) where the full text with all images can be found. 
 
 ## Game Motivation 
 
@@ -103,23 +105,34 @@ and robust to noise, and therefore well applicable to realworld scenes. Matches 
 
 ![image](https://user-images.githubusercontent.com/10089188/107504234-4b28cc80-6b9b-11eb-8d7e-e28a19568463.png)
 ![image](https://user-images.githubusercontent.com/10089188/107504240-4e23bd00-6b9b-11eb-8d63-589390f37b7b.png)
+
 2. b) Contour Detection 
 
 ![image](https://user-images.githubusercontent.com/10089188/107504249-524fda80-6b9b-11eb-83a4-e18d1e459f5b.png)
 ![image](https://user-images.githubusercontent.com/10089188/107504257-554acb00-6b9b-11eb-984d-c53dd849835b.png)
+
 3. Noise Estimation
+
 ![image](https://user-images.githubusercontent.com/10089188/107504272-57ad2500-6b9b-11eb-8479-0309f4cdf9f4.png)
+
 4. Colorfulness Estimation
+
 ![image](https://user-images.githubusercontent.com/10089188/107504282-5aa81580-6b9b-11eb-9083-e650b3384698.png)
 
 ## Offline OCR Image Processing
 
 The images with high probability to contain text are then sent to the server where the heavier processing continues.
+
 5. Scene text detection finds text snippets within an image
+
 ![image](https://user-images.githubusercontent.com/10089188/107504293-5da30600-6b9b-11eb-89f1-8fd5aba5a655.png)
+
 6. If text is found the 2D coordinates of it are determined and sent back to the client where the 3D coordinate is extrapolated and a point of interest is marked in the augmented world. That's where the demon goes next to occlude the text snippet with potentially sensitive content.
+
 ![image](https://user-images.githubusercontent.com/10089188/107504301-609df680-6b9b-11eb-9617-e2803c2341cb.png)
+
 7. OCR on the server then analyzes the selected snippets which contain text.
+
 ![image](https://user-images.githubusercontent.com/10089188/107504312-6398e700-6b9b-11eb-8a4c-9c03a430fc79.png)
 ![image](https://user-images.githubusercontent.com/10089188/107504320-65fb4100-6b9b-11eb-994a-7bc2f2498eda.png)
 
