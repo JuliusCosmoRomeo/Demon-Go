@@ -1,11 +1,19 @@
 # DemonGO - Demonstrating Malicious Camera-Stream Analysis during AR Applications (2017-2018)
 
-This showcase application constists of two parts: 
-- an Augmented Reaility Android game using ARCore and a sophisticated image processing pipeline using OpenCV and
+This showcase application demonstrates the risks of camera-stream analysis to find sensitive textual information like credit card details or brand logos while the player is involved in immersive AR games.
+
+The application constists of 3 parts: 
+- an Augmented Reaility Android game using ARCore and Mapbox
+- a sophisticated image processing pipeline using OpenCV on Android and
 - an offline Flask server with OCR enabled by Tesseract.
 
-The application demonstrates the risks of camera-stream analysis to find sensitive textual information like credit card details or brand logos while the player is involved in immersive AR games.
+1. [Game Motivation](#game-motivation)
+2. [Mobile OpenCV Image Analysis Pipeline](#mobile-opencv-image-analysis-pipeline)
+3. [Offline OCR Image Processing](#offline-ocr-image-processing)
+
 The following game description is taken from our [unpublished paper](https://drive.google.com/file/d/1wR71WPDh_DmZJ_nUnx_y0vrCpbbSrKmX/view?usp=sharing) where the full text with all images can be found. 
+
+![image](https://user-images.githubusercontent.com/10089188/107501695-0a7b8400-6b98-11eb-8386-dc94b0318741.png)
 
 ## Game Motivation 
 
@@ -63,7 +71,10 @@ picture back to a three-dimensional point in the virtual game space.
 
 <img src="https://user-images.githubusercontent.com/10089188/107435741-d8810800-6b2c-11eb-9a8b-0a99c5ea17dd.png" alt="snapshot data" width="500"/>
 
-## Data Analysis Implementation
+## Mobile OpenCV Image Analysis Pipeline
+
+<img src="https://user-images.githubusercontent.com/10089188/107431692-1713c400-6b27-11eb-9c95-5b9e49d95cb5.png" alt="pipeline" width="1000"/>
+
 The major part of the data analysis is done in the scanning phase by
 the pipeline which can be seen in Figure 4. The pipeline is started in
 a separate thread as soon as the AR subsystem hands over a snapshot.
@@ -80,12 +91,36 @@ based on those frames.
 
 The image analysis pipeline on the mobile device works as follows:
 1. Using a Laplace filter blurry images get filtered out
-2. Prioritize frames when the angle changed by more than 5 degrees or the phone has been moved by 10 cms
-3. Detect patterns using an We utilize an ORB (Oriented FAST and Rotated BRIEF) key point descriptor described by Rublee et al. that is rotation invariant
-and robust to noise, and therefore well applicable to realworld scenes [Rublee et al. 2011]. Matches get sent to our server and in the current implementation the user receives a push notification from Google Firebase (e.g. when a Club Mate logo is detected the user gets notified that Mio Mio Mate is on discount right now).
+![image](https://user-images.githubusercontent.com/10089188/107504203-419f6480-6b9b-11eb-82a1-933182f366cf.png)
+![image](https://user-images.githubusercontent.com/10089188/107504214-4532eb80-6b9b-11eb-867c-10a10d6d690e.png)
 
-<img src="https://user-images.githubusercontent.com/10089188/107431692-1713c400-6b27-11eb-9c95-5b9e49d95cb5.png" alt="pipeline" width="1000"/>
-<img src="https://user-images.githubusercontent.com/10089188/107430301-3e699180-6b25-11eb-8237-a7187a571c9c.png" alt="demon go map" width="1000"/>
-<img src="https://user-images.githubusercontent.com/10089188/107430467-7a9cf200-6b25-11eb-99f4-6082f5d7497d.png" alt="demon go map" width="500"/>
-<img src="https://user-images.githubusercontent.com/10089188/107430421-6bb63f80-6b25-11eb-85fd-03b93ce233ab.png" alt="demon go map" width="500"/>
+2. Prioritize frames when the angle changed by more than 5 degrees or the phone has been moved by 10 cms
+
+![image](https://user-images.githubusercontent.com/10089188/107504224-482ddc00-6b9b-11eb-9c11-f2459c392a85.png)
+
+2. a) Detect patterns using an ORB (Oriented FAST and Rotated BRIEF) key point descriptor that is rotation invariant
+and robust to noise, and therefore well applicable to realworld scenes. Matches get sent to our server and in the current implementation the user receives a push notification from Google Firebase (e.g. when a *Club Mate* logo is detected the user gets notified that *Mio Mio Mate* is on discount right now).
+
+![image](https://user-images.githubusercontent.com/10089188/107504234-4b28cc80-6b9b-11eb-8d7e-e28a19568463.png)
+![image](https://user-images.githubusercontent.com/10089188/107504240-4e23bd00-6b9b-11eb-8d63-589390f37b7b.png)
+2. b) Contour Detection 
+
+![image](https://user-images.githubusercontent.com/10089188/107504249-524fda80-6b9b-11eb-83a4-e18d1e459f5b.png)
+![image](https://user-images.githubusercontent.com/10089188/107504257-554acb00-6b9b-11eb-984d-c53dd849835b.png)
+3. Noise Estimation
+![image](https://user-images.githubusercontent.com/10089188/107504272-57ad2500-6b9b-11eb-8479-0309f4cdf9f4.png)
+4. Colorfulness Estimation
+![image](https://user-images.githubusercontent.com/10089188/107504282-5aa81580-6b9b-11eb-9083-e650b3384698.png)
+
+## Offline OCR Image Processing
+
+The images with high probability to contain text are then sent to the server where the heavier processing continues.
+5. Scene text detection finds text snippets within an image
+![image](https://user-images.githubusercontent.com/10089188/107504293-5da30600-6b9b-11eb-89f1-8fd5aba5a655.png)
+6. If text is found the 2D coordinates of it are determined and sent back to the client where the 3D coordinate is extrapolated and a point of interest is marked in the augmented world. That's where the demon goes next to occlude the text snippet with potentially sensitive content.
+![image](https://user-images.githubusercontent.com/10089188/107504301-609df680-6b9b-11eb-9617-e2803c2341cb.png)
+7. OCR on the server then analyzes the selected snippets which contain text.
+![image](https://user-images.githubusercontent.com/10089188/107504312-6398e700-6b9b-11eb-8a4c-9c03a430fc79.png)
+![image](https://user-images.githubusercontent.com/10089188/107504320-65fb4100-6b9b-11eb-994a-7bc2f2498eda.png)
+
 
